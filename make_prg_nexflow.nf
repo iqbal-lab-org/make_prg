@@ -19,9 +19,9 @@ if (!final_outdir.exists()) {
 split_tsv = Channel.from(input_tsv).splitCsv(header: true, sep:'\t')
 
 process make_prg {
-    errorStrategy {task.attempt < 3 ? 'retry' : 'terminate'}
+    errorStrategy {task.attempt < 4 ? 'retry' : 'terminate'}
     memory {params.testing ? '0.5 GB' : 1.GB * task.attempt * task.attempt}
-    maxRetries 3
+    maxRetries 4
 
     input:
     val tsv_fields from split_tsv
@@ -48,5 +48,4 @@ process make_fasta {
     """ 
 }
 
-results.collectFile(name: 'pangenome_PRG.fa')
-
+results.collectFile(name: final_outdir/'pangenome_PRG.fa')
