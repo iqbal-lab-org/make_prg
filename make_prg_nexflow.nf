@@ -44,7 +44,7 @@ process make_fasta {
     """
     echo ">${id}" >> "${id}.fa"
     cat "${prg_file}" >> "${id}.fa"
-    echo "\n"
+    echo "" >> "${id}.fa"
     """ 
 }
 
