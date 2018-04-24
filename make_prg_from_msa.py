@@ -9,7 +9,7 @@ import argparse
 from sklearn.cluster import KMeans
 import numpy as np
 import itertools
-
+import gzip
 
 # import cProfile
 
@@ -29,7 +29,12 @@ class AlignedSeq(object):
         self.alignment = alignment
         if not self.alignment:
             logging.info("Read from MSA file %s", self.msa_file)
-            self.alignment = AlignIO.read(self.msa_file, self.format)
+	    if ".gz" in self.msa_file:
+		handle = gzip.open(self.msa_file, 'rb')
+		self.alignment = AlignIO.read(handle, self.format)
+		handle.close()
+	    else:
+                self.alignment = AlignIO.read(self.msa_file, self.format)
         self.interval = interval
         self.num_seqs = len(self.alignment)
         self.consensus = self.get_consensus()
