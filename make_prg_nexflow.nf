@@ -3,7 +3,7 @@ params.testing = false
 params.pipeline_root = ""
 params.max_nesting = 10
 params.min_match_length = 7
-params.format = "fasta"
+params.alignment_format = "fasta"
 params.final_outdir = "."
 
 input_tsv = file(params.tsv_in).toAbsolutePath()
@@ -30,7 +30,7 @@ process make_prg {
     set(val("${tsv_fields['sample_id']}"), file("${tsv_fields['sample_id']}.max_nest${params.max_nesting}.min_match${params.min_match_length}.prg")) into make_prg_out
 
     """
-    python ${params.pipeline_root}/make_prg_from_msa.py ${tsv_fields["infile"]} --prefix ${tsv_fields['sample_id']} --max_nesting ${params.max_nesting} --min_match_length ${params.min_match_length} --format ${params.format}
+    python ${params.pipeline_root}/make_prg_from_msa.py ${tsv_fields["infile"]} --prefix ${tsv_fields['sample_id']} --max_nesting ${params.max_nesting} --min_match_length ${params.min_match_length} --alignment_format ${params.alignment_format} -v
     """
 }
 
