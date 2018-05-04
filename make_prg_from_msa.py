@@ -95,13 +95,13 @@ class AlignedSeq(object):
             # It makes no sense to classify a fully consensus sequence as 
             # a non-match just because it is too short.
             if '*' in self.consensus:
-                interval_alignment = self.alignment[:, 0:self.length - 1]
+                interval_alignment = self.alignment[:, 0:self.length]
                 interval_seqs = list(remove_duplicates([str(record.seq).replace('-', '') for record in interval_alignment]))
                 if len(interval_seqs) > 1:
-                    logging.debug("add short non-match whole interval [%d,%d]" %(0,self.length-1))
+                    logging.debug("add short non-match whole interval [%d,%d]" %(0,self.length - 1))
                     non_match_intervals.append([0, self.length - 1])
                 else:
-                    logging.debug("add short match whole interval [%d,%d]" %(0,self.length-1))
+                    logging.debug("add short match whole interval [%d,%d]" %(0,self.length - 1))
                     match_intervals.append([0, self.length - 1])
             else:
                 match_intervals.append([0, self.length - 1])
