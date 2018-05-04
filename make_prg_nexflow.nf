@@ -5,6 +5,8 @@ params.max_nesting = 10
 params.min_match_length = 7
 params.alignment_format = "fasta"
 params.final_outdir = "."
+params.max_forks_make_prg = 100
+params.max_forks_make_fasta = 100
 
 input_tsv = file(params.tsv_in).toAbsolutePath()
 if (!input_tsv.isFile()) {
@@ -19,9 +21,10 @@ if (!final_outdir.exists()) {
 split_tsv = Channel.from(input_tsv).splitCsv(header: true, sep:'\t')
 
 process make_prg {
-    errorStrategy {task.attempt < 4 ? 'retry' : 'terminate'}
-    memory {params.testing ? '0.5 GB' : 1.GB * task.attempt * task.attempt}
-    maxRetries 4
+    maxForks params.max_forks_make_prg
+    errorStrategy {task.attempt < 5 ? 'retry' : 'terminate'}
+    memory {params.testing ? '0.5 GB' : 0.5.GB * task.attempt * task.attempt}
+    maxRetries 5
 
     input:
     val tsv_fields from split_tsv
@@ -35,6 +38,7 @@ process make_prg {
 }
 
 process make_fasta {
+    maxForks params.max_forks_make_fasta
     input: 
     set val(id), file(prg_file) from make_prg_out
 
