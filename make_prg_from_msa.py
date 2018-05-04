@@ -27,7 +27,8 @@ class AlignedSeq(object):
         if not self.alignment:
             logging.info("Read from MSA file %s", self.msa_file)
             if ".gz" in self.msa_file:
-                handle = gzip.open(self.msa_file, 'rb')
+                logging.debug("MSA is gzipped")
+                handle = gzip.open(self.msa_file, 'rt')
                 self.alignment = AlignIO.read(handle, self.alignment_format)
                 handle.close()
             else:
@@ -549,11 +550,11 @@ def main():
     prefix += ".max_nest%d.min_match%d" % (args.max_nesting, args.min_match_length)
 
     if args.verbosity:
-        logging.basicConfig(filename='%s.log' % prefix, level=logging.DEBUG, alignment_format='%(asctime)s %(message)s',
+        logging.basicConfig(filename='%s.log' % prefix, level=logging.DEBUG, format='%(asctime)s %(message)s',
                             datefmt='%d/%m/%Y %I:%M:%S')
         logging.debug("Using debug logging")
     else:
-        logging.basicConfig(filename='%s.log' % prefix, level=logging.INFO, alignment_format='%(asctime)s %(message)s',
+        logging.basicConfig(filename='%s.log' % prefix, level=logging.INFO, format='%(asctime)s %(message)s',
                             datefmt='%d/%m/%Y %I:%M:%S')
         logging.info("Using info logging")
     logging.info("Input parameters max_nesting: %d, min_match_length: %d", args.max_nesting, args.min_match_length)
