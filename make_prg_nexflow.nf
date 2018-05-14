@@ -22,9 +22,9 @@ split_tsv = Channel.from(input_tsv).splitCsv(header: true, sep:'\t')
 
 process make_prg {
     maxForks params.max_forks_make_prg
-    errorStrategy {task.attempt < 5 ? 'retry' : 'terminate'}
-    memory {params.testing ? '0.5 GB' : 0.5.GB * task.attempt * task.attempt}
-    maxRetries 5
+    errorStrategy {task.attempt < 10 ? 'retry' : 'ignore'}
+    memory {params.testing ? '0.1 GB' : 0.1.GB * task.attempt * task.attempt}
+    maxRetries 10
 
     input:
     val tsv_fields from split_tsv
