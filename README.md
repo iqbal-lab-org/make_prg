@@ -34,9 +34,12 @@ __Changing parameters__
 
 There are some parameters at the top of the nextflow file which could be changed but which I have not made command line parameters:
 ```
-max_nesting             This is the maximum number depth of bubbles in PRG, setting to 1 will allow variants, but no nesting
-min_match_length        Collapsing sequence together with only a base or two shared will result in complex graphs
-alignment_format        The input multiple sequence alignments can be in any format accepted by biopython's AlignIO
-max_forks_make_prg      If working on a cluster which allows unlimited parallel jobs per user, this will be used by nextflow to control                         maximum number of processes of this type that can run in parallel. 
+max_nesting             This is the maximum number depth of bubbles in PRG, setting to 1 will allow variants, \\ 
+                        but no nesting
+min_match_length        Controls graph complexity 
+alignment_format        Any format accepted by biopython's AlignIO
+max_forks_make_prg      If working on a cluster which allows unlimited parallel jobs per user, this will be \\
+                        used by nextflow to control maximum number of processes of this type that can run in \\
+                        parallel. 
 max_forks_make_fasta   
 ```
