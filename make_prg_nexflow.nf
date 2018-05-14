@@ -1,7 +1,7 @@
 params.tsv_in = ""
 params.testing = false
 params.pipeline_root = ""
-params.max_nesting = 10
+params.max_nesting = 10         #NB setting this to 1 would make a PRG with variants but no nesting
 params.min_match_length = 7
 params.alignment_format = "fasta"
 params.final_outdir = "."
