@@ -1,5 +1,5 @@
 # make_prg
-Code to create a PRG for input to Pandora from a Multiple Sequence Alignment file.
+Code to create a PRG for input to Pandora (https://github.com/rmcolq/pandora) from a Multiple Sequence Alignment file.
 
 __Requirements__
 Expects you to have python3 and nextflow installed and in your path and a config file for nextflow set up if you are working on a cluster. Can run on python2.7+ if the command in nextflow file is edited.
