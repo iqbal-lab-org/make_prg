@@ -39,6 +39,9 @@ process make_prg {
 
 process make_fasta {
     maxForks params.max_forks_make_fasta
+    errorStrategy {task.attempt < 3 ? 'retry' : 'ignore'}
+    maxRetries 3
+
     input: 
     set val(id), file(prg_file) from make_prg_out
 
@@ -46,6 +49,10 @@ process make_fasta {
     file "${id}.fa" into results
     
     """
+    if [ ! -f "${prg_file}" ]; then
+      echo "File not found!"
+    fi
+
     echo ">${id}" >> "${id}.fa"
     cat "${prg_file}" >> "${id}.fa"
     echo "" >> "${id}.fa"
