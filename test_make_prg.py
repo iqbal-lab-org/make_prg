@@ -40,3 +40,7 @@ def test_answers():
 
     aseq = AlignedSeq("test/contains_n_and_RYKMSW_no_variants.fa")
     assert aseq.prg == "AAACGTGGTT"
+
+    with pytest.raises(Exception):
+        aseq = AlignedSeq("test/fails.fa")
+    print("Done")

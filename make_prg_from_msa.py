@@ -16,8 +16,8 @@ def contains_only(seq, aset):
     return True
 
 def get_interval_seqs(interval_alignment):
-    """Replace - with nothing, remove seqs containing N and duplicate sequences containing RYKMSW,
-    replacing with AGCT alternatives """
+    """Replace - with nothing, remove seqs containing N or other non-allowed letters
+    and duplicate sequences containing RYKMSW, replacing with AGCT alternatives """
     allowed = ['A','C','G','T','R','Y','K','M','S','W']
     iupac = {'R': ['G', 'A'], 'Y': ['T', 'C'], 'K': ['G', 'T'], 'M': ['A', 'C'], 'S': ['G', 'C'], 'W': ['A', 'T']}
     seqs = []
@@ -37,6 +37,7 @@ def get_interval_seqs(interval_alignment):
     ret_list = list(set(seqs))
     if len(ret_list) == 0:
         print("Every sequence must have contained an N in this slice - redo sequence curation because this is nonsense")
+        assert len(ret_list) > 0
     return list(set(seqs))
 
 class AlignedSeq(object):
