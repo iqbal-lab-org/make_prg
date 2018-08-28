@@ -9,14 +9,20 @@ from sklearn.cluster import KMeans
 import numpy as np
 import gzip
 
+def contains_only(seq, aset):
+    """ Check whether sequence seq contains ONLY items in aset. """
+    for c in seq:
+        if c not in aset: return False
+    return True
 
 def get_interval_seqs(interval_alignment):
     """Replace - with nothing, remove seqs containing N and duplicate sequences containing RYKMSW,
     replacing with AGCT alternatives """
+    allowed = ['A','C','G','T','R','Y','K','M','S','W']
     iupac = {'R': ['G', 'A'], 'Y': ['T', 'C'], 'K': ['G', 'T'], 'M': ['A', 'C'], 'S': ['G', 'C'], 'W': ['A', 'T']}
     seqs = []
-    for s in list(remove_duplicates([str(record.seq).replace('-', '') for record in interval_alignment])):
-        if 'N' not in s:
+    for s in list(remove_duplicates([str(record.seq).replace('-', '').upper() for record in interval_alignment])):
+        if contains_only(s, allowed):
             new_seqs = [s]
             for letter in iupac.keys():
                 letter_seqs = []
