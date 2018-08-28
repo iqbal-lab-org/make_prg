@@ -10,6 +10,29 @@ import numpy as np
 import gzip
 
 
+def get_interval_seqs(interval_alignment):
+    """Replace - with nothing, remove seqs containing N and duplicate sequences containing RYKMSW,
+    replacing with AGCT alternatives """
+    iupac = {'R': ['G', 'A'], 'Y': ['T', 'C'], 'K': ['G', 'T'], 'M': ['A', 'C'], 'S': ['G', 'C'], 'W': ['A', 'T']}
+    seqs = []
+    for s in list(remove_duplicates([str(record.seq).replace('-', '') for record in interval_alignment])):
+        if 'N' not in s:
+            new_seqs = [s]
+            for letter in iupac.keys():
+                letter_seqs = []
+                for t in new_seqs:
+                    if letter in t:
+                        letter_seqs.append(t.replace(letter, iupac[letter][0]))
+                        letter_seqs.append(t.replace(letter, iupac[letter][1]))
+                    else:
+                        letter_seqs.append(t)
+                new_seqs = letter_seqs
+            seqs.extend(new_seqs)
+    ret_list = list(set(seqs))
+    if len(ret_list) == 0:
+        print("Every sequence must have contained an N in this slice - redo sequence curation because this is nonsense")
+    return list(set(seqs))
+
 class AlignedSeq(object):
     """
     Object based on a set of aligned sequences. Note min_match_length must be strictly greater than max_nesting + 1.
@@ -63,13 +86,16 @@ class AlignedSeq(object):
 
     def get_consensus(self):
         """Given a set of aligment records from AlignIO, creates
-        a consensus string. - and N result in non consensus at that position."""
+        a consensus string.
+        Lower and upper case are equivalent
+        Non AGCT symbols RYKMSW result in non-consensus and are substituted in graph
+        N results in consensus at that position."""
         first_string = str(self.alignment[0].seq)
         consensus_string = ''
         for i, letter in enumerate(first_string):
             consensus = True
             for record in self.alignment:
-                if record.seq[i] != letter:
+                if (record.seq[i].upper() != "N" and letter.upper() != "N") and (record.seq[i].upper() != letter.upper() or record.seq[i].upper() in ['R','Y','K','M','S','W']):
                     consensus = False
                     break
             if consensus:
@@ -96,7 +122,7 @@ class AlignedSeq(object):
             # a non-match just because it is too short.
             if '*' in self.consensus:
                 interval_alignment = self.alignment[:, 0:self.length]
-                interval_seqs = list(remove_duplicates([str(record.seq).replace('-', '') for record in interval_alignment]))
+                interval_seqs = get_interval_seqs(interval_alignment)
                 if len(interval_seqs) > 1:
                     logging.debug("add short non-match whole interval [%d,%d]" %(0,self.length - 1))
                     non_match_intervals.append([0, self.length - 1])
@@ -123,8 +149,7 @@ class AlignedSeq(object):
                     if match_len >= self.min_match_length:
                         # if the non_match sequences in the interval are really the same, add a match interval
                         interval_alignment = self.alignment[:, non_match_start:match_start + 1]
-                        interval_seqs = list(
-                            remove_duplicates([str(record.seq).replace('-', '') for record in interval_alignment]))
+                        interval_seqs = get_interval_seqs(interval_alignment)
                         if non_match_start < match_start and len(interval_seqs) > 1:
                             non_match_intervals.append([non_match_start, match_start - 1])
                             logging.debug("add non-match interval as have alts [%d,%d]"
@@ -155,7 +180,7 @@ class AlignedSeq(object):
                 interval_alignment = self.alignment[:, non_match_start:match_start + 1]
             else:
                 interval_alignment = self.alignment[:, non_match_start:self.length]
-            interval_seqs = list(remove_duplicates([str(record.seq).replace('-', '') for record in interval_alignment]))
+            interval_seqs = get_interval_seqs(interval_alignment)
             if len(interval_seqs) == 1:
                 match_intervals.append([non_match_start, self.length - 1])
                 logging.debug("add match interval at end as only one seq [%d,%d]" % (non_match_start, self.length - 1))
@@ -195,7 +220,7 @@ class AlignedSeq(object):
             logging.debug("interval[1] - interval[0] <= self.min_match_length: %d <= %d", interval[1] - interval[0],
                           self.min_match_length)
             interval_alignment = self.alignment[:, interval[0]:interval[1] + 1]
-            interval_seqs = list(remove_duplicates([str(record.seq).replace('-', '') for record in interval_alignment]))
+            interval_seqs = get_interval_seqs(interval_alignment)
             assert len(interval_seqs) == len(
                 list(remove_duplicates(interval_seqs))), "should not have duplicate alternative allele sequences"
             return_id_lists = [[record.id for record in self.alignment if
@@ -331,11 +356,14 @@ class AlignedSeq(object):
         for interval in self.all_intervals:
             if interval in self.match_intervals:
                 # WLOG can take first sequence as all same in this interval
-                seq = str(self.alignment[0].seq)[interval[0]: interval[1] + 1].replace('-', '')
+                sub_alignment = self.alignment[:, interval[0]:interval[1] + 1]
+                seqs = get_interval_seqs(sub_alignment)
+                assert(len(seqs) > 0)
+                seq = seqs[0]
                 prg += seq
 
             else:
-                # Define variant site number and increment for next avaliable
+                # Define variant site number and increment for next available
                 site_num = self.site
                 self.site += 2
                 variant_seqs = []
@@ -348,8 +376,7 @@ class AlignedSeq(object):
                     sub_alignment = self.alignment[:, interval[0]:interval[1] + 1]
                     logging.debug("Variant seqs found: %s" % list(
                         remove_duplicates([str(record.seq) for record in sub_alignment])))
-                    variant_seqs = list(
-                        remove_duplicates([str(record.seq).replace('-', '') for record in sub_alignment]))
+                    variant_seqs = get_interval_seqs(sub_alignment)
                     logging.debug("Which is equivalent to: %s" % variant_seqs)
                 else:
                     # divide sequences into subgroups and define prg for each subgroup.

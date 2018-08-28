@@ -28,3 +28,15 @@ def test_answers():
 
     aseq = AlignedSeq("test/match.staggereddash.fa")
     assert aseq.prg == "AAACGTGGTT"
+
+    aseq = AlignedSeq("test/contains_n.fa")
+    assert aseq.prg == "AAACG 5 T 6 C 5 GGTT"
+
+    aseq = AlignedSeq("test/contains_RYKMSW.fa")
+    assert aseq.prg == "AAACG 5 T 6 C 5 GGTT"
+
+    aseq = AlignedSeq("test/contains_n_and_RYKMSW.fa")
+    assert aseq.prg == "AAACG 5 T 6 C 5 GGTT"
+
+    aseq = AlignedSeq("test/contains_n_and_RYKMSW_no_variants.fa")
+    assert aseq.prg == "AAACGTGGTT"
