@@ -279,6 +279,8 @@ class AlignedSeq(object):
             big_return_id_lists = []
             if len(interval_seqs) > 1:
                 # first transform sequences into kmer occurance vectors using a dict
+                logging.debug("seqs:\n")
+                logging.debug(interval_seqs)
                 logging.debug("First transform sequences into kmer occurance vectors")
 
                 # make dict based on number of kmers in all sequences
