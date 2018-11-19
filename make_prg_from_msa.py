@@ -300,6 +300,7 @@ class AlignedSeq(object):
                     for i in range(len(seq) - self.min_match_length + 1):
                         counts[self.kmer_dict[seq[i:i + self.min_match_length]]] += 1
                     seq_kmer_counts[j] = counts
+                logging.debug(seq_kmer_counts)
 
                 # cluster sequences using kmeans
                 logging.debug("Now cluster:")
