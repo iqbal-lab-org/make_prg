@@ -67,7 +67,8 @@ class AlignedSeq(object):
         self.num_seqs = len(self.alignment)
         self.consensus = self.get_consensus()
         self.length = len(self.consensus)
-        (self.match_intervals, self.non_match_intervals) = self.get_match_intervals
+        (self.match_intervals, self.non_match_intervals) = self.get_match_intervals()
+        self.check_nonmatch_intervals()
         self.all_intervals = self.match_intervals + self.non_match_intervals
         logging.info("Non match intervals: %s", self.non_match_intervals)
         self.all_intervals.sort()
@@ -218,6 +219,17 @@ class AlignedSeq(object):
                                                              i, count_match + count_non_match)
 
         return match_intervals, non_match_intervals
+
+    def check_nonmatch_intervals(self):
+        """Goes through non-match intervals and makes sure there is more than one sequence there, else makes it a match
+        interval."""
+        for i in reversed(range(len(self.non_match_intervals))):
+            interval_seqs = get_interval_seqs(self.non_match_intervals[i])
+            if len(interval_seqs) < 2:
+                self.match_intervals.append(self.non_match_intervals[i])
+                self.non_match_intervals.pop(i)
+        self.match_intervals.sort()
+
 
     def kmeans_cluster_seqs_in_interval(self, interval):  # , kmer_size=self.min_match_length):
         """Divide sequences in interval into subgroups of similar
