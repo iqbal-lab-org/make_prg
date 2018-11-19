@@ -67,7 +67,7 @@ class AlignedSeq(object):
         self.num_seqs = len(self.alignment)
         self.consensus = self.get_consensus()
         self.length = len(self.consensus)
-        (self.match_intervals, self.non_match_intervals) = self.get_match_intervals()
+        (self.match_intervals, self.non_match_intervals) = self.get_match_intervals
         self.check_nonmatch_intervals()
         self.all_intervals = self.match_intervals + self.non_match_intervals
         logging.info("Non match intervals: %s", self.non_match_intervals)
