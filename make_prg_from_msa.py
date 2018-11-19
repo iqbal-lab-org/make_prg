@@ -224,7 +224,9 @@ class AlignedSeq(object):
         """Goes through non-match intervals and makes sure there is more than one sequence there, else makes it a match
         interval."""
         for i in reversed(range(len(self.non_match_intervals))):
-            interval_seqs = get_interval_seqs(self.non_match_intervals[i])
+            interval = self.non_match_intervals[i]
+            interval_alignment = self.alignment[:, interval[0]:interval[1] + 1]
+            interval_seqs = get_interval_seqs(interval_alignment)
             if len(interval_seqs) < 2:
                 self.match_intervals.append(self.non_match_intervals[i])
                 self.non_match_intervals.pop(i)
