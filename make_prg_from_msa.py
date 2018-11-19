@@ -308,10 +308,12 @@ class AlignedSeq(object):
                 logging.debug("Now cluster:")
                 kmeans = KMeans(n_clusters=1, random_state=2).fit(seq_kmer_counts)
                 pre_cluster_inertia = kmeans.inertia_
+
                 if pre_cluster_inertia == 0:
                     logging.debug("pre_cluster_intertia is 0!")
                     for key in list(interval_seq_dict.keys()):
                         logging.debug("seq: %s, num_seqs with this seq: %d", key, len(interval_seq_dict[key]))
+
                 cluster_inertia = pre_cluster_inertia
                 number_of_clusters = 1
                 logging.debug("number of clusters: %d, inertia: %f", number_of_clusters, cluster_inertia)
@@ -325,12 +327,15 @@ class AlignedSeq(object):
 
                 # now extract the equivalence class details from this partition and return
                 logging.debug("Extract equivalence classes from this partition")
-                equiv_class_ids = list(kmeans.predict(seq_kmer_counts))
-                for i in range(max(equiv_class_ids) + 1):
-                    big_return_id_lists.append([])
-                for i, val in enumerate(equiv_class_ids):
-                    big_return_id_lists[val].extend(interval_seq_dict[interval_seqs[i]])
-                # return_id_lists.extend(new_return_id_lists)
+                if pre_cluster_inertia > 0:
+                    equiv_class_ids = list(kmeans.predict(seq_kmer_counts))
+                    for i in range(max(equiv_class_ids) + 1):
+                        big_return_id_lists.append([])
+                    for i, val in enumerate(equiv_class_ids):
+                        big_return_id_lists[val].extend(interval_seq_dict[interval_seqs[i]])
+                else:
+                    logging.debug("default to not clustering")
+                    big_return_id_lists = [interval_seq_dict[key] for key in interval_seq_dict.keys()]
             elif len(interval_seqs) == 1:
                 big_return_id_lists = [interval_seq_dict[interval_seqs[0]]]
 
