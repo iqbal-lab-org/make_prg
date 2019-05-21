@@ -1,7 +1,7 @@
 params.tsv_in = ""
 params.testing = false
 params.pipeline_root = ""
-params.max_nesting = 10
+params.max_nesting = 5
 params.min_match_length = 7
 params.alignment_format = "fasta"
 params.final_outdir = "."
