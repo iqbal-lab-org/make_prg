@@ -120,7 +120,7 @@ class AlignedSeq(object):
     @property
     def get_match_intervals(self):
         """Return a list of intervals in which we have
-        consensus sequence longer than min_match_length, and 
+        consensus sequence longer than min_match_length, and
         a list of the non-match intervals left."""
         match_intervals = []
         non_match_intervals = []
@@ -130,7 +130,7 @@ class AlignedSeq(object):
 
         logging.debug("consensus: %s" %self.consensus)
         if len(self.consensus.replace('-', '')) < self.min_match_length:
-            # It makes no sense to classify a fully consensus sequence as 
+            # It makes no sense to classify a fully consensus sequence as
             # a non-match just because it is too short.
             if '*' in self.consensus:
                 interval_alignment = self.alignment[:, 0:self.length]
@@ -598,37 +598,47 @@ def main():
     parser.add_argument("-f", "--alignment_format", dest='alignment_format', action='store', default="fasta",
                         help='alignment_Format of MSA, must be a biopython AlignIO input alignment_format. See '
                              'http://biopython.org/wiki/AlignIO. Default: fasta')
-    parser.add_argument("--max_nesting", dest='max_nesting', action='store', type=int, default=5,
-                        help='Maximum number of levels to use for nesting. Default: 5')
+    parser.add_argument("--max_nesting", dest='max_nesting', action='store', type=int, default=10,
+                        help='Maximum number of levels to use for nesting. Default: 10')
     parser.add_argument("--min_match_length", dest='min_match_length', action='store', type=int, default=7,
                         help='Minimum number of consecutive characters which must be identical for a match. '
                              'Default: 7')
-    parser.add_argument("-p", "--prefix", dest='prefix', action='store', help='Output prefix')
-    parser.add_argument("-v", "--verbosity", dest='verbosity', action='store_true',
-                        help='If flagged, puts logger in DEBUG mode')
+    parser.add_argument("-p", "--prefix", dest='output_prefix', action='store', help='Output prefix')
+    parser.add_argument("--no_overwrite", dest='no_overwrite', action="store_true",
+                        help='Do not overwrite pre-existing prg file with same name')
+    parser.add_argument("-v", "--verbose", dest="verbose", action="store_true", help="Run with high verbosity "
+                                                                                      "(debug level logging)")
     args = parser.parse_args()
 
-    if args.prefix is None:
+    if args.output_prefix is None:
         prefix = args.MSA
     else:
-        prefix = args.prefix
+        if os.path.isdir(args.output_prefix):
+            prefix = os.path.join(args.output_prefix, os.path.basename(args.MSA))
+        else:
+            prefix = args.prefix
     prefix += ".max_nest%d.min_match%d" % (args.max_nesting, args.min_match_length)
 
-    if args.verbosity:
-        logging.basicConfig(filename='%s.log' % prefix, level=logging.DEBUG, format='%(asctime)s %(message)s',
-                            datefmt='%d/%m/%Y %I:%M:%S')
-        logging.debug("Using debug logging")
+    if args.verbose:
+        log_level = logging.DEBUG
+        msg = "Using debug logging"
         logging.info("Get info logging")
-        logging.warning("Get warning logging")
     else:
-        logging.basicConfig(filename='%s.log' % prefix, level=logging.INFO, format='%(asctime)s %(message)s',
-                            datefmt='%d/%m/%Y %I:%M:%S')
-        logging.info("Using info logging")
-        logging.warning("Get warning logging")
+        log_level = logging.INFO
+        msg = "Using info logging"
+
+    log_file = f"{prefix}.log"
+    if (os.path.exists(log_file)):
+        os.unlink(log_file)
+    logging.basicConfig(filename=log_file, level=log_level, format='%(asctime)s %(message)s',
+                        datefmt='%d/%m/%Y %I:%M:%S')
+    logging.info(msg)
+    logging.warning("Get warning logging")
     logging.info("Input parameters max_nesting: %d, min_match_length: %d", args.max_nesting, args.min_match_length)
 
-    if os.path.isfile('%s.prg' % prefix):
+    if os.path.isfile('%s.prg' % prefix) and args.no_overwrite:
         prg_file = '%s.prg' % prefix
+        logging.info(f"Re-using existing prg file {prg_file}")
         aseq = AlignedSeq(args.MSA, alignment_format=args.alignment_format, max_nesting=args.max_nesting,
                           min_match_length=args.min_match_length, prg_file=prg_file)
     else:
@@ -638,6 +648,7 @@ def main():
         aseq.write_prg('%s.prg' % prefix)
         m = aseq.max_nesting_level_reached
         logging.info("Max_nesting_reached\t%d", m)
+
     logging.info("Write GFA file to %s.gfa", prefix)
     aseq.write_gfa('%s.gfa' % prefix)
 
