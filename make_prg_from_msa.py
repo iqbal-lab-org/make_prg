@@ -518,7 +518,7 @@ def main():
         if os.path.isdir(args.output_prefix):
             prefix = os.path.join(args.output_prefix, os.path.basename(args.MSA))
         else:
-            prefix = args.prefix
+            prefix = args.output_prefix
     prefix += ".max_nest%d.min_match%d" % (args.max_nesting, args.min_match_length)
 
     if args.verbose:

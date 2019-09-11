@@ -1,0 +1,6 @@
+syntax = "proto3";
+package cov_Graph;
+
+message PRG_String {
+	repeated int32 elements = 1 [packed=true];
+}

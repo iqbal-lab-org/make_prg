@@ -1,12 +1,28 @@
 import logging
 import re
+
 def contains_only(seq, aset):
     """ Check whether sequence seq contains ONLY items in aset. """
     for c in seq:
         if c not in aset: return False
     return True
 
+def remove_duplicates(seqs):
+    seen = set()
+    for x in seqs:
+        if x in seen:
+            continue
+        seen.add(x)
+        yield x
+
+#************/
+# GFA code */
+#***********/
 class GFA_Output():
+    """
+    A simple class for converting a PRG string into a GFA file
+    TODO: Update to GFA2 format
+    """
     def __init__(self, gfa_string = "", gfa_id = 0, gfa_site = 5):
         self.gfa_string = gfa_string
         self.gfa_id = gfa_id
@@ -85,7 +101,6 @@ class GFA_Output():
 def write_gfa(outfile, prg_string):
     """
     Writes a gfa file from prg string.
-    TODO: Update to GFA2 format
     """
     with open(outfile, 'w') as f:
         # initialize gfa_string, id and site, then update string with the prg
@@ -96,17 +111,60 @@ def write_gfa(outfile, prg_string):
         gfa_obj.build_gfa_string(prg_string=prg_string)
         f.write(gfa_obj.gfa_string)
 
-def write_prg(outfile, prg_string):
-    """Writes the prg to outfile."""
-    with open(outfile, 'w') as f:
+#******************/
+# Write PRG code */
+#*****************/
+
+class Integer_Encoder:
+    """
+    A class that converts a prg string as produced by this program into an integer vector.
+    Public interface:
+        Production: run `run()`
+        Serialisation: run `write()`
+    """
+    DNA = {"A" : 1,
+           "C" : 2,
+           "G" : 3,
+           "T" : 4}
+    NUM_BYTES = 4 # How many bytes to use per serialised integer?
+
+    def __init__(self, prg_string):
+        self.marker_units = prg_string.split()
+        self.vector = []
+
+    def run(self):
+        for unit in self.marker_units:
+            self.vector.extend(self._encode_unit(unit))
+
+    def write(self, fpath):
+        with open(fpath, 'wb') as f:
+            for integer in self.vector:
+                f.write(integer.to_bytes(self.NUM_BYTES, "big")) #Big endian
+
+    def _DNA_to_int(self, input_char):
+        assert input_char in self.DNA, logging.error(f"Conversion error: char {input_char} is not in {self.DNA}")
+        return self.DNA[input_char]
+
+    def _encode_unit(self,input_string):
+        if input_string[0] in self.DNA:
+            output = list(map(self._DNA_to_int, input_string))
+        else:
+            output = [int(input_string)]
+        return output
+
+def write_prg(outf_prefix, prg_string):
+    """
+    Writes the prg to outfile.
+    Writes it as a human readable string, and also as an integer vector
+    """
+    out_name = f"{outf_prefix}.prg"
+    with open(out_name, 'w') as f:
         f.write(prg_string)
 
+    out_name = f'{outf_prefix}.bin'
+    int_enc = Integer_Encoder(prg_string)
+    int_enc.run()
+    # print(int_enc.vector.elements)
+    int_enc.write(out_name)
 
-def remove_duplicates(seqs):
-    seen = set()
-    for x in seqs:
-        if x in seen:
-            continue
-        seen.add(x)
-        yield x
 
