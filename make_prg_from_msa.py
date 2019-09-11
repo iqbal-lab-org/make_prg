@@ -2,18 +2,14 @@
 import os
 from Bio import AlignIO
 from Bio.AlignIO import MultipleSeqAlignment
-import re
 import logging
 import argparse
 from sklearn.cluster import KMeans
 import numpy as np
 import gzip
-
-def contains_only(seq, aset):
-    """ Check whether sequence seq contains ONLY items in aset. """
-    for c in seq:
-        if c not in aset: return False
-    return True
+import utils
+remove_duplicates = utils.remove_duplicates
+contains_only = utils.contains_only
 
 def get_interval_seqs(interval_alignment):
     """Replace - with nothing, remove seqs containing N or other non-allowed letters
@@ -46,7 +42,6 @@ class AlignedSeq(object):
     """
     Object based on a set of aligned sequences. Note min_match_length must be strictly greater than max_nesting + 1.
     """
-
     def __init__(self, msa_file, alignment_format="fasta", max_nesting=2, nesting_level=1, min_match_length=3, site=5,
                  alignment=None, interval=None, prg_file=None):
         self.msa_file = msa_file
@@ -473,91 +468,6 @@ class AlignedSeq(object):
 
         return prg
 
-    def split_on_site(self, prg_string, site_num):
-        site_coords = [(a.start(), a.end()) for a in
-                       list(re.finditer('%s%d%s' % (self.delim_char, site_num, self.delim_char), prg_string))]
-        last_pos = None
-        split_strings = []
-        for (start, end) in site_coords:
-            split_strings.append(prg_string[last_pos:start])
-            last_pos = end
-        split_strings.append(prg_string[last_pos:])
-        delim = "%s%d%s" % (self.delim_char, site_num, self.delim_char)
-        check_string = delim.join(split_strings)
-        assert check_string == prg_string, "Something has gone wrong with the string split for site %d\nsplit_" \
-                                           "strings: %s" % (site_num, split_strings)
-        return split_strings
-
-    def get_gfa_string(self, prg_string, pre_var_id=None):
-        """Takes prg_string and updates the self.gfa_string with fragments
-           from the prg_string."""
-        end_ids = []
-        # iterate through sites present, updating gfa_string with each in turn
-        while str(self.gfa_site) in prg_string:
-            logging.debug("gfa_site: %d", self.gfa_site)
-            prgs = self.split_on_site(prg_string, self.gfa_site)
-            logging.debug("prgs: %s", prgs)
-            assert len(prgs) == 3, "Invalid prg sequence %s for site %d and id %d" % (
-                prg_string, self.gfa_site, self.gfa_id)
-
-            # add pre-var site string and links from previous seq fragments
-            if prgs[0] != '':
-                self.gfa_string += "S\t%d\t%s\tRC:i:0\n" % (self.gfa_id, prgs[0])
-            else:
-                # adds an empty node for empty pre var site seqs
-                self.gfa_string += "S\t%d\t%s\tRC:i:0\n" % (self.gfa_id, "*")
-            pre_var_id = self.gfa_id
-            self.gfa_id += 1
-            for id in end_ids:
-                self.gfa_string += "L\t%d\t+\t%d\t+\t0M\n" % (id, pre_var_id)
-                end_ids = []
-
-            # recursively add segments for each of the variant haplotypes at
-            # this site, saving the end id for each haplotype
-            vars = self.split_on_site(prgs[1], self.gfa_site + 1)
-            assert len(vars) > 1, "Invalid prg sequence %s for site %d and id %d" % (
-                prg_string, self.gfa_site + 1, self.gfa_id)
-            logging.debug("vars: %s", vars)
-            self.gfa_site += 2
-            logging.debug("gfa_site: %d", self.gfa_site)
-            for var_string in vars:
-                if pre_var_id != None:
-                    self.gfa_string += "L\t%d\t+\t%d\t+\t0M\n" % (pre_var_id, self.gfa_id)
-                var_end_ids = self.get_gfa_string(prg_string=var_string, pre_var_id=pre_var_id)
-                end_ids.extend(var_end_ids)
-
-            prg_string = prgs[2]
-            pre_var_id = None
-
-        # finally add the final bit of sequence after variant site
-        if prg_string != '':
-            self.gfa_string += "S\t%d\t%s\tRC:i:0\n" % (self.gfa_id, prg_string)
-        else:
-            self.gfa_string += "S\t%d\t%s\tRC:i:0\n" % (self.gfa_id, "*")
-        for id in end_ids:
-            self.gfa_string += "L\t%d\t+\t%d\t+\t0M\n" % (id, self.gfa_id)
-        end_ids = []
-        return_id = [self.gfa_id]
-        self.gfa_id += 1
-        return return_id
-
-    def write_gfa(self, outfile):
-        """Creates a gfa file from the prg."""
-        with open(outfile, 'w') as f:
-            # initialize gfa_string, id and site, then update string with the prg
-            self.gfa_string = "H\tVN:Z:1.0\tbn:Z:--linear --singlearr\n"
-            self.gfa_id = 0
-            self.gfa_site = 5
-            self.get_gfa_string(prg_string=self.prg)
-            f.write(self.gfa_string)
-        return
-
-    def write_prg(self, outfile):
-        """Writes the prg to outfile."""
-        with open(outfile, 'w') as f:
-            f.write(self.prg)
-        return
-
     @property
     def max_nesting_level_reached(self):
         max_nesting = []
@@ -580,14 +490,6 @@ class AlignedSeq(object):
         logging.debug("found the max of %s is %d", max_nesting, m)
         return m
 
-
-def remove_duplicates(seqs):
-    seen = set()
-    for x in seqs:
-        if x in seen:
-            continue
-        seen.add(x)
-        yield x
 
 
 def main():
@@ -645,12 +547,12 @@ def main():
         aseq = AlignedSeq(args.MSA, alignment_format=args.alignment_format, max_nesting=args.max_nesting,
                           min_match_length=args.min_match_length)
         logging.info("Write PRG file to %s.prg", prefix)
-        aseq.write_prg('%s.prg' % prefix)
+        utils.write_prg(prefix, aseq.prg);
         m = aseq.max_nesting_level_reached
         logging.info("Max_nesting_reached\t%d", m)
 
     logging.info("Write GFA file to %s.gfa", prefix)
-    aseq.write_gfa('%s.gfa' % prefix)
+    utils.write_gfa('%s.gfa' % prefix, aseq.prg)
 
     with open("summary.tsv", 'a') as s:
         s.write("%s\t%d\t%d\t%f\n" % (
