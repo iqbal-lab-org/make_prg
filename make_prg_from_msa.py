@@ -36,8 +36,10 @@ def get_interval_seqs(interval_alignment):
             seqs.extend(new_seqs)
     ret_list = list(set(seqs))
     if len(ret_list) == 0:
-        print("Every sequence must have contained an N in this slice - redo sequence curation because this is nonsense")
-        assert len(ret_list) > 0
+        logging.warning("WARNING: Every sequence must have contained an N in this slice - redo sequence curation because this is nonsense")
+        logging.warning("Sequences were", " ".join(list(remove_duplicates([str(record.seq).replace('-', '').upper() for record in interval_alignment]))))
+        logging.warning("Using these sequences anyway, and should be ignored downstream")
+        seqs = list(remove_duplicates([str(record.seq).replace('-', '').upper() for record in interval_alignment]))
     return list(set(seqs))
 
 class AlignedSeq(object):
@@ -97,7 +99,7 @@ class AlignedSeq(object):
         a consensus string.
         Lower and upper case are equivalent
         Non AGCT symbols RYKMSW result in non-consensus and are substituted in graph
-        N results in consensus at that position."""
+        N results in consensus at that position unless they are all N."""
         first_string = str(self.alignment[0].seq)
         consensus_string = ''
         for i, letter in enumerate(first_string):
@@ -106,7 +108,9 @@ class AlignedSeq(object):
                 if (record.seq[i].upper() != "N" and letter.upper() != "N") and (record.seq[i].upper() != letter.upper() or record.seq[i].upper() in ['R','Y','K','M','S','W']):
                     consensus = False
                     break
-            if consensus:
+                if letter.upper() == "N" and record.seq[i].upper() != "N":
+                    letter = record.seq[i].upper()
+            if consensus and letter.upper() != "N":
                 consensus_string += letter
             else:
                 consensus_string += '*'
@@ -614,10 +618,13 @@ def main():
         logging.basicConfig(filename='%s.log' % prefix, level=logging.DEBUG, format='%(asctime)s %(message)s',
                             datefmt='%d/%m/%Y %I:%M:%S')
         logging.debug("Using debug logging")
+        logging.info("Get info logging")
+        logging.warning("Get warning logging")
     else:
         logging.basicConfig(filename='%s.log' % prefix, level=logging.INFO, format='%(asctime)s %(message)s',
                             datefmt='%d/%m/%Y %I:%M:%S')
         logging.info("Using info logging")
+        logging.warning("Get warning logging")
     logging.info("Input parameters max_nesting: %d, min_match_length: %d", args.max_nesting, args.min_match_length)
 
     if os.path.isfile('%s.prg' % prefix):
