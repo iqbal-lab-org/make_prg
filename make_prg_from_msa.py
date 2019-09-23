@@ -36,7 +36,7 @@ def get_interval_seqs(interval_alignment):
         logging.warning("Sequences were", " ".join(list(remove_duplicates([str(record.seq).replace('-', '').upper() for record in interval_alignment]))))
         logging.warning("Using these sequences anyway, and should be ignored downstream")
         seqs = list(remove_duplicates([str(record.seq).replace('-', '').upper() for record in interval_alignment]))
-    return list(set(seqs))
+    return sorted(list(set(seqs)))
 
 class AlignedSeq(object):
     """
@@ -524,7 +524,6 @@ def main():
     if args.verbose:
         log_level = logging.DEBUG
         msg = "Using debug logging"
-        logging.info("Get info logging")
     else:
         log_level = logging.INFO
         msg = "Using info logging"
@@ -535,7 +534,6 @@ def main():
     logging.basicConfig(filename=log_file, level=log_level, format='%(asctime)s %(message)s',
                         datefmt='%d/%m/%Y %I:%M:%S')
     logging.info(msg)
-    logging.warning("Get warning logging")
     logging.info("Input parameters max_nesting: %d, min_match_length: %d", args.max_nesting, args.min_match_length)
 
     if os.path.isfile('%s.prg' % prefix) and args.no_overwrite:
