@@ -139,7 +139,7 @@ class Integer_Encoder:
     def write(self, fpath):
         with open(fpath, 'wb') as f:
             for integer in self.vector:
-                f.write(integer.to_bytes(self.NUM_BYTES, "big")) #Big endian
+                f.write(integer.to_bytes(self.NUM_BYTES, "little")) #Little endian
 
     def _DNA_to_int(self, input_char):
         assert input_char in self.DNA, logging.error(f"Conversion error: char {input_char} is not in {self.DNA}")

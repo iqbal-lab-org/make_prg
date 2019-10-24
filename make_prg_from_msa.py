@@ -500,7 +500,7 @@ def main():
     parser.add_argument("-f", "--alignment_format", dest='alignment_format', action='store', default="fasta",
                         help='alignment_Format of MSA, must be a biopython AlignIO input alignment_format. See '
                              'http://biopython.org/wiki/AlignIO. Default: fasta')
-    parser.add_argument("--max_nesting", dest='max_nesting', action='store', type=int, default=10,
+    parser.add_argument("--max_nesting", dest='max_nesting', action='store', type=int, default=5,
                         help='Maximum number of levels to use for nesting. Default: 10')
     parser.add_argument("--min_match_length", dest='min_match_length', action='store', type=int, default=7,
                         help='Minimum number of consecutive characters which must be identical for a match. '
