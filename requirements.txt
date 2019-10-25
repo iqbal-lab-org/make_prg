@@ -1,5 +1,0 @@
-biopython>=1.70
-numpy>=1.14.0
-scikit-learn>=0.19.1
-scipy>=1.0.1
-pytest>=3.5.1
