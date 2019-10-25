@@ -5,7 +5,6 @@ from make_prg import make_prg_from_msa, utils
 
 
 def run(options):
-    print("HELLO. Running make_prg_from_msa")
     if options.output_prefix is None:
         prefix = options.MSA
     else:
