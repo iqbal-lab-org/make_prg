@@ -1,6 +1,5 @@
 params.tsv_in = ""
 params.testing = false
-params.pipeline_root = ""
 params.max_nesting = 5
 params.min_match_length = 7
 params.alignment_format = "fasta"
@@ -33,7 +32,7 @@ process make_prg {
     set(val("${tsv_fields['sample_id']}"), file("${tsv_fields['sample_id']}.max_nest${params.max_nesting}.min_match${params.min_match_length}.prg")) into make_prg_out
 
     """
-    python3 ${params.pipeline_root}/make_prg_from_msa.py ${tsv_fields["infile"]} --max_nesting ${params.max_nesting} --alignment_format ${params.alignment_format} --min_match_length ${params.min_match_length} --prefix ${tsv_fields['sample_id']} -v
+    make_prg prg_from_msa ${tsv_fields["infile"]} --max_nesting ${params.max_nesting} --alignment_format ${params.alignment_format} --min_match_length ${params.min_match_length} --prefix ${tsv_fields['sample_id']} -v
     """
 }
 
@@ -42,12 +41,12 @@ process make_fasta {
     errorStrategy {task.attempt < 3 ? 'retry' : 'ignore'}
     maxRetries 3
 
-    input: 
+    input:
     set val(id), file(prg_file) from make_prg_out
 
     output:
     file "${id}.fa" into results
-    
+
     """
     if [ ! -f "${prg_file}" ]; then
       echo "File not found!"
@@ -56,7 +55,7 @@ process make_fasta {
     echo ">${id}" >> "${id}.fa"
     cat "${prg_file}" >> "${id}.fa"
     echo "" >> "${id}.fa"
-    """ 
+    """
 }
 
 results.collectFile(name: final_outdir/'pangenome_PRG.fa')
