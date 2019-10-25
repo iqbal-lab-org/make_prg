@@ -1,4 +1,5 @@
 import logging
+import os
 
 from make_prg import make_prg_from_msa, utils
 
@@ -43,7 +44,7 @@ def run(options):
     if os.path.isfile("%s.prg" % prefix) and options.no_overwrite:
         prg_file = "%s.prg" % prefix
         logging.info(f"Re-using existing prg file {prg_file}")
-        aseq = AlignedSeq(
+        aseq = make_prg_from_msa.AlignedSeq(
             options.MSA,
             alignment_format=options.alignment_format,
             max_nesting=options.max_nesting,
@@ -51,7 +52,7 @@ def run(options):
             prg_file=prg_file,
         )
     else:
-        aseq = AlignedSeq(
+        aseq = make_prg_from_msa.AlignedSeq(
             options.MSA,
             alignment_format=options.alignment_format,
             max_nesting=options.max_nesting,
