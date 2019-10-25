@@ -8,20 +8,22 @@ Note that nextflow does not play nicely when files are in mounted or shared fold
 __Usage__
 
     Usage: nextflow run make_prg_nexflow.nf <arguments>
-  
+
     Required arguments:
       --tsv_in  FILENAME  An index file of MSA to build PRGs of
-      --pipeline_root DIRECTORY Absolute path to make_prg
-    
+
     Optional arguments:
-  
-__Download__
+
+__Download and install__
 ```
 git clone https://github.com/rmcolq/make_prg.git
 cd make_prg
-pip3 install -r requirements.txt
-pytest 
+python3 setup.py test
+python3 setup.py install
 ```
+
+That installed the script `make_prg`. The nextflow script `make_prg_nexflow.nf`
+assumes that `make_prg` is installed.
 
 __Input__
 Multiple Sequence Alignment files for genes/dna sequences for which we want PRGs, and an tab-separated index of these in the form:
@@ -35,12 +37,12 @@ __Changing parameters__
 
 There are some parameters at the top of the nextflow file which could be changed but which I have not made command line parameters:
 ```
-max_nesting             This is the maximum number depth of bubbles in PRG, setting to 1 will allow variants, \\ 
+max_nesting             This is the maximum number depth of bubbles in PRG, setting to 1 will allow variants, \\
                         but no nesting
-min_match_length        Controls graph complexity 
+min_match_length        Controls graph complexity
 alignment_format        Any format accepted by biopython's AlignIO
 max_forks_make_prg      If working on a cluster which allows unlimited parallel jobs per user, this will be \\
                         used by nextflow to control maximum number of processes of this type that can run in \\
-                        parallel. 
-max_forks_make_fasta   
+                        parallel.
+max_forks_make_fasta
 ```
