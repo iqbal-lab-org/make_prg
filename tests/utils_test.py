@@ -1,6 +1,8 @@
 import unittest
+
 from hypothesis import given
 from hypothesis.strategies import text
+
 from make_prg.utils import *
 
 

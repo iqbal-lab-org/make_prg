@@ -1,14 +1,6 @@
 import logging
-from typing import Generator, Sequence
 import re
-
-
-def contains_only(seq, aset):
-    """ Check whether sequence seq contains ONLY items in aset. """
-    for c in seq:
-        if c not in aset:
-            return False
-    return True
+from typing import Generator, Sequence
 
 
 def remove_duplicates(seqs: Sequence) -> Generator:

@@ -1,18 +1,19 @@
+import gzip
+import logging
 import os
+
+import numpy as np
 from Bio import AlignIO
 from Bio.AlignIO import MultipleSeqAlignment
-import logging
 from sklearn.cluster import KMeans
-import numpy as np
-import gzip
 
-from make_prg.utils import remove_gaps, remove_duplicates, contains_only
+from make_prg.utils import remove_duplicates, remove_gaps
 
 
 def get_interval_seqs(interval_alignment):
     """Replace - with nothing, remove seqs containing N or other non-allowed letters
     and duplicate sequences containing RYKMSW, replacing with AGCT alternatives """
-    allowed = ["A", "C", "G", "T", "R", "Y", "K", "M", "S", "W"]
+    allowed_bases = {"A", "C", "G", "T", "R", "Y", "K", "M", "S", "W"}
     iupac = {
         "R": ["G", "A"],
         "Y": ["T", "C"],
@@ -26,8 +27,9 @@ def get_interval_seqs(interval_alignment):
         remove_gaps(str(record.seq)).upper() for record in interval_alignment
     ]
     unique_seqs = remove_duplicates(gapless_seqs)
+
     for seq in unique_seqs:
-        if contains_only(seq, allowed):
+        if allowed_bases.issuperset(seq):
             new_seqs = [seq]
             for letter in iupac.keys():
                 letter_seqs = []
