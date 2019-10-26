@@ -6,9 +6,7 @@ from sklearn.cluster import KMeans
 import numpy as np
 import gzip
 
-from make_prg import utils
-remove_duplicates = utils.remove_duplicates
-contains_only = utils.contains_only
+from make_prg.utils import remove_gaps, remove_duplicates, contains_only
 
 def get_interval_seqs(interval_alignment):
     """Replace - with nothing, remove seqs containing N or other non-allowed letters
@@ -16,9 +14,11 @@ def get_interval_seqs(interval_alignment):
     allowed = ['A','C','G','T','R','Y','K','M','S','W']
     iupac = {'R': ['G', 'A'], 'Y': ['T', 'C'], 'K': ['G', 'T'], 'M': ['A', 'C'], 'S': ['G', 'C'], 'W': ['A', 'T']}
     seqs = []
-    for s in list(remove_duplicates([str(record.seq).replace('-', '').upper() for record in interval_alignment])):
-        if contains_only(s, allowed):
-            new_seqs = [s]
+    gapless_seqs = [remove_gaps(str(record.seq)).upper() for record in interval_alignment]
+    unique_seqs = remove_duplicates(gapless_seqs)
+    for seq in unique_seqs:
+        if contains_only(seq, allowed):
+            new_seqs = [seq]
             for letter in iupac.keys():
                 letter_seqs = []
                 for t in new_seqs:
@@ -32,9 +32,9 @@ def get_interval_seqs(interval_alignment):
     ret_list = list(set(seqs))
     if len(ret_list) == 0:
         logging.warning("WARNING: Every sequence must have contained an N in this slice - redo sequence curation because this is nonsense")
-        logging.warning("Sequences were", " ".join(list(remove_duplicates([str(record.seq).replace('-', '').upper() for record in interval_alignment]))))
+        logging.warning("Sequences were", " ".join(list(remove_duplicates([remove_gaps(str(record.seq)).upper() for record in interval_alignment]))))
         logging.warning("Using these sequences anyway, and should be ignored downstream")
-        seqs = list(remove_duplicates([str(record.seq).replace('-', '').upper() for record in interval_alignment]))
+        seqs = list(remove_duplicates([remove_gaps(str(record.seq)).upper() for record in interval_alignment]))
     return sorted(list(set(seqs)))
 
 class AlignedSeq(object):
@@ -123,7 +123,7 @@ class AlignedSeq(object):
         non_match_start = 0
 
         logging.debug("consensus: %s" %self.consensus)
-        if len(self.consensus.replace('-', '')) < self.min_match_length:
+        if len(remove_gaps(self.consensus)) < self.min_match_length:
             # It makes no sense to classify a fully consensus sequence as
             # a non-match just because it is too short.
             if '*' in self.consensus:
@@ -148,7 +148,7 @@ class AlignedSeq(object):
                     match_count += 1
                 elif match_count > 0:
                     # Have reached a non-match. Check if previous match string is long enough to add to match_regions
-                    match_string = self.consensus[match_start: match_start + match_count].replace('-', '')
+                    match_string = remove_gaps(self.consensus[match_start: match_start + match_count])
                     match_len = len(match_string)
                     logging.debug("have match string %s" % match_string)
 
@@ -172,7 +172,7 @@ class AlignedSeq(object):
                     match_start = non_match_start
 
             # At end add last intervals
-            match_string = self.consensus[match_start: match_start + match_count].replace('-', '')
+            match_string = remove_gaps(self.consensus[match_start: match_start + match_count])
             match_len = len(match_string)
             logging.debug("at end have match string %s" % match_string)
             if 0 < match_len < self.min_match_length:
@@ -243,7 +243,7 @@ class AlignedSeq(object):
             assert len(interval_seqs) == len(
                 list(remove_duplicates(interval_seqs))), "should not have duplicate alternative allele sequences"
             return_id_lists = [[record.id for record in self.alignment if
-                                str(record.seq[interval[0]:interval[1] + 1]).replace('-', '') == seq] for seq in
+                                remove_gaps(str(record.seq[interval[0]:interval[1] + 1])) == seq] for seq in
                                interval_seqs]
         else:
             logging.debug("Get kmeans partition of interval [%d, %d]", interval[0], interval[1])
@@ -253,7 +253,7 @@ class AlignedSeq(object):
             seq_dict_keys = []
 
             for record in interval_alignment:
-                seq = str(record.seq).replace('-', '')
+                seq = remove_gaps(str(record.seq))
                 if seq in list(interval_seq_dict.keys()):
                     interval_seq_dict[seq].append(record.id)
                 elif seq in list(small_interval_seq_dict.keys()):
