@@ -1,4 +1,5 @@
 import logging
+from typing import Generator, Sequence
 import re
 
 def contains_only(seq, aset):
@@ -7,13 +8,17 @@ def contains_only(seq, aset):
         if c not in aset: return False
     return True
 
-def remove_duplicates(seqs):
+def remove_duplicates(seqs: Sequence) -> Generator:
     seen = set()
     for x in seqs:
         if x in seen:
             continue
         seen.add(x)
         yield x
+
+
+def remove_gaps(sequence: str) -> str:
+    return sequence.replace("-", "")
 
 #************/
 # GFA code */
