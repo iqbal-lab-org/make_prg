@@ -1,6 +1,8 @@
 import logging
 import re
-from typing import Generator, Sequence, List
+from typing import Generator, Sequence
+
+from make_prg.prg_encoder import PrgEncoder
 
 
 def remove_duplicates(seqs: Sequence) -> Generator:
@@ -136,52 +138,6 @@ def write_gfa(outfile, prg_string):
 # ******************/
 # Write PRG code */
 # *****************/
-class ConversionError(Exception):
-    pass
-
-class EncodeError(Exception):
-    pass
-
-class IntegerEncoder:
-    """
-    A class that converts a prg string as produced by this program into an integer vector.
-    Public interface:
-        Production: run `run()`
-        Serialisation: run `write()`
-    """
-
-    DNA = {"A": 1, "C": 2, "G": 3, "T": 4}
-    NUM_BYTES = 4  # How many bytes to use per serialised integer?
-
-    def __init__(self, prg_string: str = ""):
-        self.marker_units = prg_string.split()
-        self.vector = []
-
-    def run(self):
-        for unit in self.marker_units:
-            self.vector.extend(self._encode_unit(unit))
-
-    def write(self, fpath):
-        with open(fpath, "wb") as f:
-            for integer in self.vector:
-                f.write(integer.to_bytes(self.NUM_BYTES, "little"))  # Little endian
-
-    def _dna_to_int(self, input_char: str) -> int:
-        input_char = input_char.upper()
-        if input_char not in self.DNA:
-            raise ConversionError(f"Char '{input_char}' is not in {self.DNA}")
-        return self.DNA[input_char]
-
-    def _encode_unit(self, unit: str) -> List[int]:
-        is_empty_string = not unit
-        if is_empty_string:
-            raise EncodeError("Cannot encode an empty string")
-
-        if unit[0] in self.DNA:
-            output = list(map(self._dna_to_int, unit))
-        else:
-            output = [int(unit)]
-        return output
 
 
 def write_prg(outf_prefix, prg_string):
@@ -194,7 +150,9 @@ def write_prg(outf_prefix, prg_string):
         f.write(prg_string)
 
     out_name = f"{outf_prefix}.bin"
-    int_enc = IntegerEncoder(prg_string)
-    int_enc.run()
+    prg_encoder = PrgEncoder()
+    prg_encoding = prg_encoder.encode(prg_string)
     # print(int_enc.vector.elements)
-    int_enc.write(out_name)
+
+    with open(out_name, "wb") as write_to:
+        prg_encoder.write_encoding_to(prg_encoding, write_to)
