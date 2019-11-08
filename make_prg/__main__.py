@@ -6,7 +6,7 @@ NESTING_LVL = 5
 MIN_MATCH_LEN = 7
 
 
-def main(args=None):
+def main():
     parser = argparse.ArgumentParser(
         prog="make_prg",
         usage="make_prg <subcommand> <options>",
@@ -29,8 +29,11 @@ def main(args=None):
         "MSA",
         action="store",
         type=str,
-        help="Input file: a multiple sequence alignment in supported alignment_format. If not in "
-        "aligned fasta alignment_format, use -f to input the alignment_format type",
+        help=(
+            "Input file: a multiple sequence alignment in supported alignment_format. "
+            "If not in aligned fasta alignment_format, use -f to input the "
+            "alignment_format type"
+        ),
     )
     subparser_prg_from_msa.add_argument(
         "-f",
@@ -38,8 +41,10 @@ def main(args=None):
         dest="alignment_format",
         action="store",
         default="fasta",
-        help="alignment_Format of MSA, must be a biopython AlignIO input alignment_format. See "
-        "http://biopython.org/wiki/AlignIO. Default: fasta",
+        help=(
+            "Alignment format of MSA, must be a biopython AlignIO input "
+            "alignment_format. See http://biopython.org/wiki/AlignIO. Default: fasta"
+        ),
     )
     subparser_prg_from_msa.add_argument(
         "--max_nesting",
