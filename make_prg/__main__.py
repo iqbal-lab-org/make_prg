@@ -2,6 +2,9 @@ import argparse
 
 import make_prg
 
+NESTING_LVL = 5
+MIN_MATCH_LEN = 7
+
 
 def main(args=None):
     parser = argparse.ArgumentParser(
@@ -43,17 +46,21 @@ def main(args=None):
         dest="max_nesting",
         action="store",
         type=int,
-        default=5,
-        help="Maximum number of levels to use for nesting. Default: 10",
+        default=NESTING_LVL,
+        help="Maximum number of levels to use for nesting. Default: {}".format(
+            NESTING_LVL
+        ),
     )
     subparser_prg_from_msa.add_argument(
         "--min_match_length",
         dest="min_match_length",
         action="store",
         type=int,
-        default=7,
-        help="Minimum number of consecutive characters which must be identical for a match. "
-        "Default: 7",
+        default=MIN_MATCH_LEN,
+        help=(
+            "Minimum number of consecutive characters which must be identical for a "
+            "match. Default: {}".format(MIN_MATCH_LEN)
+        ),
     )
     subparser_prg_from_msa.add_argument(
         "-p", "--prefix", dest="output_prefix", action="store", help="Output prefix"
