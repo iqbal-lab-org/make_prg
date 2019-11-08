@@ -136,9 +136,11 @@ def write_gfa(outfile, prg_string):
 # ******************/
 # Write PRG code */
 # *****************/
+class ConversionError(Exception):
+    pass
 
 
-class Integer_Encoder:
+class IntegerEncoder:
     """
     A class that converts a prg string as produced by this program into an integer vector.
     Public interface:
@@ -149,7 +151,7 @@ class Integer_Encoder:
     DNA = {"A": 1, "C": 2, "G": 3, "T": 4}
     NUM_BYTES = 4  # How many bytes to use per serialised integer?
 
-    def __init__(self, prg_string):
+    def __init__(self, prg_string: str = ""):
         self.marker_units = prg_string.split()
         self.vector = []
 
@@ -162,10 +164,10 @@ class Integer_Encoder:
             for integer in self.vector:
                 f.write(integer.to_bytes(self.NUM_BYTES, "little"))  # Little endian
 
-    def _DNA_to_int(self, input_char):
-        assert input_char in self.DNA, logging.error(
-            f"Conversion error: char {input_char} is not in {self.DNA}"
-        )
+    def _DNA_to_int(self, input_char: str) -> int:
+        input_char = input_char.upper()
+        if input_char not in self.DNA:
+            raise ConversionError(f"Char '{input_char}' is not in {self.DNA}")
         return self.DNA[input_char]
 
     def _encode_unit(self, input_string):
@@ -186,7 +188,7 @@ def write_prg(outf_prefix, prg_string):
         f.write(prg_string)
 
     out_name = f"{outf_prefix}.bin"
-    int_enc = Integer_Encoder(prg_string)
+    int_enc = IntegerEncoder(prg_string)
     int_enc.run()
     # print(int_enc.vector.elements)
     int_enc.write(out_name)
