@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Generator, Sequence
+from typing import Generator, Sequence, List
 
 
 def remove_duplicates(seqs: Sequence) -> Generator:
@@ -139,6 +139,8 @@ def write_gfa(outfile, prg_string):
 class ConversionError(Exception):
     pass
 
+class EncodeError(Exception):
+    pass
 
 class IntegerEncoder:
     """
@@ -164,17 +166,21 @@ class IntegerEncoder:
             for integer in self.vector:
                 f.write(integer.to_bytes(self.NUM_BYTES, "little"))  # Little endian
 
-    def _DNA_to_int(self, input_char: str) -> int:
+    def _dna_to_int(self, input_char: str) -> int:
         input_char = input_char.upper()
         if input_char not in self.DNA:
             raise ConversionError(f"Char '{input_char}' is not in {self.DNA}")
         return self.DNA[input_char]
 
-    def _encode_unit(self, input_string):
-        if input_string[0] in self.DNA:
-            output = list(map(self._DNA_to_int, input_string))
+    def _encode_unit(self, unit: str) -> List[int]:
+        is_empty_string = not unit
+        if is_empty_string:
+            raise EncodeError("Cannot encode an empty string")
+
+        if unit[0] in self.DNA:
+            output = list(map(self._dna_to_int, unit))
         else:
-            output = [int(input_string)]
+            output = [int(unit)]
         return output
 
 
