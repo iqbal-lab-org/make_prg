@@ -44,3 +44,41 @@ class TestRemoveGaps(unittest.TestCase):
         actual = remove_gaps(seq)
 
         self.assertFalse("-" in actual)
+
+
+class TestIntegerEncoder(unittest.TestCase):
+    def test_DNAtoInt_empty_string_raises_assert_error(self):
+        encoder = IntegerEncoder()
+        char = ""
+
+        with self.assertRaises(ConversionError) as context:
+            encoder._DNA_to_int(char)
+
+        self.assertTrue("Char '' is not in" in str(context.exception))
+
+    def test_DNAtoInt_char_not_valid_raises_assert_error(self):
+        encoder = IntegerEncoder()
+        char = "F"
+
+        with self.assertRaises(ConversionError) as context:
+            encoder._DNA_to_int(char)
+
+        self.assertTrue("Char 'F' is not in" in str(context.exception))
+
+    def test_DNAtoInt_char_valid_returns_int(self):
+        encoder = IntegerEncoder()
+        char = "A"
+
+        actual = encoder._DNA_to_int(char)
+        expected = 1
+
+        self.assertEqual(actual, expected)
+
+    def test_DNAtoInt_char_valid_but_lowercase_returns_int(self):
+        encoder = IntegerEncoder()
+        char = "a"
+
+        actual = encoder._DNA_to_int(char)
+        expected = 1
+
+        self.assertEqual(actual, expected)
