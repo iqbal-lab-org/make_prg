@@ -163,7 +163,7 @@ def write_prg(output_prefix: str, prg_string: str):
 
         max_nest = int(match.group("max_nest"))
         min_match = int(match.group("min_match"))
-        header = ">{sample} max_nest={max_nest} min_match={min_match}".format(
+        header = "{sample} max_nest={max_nest} min_match={min_match}".format(
             sample=sample, max_nest=max_nest, min_match=min_match
         )
         print(
