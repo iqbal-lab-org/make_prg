@@ -1,5 +1,6 @@
 import logging
 import re
+from pathlib import Path
 from typing import Generator, Sequence
 
 from make_prg.prg_encoder import PrgEncoder
@@ -140,19 +141,22 @@ def write_gfa(outfile, prg_string):
 # *****************/
 
 
-def write_prg(outf_prefix, prg_string):
+def write_prg(output_prefix: str, prg_string: str):
     """
     Writes the prg to outfile.
     Writes it as a human readable string, and also as an integer vector
     """
-    out_name = f"{outf_prefix}.prg"
-    with open(out_name, "w") as f:
-        f.write(prg_string)
+    prg_filename = Path(output_prefix + ".prg")
+    with prg_filename.open("w") as prg:
+        header = prg_filename.stem
+        print(
+            ">{header}\n{prg_string}".format(header=header, prg_string=prg_string),
+            file=prg,
+        )
 
-    out_name = f"{outf_prefix}.bin"
+    binary_encoding_filename = Path(output_prefix + ".bin")
     prg_encoder = PrgEncoder()
     prg_encoding = prg_encoder.encode(prg_string)
-    # print(int_enc.vector.elements)
 
-    with open(out_name, "wb") as write_to:
+    with binary_encoding_filename.open("wb") as write_to:
         prg_encoder.write_encoding_to(prg_encoding, write_to)
