@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 
 from make_prg import make_prg_from_msa, utils
 
@@ -65,7 +66,8 @@ def run(options):
     logging.info("Write GFA file to %s.gfa", prefix)
     utils.write_gfa("%s.gfa" % prefix, aseq.prg)
 
-    with open("summary.tsv", "a") as s:
+    summary_file = Path(prefix).parent / "summary.tsv"
+    with summary_file.open("a") as s:
         s.write(
             "%s\t%d\t%d\t%f\n"
             % (
