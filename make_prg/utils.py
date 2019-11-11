@@ -149,7 +149,7 @@ def write_prg(output_prefix: str, prg_string: str):
     prg_filename = Path(output_prefix + ".prg")
     with prg_filename.open("w") as prg:
         regex = re.compile(
-            r"^(?P<sample>\w+)\.max_nest(?P<max_nest>\d+)\.min_match(?P<min_match>\d+)"
+            r"^(?P<sample>.+)\.max_nest(?P<max_nest>\d+)\.min_match(?P<min_match>\d+)"
         )
         match = regex.search(prg_filename.stem)
         try:
