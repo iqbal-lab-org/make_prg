@@ -148,7 +148,24 @@ def write_prg(output_prefix: str, prg_string: str):
     """
     prg_filename = Path(output_prefix + ".prg")
     with prg_filename.open("w") as prg:
-        header = prg_filename.stem
+        regex = re.compile(
+            r"^(?P<sample>\w+)\.max_nest(?P<max_nest>\d+)\.min_match(?P<min_match>\d+)"
+        )
+        match = regex.search(prg_filename.stem)
+        try:
+            sample = match.group("sample")
+        except IndexError:
+            logging.warning(
+                "A sample name couldn't be parsed from the prefix. "
+                "Using 'sample' as sample name."
+            )
+            sample = "sample"
+
+        max_nest = int(match.group("max_nest"))
+        min_match = int(match.group("min_match"))
+        header = ">{sample} max_nest={max_nest} min_match={min_match}".format(
+            sample=sample, max_nest=max_nest, min_match=min_match
+        )
         print(
             ">{header}\n{prg_string}".format(header=header, prg_string=prg_string),
             file=prg,
