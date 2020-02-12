@@ -11,6 +11,8 @@ def remove_duplicates(seqs: Sequence) -> Generator:
     for x in seqs:
         if x in seen:
             continue
+        elif list(set(x)) == ["N"]:
+            continue
         seen.add(x)
         yield x
 

@@ -83,6 +83,7 @@ class AlignedSeq(object):
         nesting_level=1,
         min_match_length=3,
         site=5,
+        staggered_start=False,
         alignment=None,
         interval=None,
         prg_file=None,
@@ -93,6 +94,7 @@ class AlignedSeq(object):
         self.nesting_level = nesting_level
         self.min_match_length = min_match_length
         self.site = site
+        self.staggered_start = staggered_start
         self.alignment = alignment
         if not self.alignment:
             logging.info("Read from MSA file %s", self.msa_file)
@@ -142,20 +144,25 @@ class AlignedSeq(object):
         Lower and upper case are equivalent
         Non AGCT symbols RYKMSW result in non-consensus and are substituted in graph
         N results in consensus at that position unless they are all N."""
+        missing = ["N"]
+        if self.staggered_start:
+            missing = ["N", "-"]
         first_string = str(self.alignment[0].seq)
         consensus_string = ""
         for i, letter in enumerate(first_string):
             consensus = True
+            if letter.upper() not in missing:
+                missing = ["N"]
             for record in self.alignment:
-                if (record.seq[i].upper() != "N" and letter.upper() != "N") and (
+                if (record.seq[i].upper() not in missing and letter.upper() not in missing) and (
                     record.seq[i].upper() != letter.upper()
                     or record.seq[i].upper() in ["R", "Y", "K", "M", "S", "W"]
                 ):
                     consensus = False
                     break
-                if letter.upper() == "N" and record.seq[i].upper() != "N":
+                if letter.upper() in missing and record.seq[i].upper() not in missing:
                     letter = record.seq[i].upper()
-            if consensus and letter.upper() != "N":
+            if consensus and letter.upper() not in missing:
                 consensus_string += letter
             else:
                 consensus_string += "*"
@@ -353,9 +360,16 @@ class AlignedSeq(object):
                 "Get kmeans partition of interval [%d, %d]", interval[0], interval[1]
             )
             interval_alignment = self.alignment[:, interval[0] : interval[1] + 1]
+            seq_dict_keys = get_interval_seqs(interval_alignment)
+
             interval_seq_dict = {}
             small_interval_seq_dict = {}
-            seq_dict_keys = []
+
+            for seq in seq_dict_keys:
+                if len(seq) >= self.min_match_length:
+                    interval_seq_dict[seq] = []
+                else:
+                    small_interval_seq_dict[seq] = []
 
             for record in interval_alignment:
                 seq = remove_gaps(str(record.seq))
@@ -363,12 +377,6 @@ class AlignedSeq(object):
                     interval_seq_dict[seq].append(record.id)
                 elif seq in list(small_interval_seq_dict.keys()):
                     small_interval_seq_dict[seq].append(record.id)
-                elif len(seq) >= self.min_match_length:
-                    interval_seq_dict[seq] = [record.id]
-                    seq_dict_keys.append(seq)
-                else:
-                    small_interval_seq_dict[seq] = [record.id]
-                    seq_dict_keys.append(seq)
 
             assert len(seq_dict_keys) == len(
                 list(remove_duplicates(seq_dict_keys))
@@ -519,9 +527,9 @@ class AlignedSeq(object):
                     logging.warning(
                         "Key %s doesn't seem to be in either big keys or small keys"
                     )
-        assert len(interval_alignment) == sum(
-            [len(i) for i in return_id_lists]
-        ), "I seem to have lost (or gained?) some sequences in the process of clustering"
+        #assert len(interval_alignment) == sum(
+        #    [len(i) for i in return_id_lists]
+        #), "I seem to have lost (or gained?) some sequences in the process of clustering"
         assert (
             len(return_id_lists) > 1
         ), "should have some alternate alleles, not only one sequence, this is a non-match interval"

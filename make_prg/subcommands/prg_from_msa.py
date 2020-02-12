@@ -49,6 +49,7 @@ def run(options):
             alignment_format=options.alignment_format,
             max_nesting=options.max_nesting,
             min_match_length=options.min_match_length,
+            staggered_start=options.staggered_start,
             prg_file=prg_file,
         )
     else:
@@ -57,6 +58,7 @@ def run(options):
             alignment_format=options.alignment_format,
             max_nesting=options.max_nesting,
             min_match_length=options.min_match_length,
+            staggered_start=options.staggered_start,
         )
         logging.info("Write PRG file to %s.prg", prefix)
         utils.write_prg(prefix, aseq.prg)

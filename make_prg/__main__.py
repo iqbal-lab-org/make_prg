@@ -71,6 +71,12 @@ def main():
         "-p", "--prefix", dest="output_prefix", action="store", help="Output prefix"
     )
     subparser_prg_from_msa.add_argument(
+        "--staggered_start",
+        dest="staggered_start",
+        action="store_true",
+        help="Assume dashes at start of alignment are due to missing data, rather than indels",
+    )
+    subparser_prg_from_msa.add_argument(
         "--no_overwrite",
         dest="no_overwrite",
         action="store_true",
