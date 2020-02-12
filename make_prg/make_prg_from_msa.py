@@ -527,9 +527,6 @@ class AlignedSeq(object):
                     logging.warning(
                         "Key %s doesn't seem to be in either big keys or small keys"
                     )
-        #assert len(interval_alignment) == sum(
-        #    [len(i) for i in return_id_lists]
-        #), "I seem to have lost (or gained?) some sequences in the process of clustering"
         assert (
             len(return_id_lists) > 1
         ), "should have some alternate alleles, not only one sequence, this is a non-match interval"
