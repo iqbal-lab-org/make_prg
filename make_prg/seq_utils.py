@@ -4,6 +4,7 @@ import itertools
 
 from Bio import AlignIO
 
+
 def remove_duplicates(seqs: Sequence) -> Generator:
     seen = set()
     for x in seqs:
@@ -15,6 +16,7 @@ def remove_duplicates(seqs: Sequence) -> Generator:
 
 def remove_gaps(sequence: str) -> str:
     return sequence.replace("-", "")
+
 
 iupac = {
     "R": "GA",
@@ -29,6 +31,7 @@ iupac = {
     "T": "T",
 }
 allowed_bases = set(iupac.keys())
+
 
 def get_interval_seqs(interval_alignment: AlignIO.MultipleSeqAlignment):
     """Replace - with nothing, remove seqs containing N or other non-allowed letters

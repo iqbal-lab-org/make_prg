@@ -616,7 +616,6 @@ class AlignedSeq(object):
         logging.debug("found the max of %s is %d", max_nesting, m)
         return m
 
-
     @property
     def prop_in_match_intervals(self):
         length_match_intervals = 0
