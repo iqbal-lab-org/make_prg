@@ -1,13 +1,11 @@
-import gzip
 import logging
 import os
 
 import numpy as np
-from Bio import AlignIO
 from Bio.AlignIO import MultipleSeqAlignment
 from sklearn.cluster import KMeans
 
-from make_prg.utils import remove_duplicates, remove_gaps
+from make_prg.utils import load_alignment_file, remove_duplicates, remove_gaps
 
 
 def get_interval_seqs(interval_alignment):
@@ -94,31 +92,17 @@ class AlignedSeq(object):
         self.min_match_length = min_match_length
         self.site = site
         self.alignment = alignment
-        if not self.alignment:
-            logging.info("Read from MSA file %s", self.msa_file)
-            if ".gz" in self.msa_file:
-                logging.debug("MSA is gzipped")
-                handle = gzip.open(self.msa_file, "rt")
-                self.alignment = AlignIO.read(handle, self.alignment_format)
-                handle.close()
-            else:
-                self.alignment = AlignIO.read(self.msa_file, self.alignment_format)
+        if self.alignment is None:
+            self.alignment = load_alignment_file(msa_file, alignment_format)
+
         self.interval = interval
-        self.num_seqs = len(self.alignment)
         self.consensus = self.get_consensus()
         self.length = len(self.consensus)
-        (self.match_intervals, self.non_match_intervals) = self.get_match_intervals
+        (self.match_intervals, self.non_match_intervals) = self.interval_partition()
         self.check_nonmatch_intervals()
         self.all_intervals = self.match_intervals + self.non_match_intervals
         logging.info("Non match intervals: %s", self.non_match_intervals)
         self.all_intervals.sort()
-        if self.nesting_level == 1:
-            self.length_match_intervals = 0
-            for interval in self.match_intervals:
-                self.length_match_intervals += interval[1] - interval[0] + 1
-            self.prop_in_match_intervals = self.length_match_intervals / float(
-                self.length
-            )
 
         # properties for stats
         self.subAlignedSeqs = {}
@@ -162,8 +146,7 @@ class AlignedSeq(object):
         assert len(first_string) == len(consensus_string)
         return consensus_string
 
-    @property
-    def get_match_intervals(self):
+    def interval_partition(self):
         """Return a list of intervals in which we have
         consensus sequence longer than min_match_length, and
         a list of the non-match intervals left."""
@@ -692,3 +675,15 @@ class AlignedSeq(object):
         m = max(max_nesting)
         logging.debug("found the max of %s is %d", max_nesting, m)
         return m
+
+
+    @property
+    def prop_in_match_intervals(self):
+        length_match_intervals = 0
+        for interval in self.match_intervals:
+            length_match_intervals += interval[1] - interval[0] + 1
+        return length_match_intervals / float(self.length)
+
+    @property
+    def num_seqs(self):
+        return len(self.alignment)
