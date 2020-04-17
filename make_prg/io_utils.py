@@ -2,7 +2,6 @@ import logging
 import re
 import gzip
 from pathlib import Path
-from typing import Generator, Sequence
 
 from Bio import AlignIO
 
@@ -17,20 +16,9 @@ def load_alignment_file(msa_file: str, alignment_format: str):
         handle.close()
     else:
         alignment = AlignIO.read(msa_file, alignment_format)
+    for record in alignment:
+        record.seq = record.seq.upper()
     return alignment
-
-
-def remove_duplicates(seqs: Sequence) -> Generator:
-    seen = set()
-    for x in seqs:
-        if x in seen:
-            continue
-        seen.add(x)
-        yield x
-
-
-def remove_gaps(sequence: str) -> str:
-    return sequence.replace("-", "")
 
 
 # ************/

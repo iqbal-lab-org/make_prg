@@ -5,6 +5,6 @@ try:
 except:
     __version__ = "local"
 
-__all__ = ["make_prg_from_msa", "subcommands", "utils"]
+__all__ = ["make_prg_from_msa", "subcommands", "io_utils", "seq_utils"]
 
 from make_prg import *

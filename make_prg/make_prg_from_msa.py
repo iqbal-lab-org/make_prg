@@ -5,67 +5,8 @@ import numpy as np
 from Bio.AlignIO import MultipleSeqAlignment
 from sklearn.cluster import KMeans
 
-from make_prg.utils import load_alignment_file, remove_duplicates, remove_gaps
-
-
-def get_interval_seqs(interval_alignment):
-    """Replace - with nothing, remove seqs containing N or other non-allowed letters
-    and duplicate sequences containing RYKMSW, replacing with AGCT alternatives """
-    allowed_bases = {"A", "C", "G", "T", "R", "Y", "K", "M", "S", "W"}
-    iupac = {
-        "R": ["G", "A"],
-        "Y": ["T", "C"],
-        "K": ["G", "T"],
-        "M": ["A", "C"],
-        "S": ["G", "C"],
-        "W": ["A", "T"],
-    }
-    seqs = []
-    gapless_seqs = [
-        remove_gaps(str(record.seq)).upper() for record in interval_alignment
-    ]
-    unique_seqs = remove_duplicates(gapless_seqs)
-
-    for seq in unique_seqs:
-        if allowed_bases.issuperset(seq):
-            new_seqs = [seq]
-            for letter in iupac.keys():
-                letter_seqs = []
-                for t in new_seqs:
-                    if letter in t:
-                        letter_seqs.append(t.replace(letter, iupac[letter][0]))
-                        letter_seqs.append(t.replace(letter, iupac[letter][1]))
-                    else:
-                        letter_seqs.append(t)
-                new_seqs = letter_seqs
-            seqs.extend(new_seqs)
-    ret_list = list(set(seqs))
-    if len(ret_list) == 0:
-        logging.warning(
-            "WARNING: Every sequence must have contained an N in this slice - redo sequence curation because this is nonsense"
-        )
-        logging.warning(
-            "Sequences were",
-            " ".join(
-                list(
-                    remove_duplicates(
-                        [
-                            remove_gaps(str(record.seq)).upper()
-                            for record in interval_alignment
-                        ]
-                    )
-                )
-            ),
-        )
-        logging.warning(
-            "Using these sequences anyway, and should be ignored downstream"
-        )
-        seqs = list(
-            remove_duplicates(
-                [remove_gaps(str(record.seq)).upper() for record in interval_alignment]
-            )
-        )
-    return sorted(list(set(seqs)))
+from make_prg.io_utils import load_alignment_file
+from make_prg.seq_utils import remove_duplicates, remove_gaps, get_interval_seqs
 
 
 class AlignedSeq(object):
@@ -131,15 +72,15 @@ class AlignedSeq(object):
         for i, letter in enumerate(first_string):
             consensus = True
             for record in self.alignment:
-                if (record.seq[i].upper() != "N" and letter.upper() != "N") and (
-                    record.seq[i].upper() != letter.upper()
-                    or record.seq[i].upper() in ["R", "Y", "K", "M", "S", "W"]
+                if (record.seq[i] != "N" and letter != "N") and (
+                    record.seq[i] != letter
+                    or record.seq[i] in ["R", "Y", "K", "M", "S", "W"]
                 ):
                     consensus = False
                     break
-                if letter.upper() == "N" and record.seq[i].upper() != "N":
-                    letter = record.seq[i].upper()
-            if consensus and letter.upper() != "N":
+                if letter == "N" and record.seq[i] != "N":
+                    letter = record.seq[i]
+            if consensus and letter != "N":
                 consensus_string += letter
             else:
                 consensus_string += "*"
@@ -326,8 +267,7 @@ class AlignedSeq(object):
                 [
                     record.id
                     for record in self.alignment
-                    if remove_gaps(str(record.seq[interval[0] : interval[1] + 1]))
-                    == seq
+                    if record.seq[interval[0] : interval[1] + 1].ungap("-") == seq
                 ]
                 for seq in interval_seqs
             ]
