@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-from make_prg import make_prg_from_msa, utils
+from make_prg import make_prg_from_msa, io_utils
 
 
 def run(options):
@@ -59,12 +59,12 @@ def run(options):
             min_match_length=options.min_match_length,
         )
         logging.info("Write PRG file to %s.prg", prefix)
-        utils.write_prg(prefix, aseq.prg)
+        io_utils.write_prg(prefix, aseq.prg)
         m = aseq.max_nesting_level_reached
         logging.info("Max_nesting_reached\t%d", m)
 
     logging.info("Write GFA file to %s.gfa", prefix)
-    utils.write_gfa("%s.gfa" % prefix, aseq.prg)
+    io_utils.write_gfa("%s.gfa" % prefix, aseq.prg)
 
     summary_file = Path(prefix).parent / "summary.tsv"
     with summary_file.open("a") as s:
