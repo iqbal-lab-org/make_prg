@@ -7,6 +7,7 @@ from Bio import AlignIO
 
 from make_prg.prg_encoder import PrgEncoder
 
+
 def load_alignment_file(msa_file: str, alignment_format: str):
     logging.info("Read from MSA file %s", msa_file)
     if ".gz" in msa_file:

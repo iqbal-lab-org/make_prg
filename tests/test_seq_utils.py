@@ -8,20 +8,20 @@ from Bio.SeqRecord import SeqRecord
 
 from make_prg.seq_utils import remove_gaps, get_interval_seqs
 
+
 class TestGetIntervals(unittest.TestCase):
     def test_ambiguous_bases_one_seq(self):
-        alignment = AlignIO.MultipleSeqAlignment([SeqRecord(Seq("RWAAT"))]
-        )
+        alignment = AlignIO.MultipleSeqAlignment([SeqRecord(Seq("RWAAT"))])
         result = get_interval_seqs(alignment)
         expected = {"GAAAT", "AAAAT", "GTAAT", "ATAAT"}
         self.assertEqual(set(result), expected)
 
     def test_ambiguous_bases_one_seq_with_repeated_base(self):
-        alignment = AlignIO.MultipleSeqAlignment([SeqRecord(Seq("RRAAT"))]
-                                                 )
+        alignment = AlignIO.MultipleSeqAlignment([SeqRecord(Seq("RRAAT"))])
         result = get_interval_seqs(alignment)
         expected = {"GAAAT", "AAAAT", "GGAAT", "AGAAT"}
         self.assertEqual(set(result), expected)
+
 
 class TestRemoveGaps(unittest.TestCase):
     def test_empty_string_returns_empty(self):
@@ -61,5 +61,3 @@ class TestRemoveGaps(unittest.TestCase):
         actual = remove_gaps(seq)
 
         self.assertFalse("-" in actual)
-
-
