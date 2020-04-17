@@ -1,12 +1,16 @@
 import logging
-import os
 
 import numpy as np
 from Bio.AlignIO import MultipleSeqAlignment
 from sklearn.cluster import KMeans
 
 from make_prg.io_utils import load_alignment_file
-from make_prg.seq_utils import remove_duplicates, remove_gaps, get_interval_seqs
+from make_prg.seq_utils import (
+    remove_duplicates,
+    remove_gaps,
+    get_interval_seqs,
+    ambiguous_bases,
+)
 
 
 class AlignedSeq(object):
@@ -64,22 +68,20 @@ class AlignedSeq(object):
     def get_consensus(self):
         """Given a set of aligment records from AlignIO, creates
         a consensus string.
-        Lower and upper case are equivalent
-        Non AGCT symbols RYKMSW result in non-consensus and are substituted in graph
+        IUPAC ambiguous bases result in non-consensus and are later expanded in the prg.
         N results in consensus at that position unless they are all N."""
         first_string = str(self.alignment[0].seq)
         consensus_string = ""
         for i, letter in enumerate(first_string):
             consensus = True
             for record in self.alignment:
-                if (record.seq[i] != "N" and letter != "N") and (
-                    record.seq[i] != letter
-                    or record.seq[i] in ["R", "Y", "K", "M", "S", "W"]
-                ):
+                if letter == "N" or record.seq[i] == "N":
+                    if letter == "N" and record.seq[i] != "N":
+                        letter = record.seq[i]
+                    continue
+                if letter != record.seq[i] or record.seq[i] in ambiguous_bases:
                     consensus = False
                     break
-                if letter == "N" and record.seq[i] != "N":
-                    letter = record.seq[i]
             if consensus and letter != "N":
                 consensus_string += letter
             else:
@@ -93,124 +95,59 @@ class AlignedSeq(object):
         a list of the non-match intervals left."""
         match_intervals = []
         non_match_intervals = []
-        match_count = 0
-        match_start = 0
-        non_match_start = 0
+        match_count, match_start, non_match_start = 0, 0, 0
 
         logging.debug("consensus: %s" % self.consensus)
-        if len(remove_gaps(self.consensus)) < self.min_match_length:
-            # It makes no sense to classify a fully consensus sequence as
-            # a non-match just because it is too short.
-            if "*" in self.consensus:
-                interval_alignment = self.alignment[:, 0 : self.length]
-                interval_seqs = get_interval_seqs(interval_alignment)
-                if len(interval_seqs) > 1:
-                    logging.debug(
-                        "add short non-match whole interval [%d,%d]"
-                        % (0, self.length - 1)
-                    )
-                    non_match_intervals.append([0, self.length - 1])
-                else:
-                    logging.debug(
-                        "add short match whole interval [%d,%d]" % (0, self.length - 1)
-                    )
-                    match_intervals.append([0, self.length - 1])
-            else:
-                match_intervals.append([0, self.length - 1])
-                logging.debug(
-                    "add short match whole interval [%d,%d]" % (0, self.length - 1)
+        for i in range(self.length):
+            letter = self.consensus[i]
+            if letter != "*":
+                # In a match region.
+                if match_count == 0:
+                    match_start = i
+                match_count += 1
+            elif match_count > 0:
+                # Have reached a non-match. Check if previous match string is long enough to add to match_regions
+                match_string = remove_gaps(
+                    self.consensus[match_start : match_start + match_count]
                 )
-        else:
-            for i in range(self.length):
-                letter = self.consensus[i]
-                if letter != "*":
-                    # In a match region.
-                    if match_count == 0:
-                        match_start = i
-                    match_count += 1
-                elif match_count > 0:
-                    # Have reached a non-match. Check if previous match string is long enough to add to match_regions
-                    match_string = remove_gaps(
-                        self.consensus[match_start : match_start + match_count]
-                    )
-                    match_len = len(match_string)
-                    logging.debug("have match string %s" % match_string)
+                match_len = len(match_string)
+                logging.debug("have match string %s" % match_string)
 
-                    if match_len >= self.min_match_length:
-                        # if the non_match sequences in the interval are really the same, add a match interval
-                        interval_alignment = self.alignment[
-                            :, non_match_start : match_start + 1
-                        ]
-                        interval_seqs = get_interval_seqs(interval_alignment)
-                        if non_match_start < match_start and len(interval_seqs) > 1:
-                            non_match_intervals.append(
-                                [non_match_start, match_start - 1]
-                            )
-                            logging.debug(
-                                "add non-match interval as have alts [%d,%d]"
-                                % (non_match_start, match_start - 1)
-                            )
-                        elif non_match_start < match_start:
-                            match_intervals.append([non_match_start, match_start - 1])
-                            logging.debug(
-                                "add match interval as only one seq [%d,%d]"
-                                % (non_match_start, match_start - 1)
-                            )
-                        match_intervals.append(
-                            [match_start, match_start + match_count - 1]
-                        )
+                if match_len >= self.min_match_length:
+                    if non_match_start < match_start:
+                        non_match_intervals.append([non_match_start, match_start - 1])
                         logging.debug(
-                            "add match interval to complete step [%d,%d]"
-                            % (match_start, match_start + match_count - 1)
+                            f"add non-match interval [{non_match_start},{match_start - 1}]"
                         )
-                        non_match_start = i
-                    match_count = 0
-                    match_start = non_match_start
-
-            # At end add last intervals
-            match_string = remove_gaps(
-                self.consensus[match_start : match_start + match_count]
-            )
-            match_len = len(match_string)
-            logging.debug("at end have match string %s" % match_string)
-            if 0 < match_len < self.min_match_length:
-                logging.debug(
-                    "have short match region at end, so include it in non-match-region before - "
-                    "match count was %d" % match_count
-                )
+                    end = match_start + match_count - 1
+                    match_intervals.append([match_start, end])
+                    logging.debug(f"add match interval [{match_start},{end}]")
+                    non_match_start = i
                 match_count = 0
                 match_start = non_match_start
-                logging.debug("match count is now %d" % match_count)
 
-            if match_count > 0:
-                interval_alignment = self.alignment[
-                    :, non_match_start : match_start + 1
-                ]
+        end = self.length - 1
+        if self.length < self.min_match_length:
+            # Special case: a short sequence can still get classified as a match interval
+            added_interval = "match" if "*" in self.consensus else "non_match"
+            if added_interval == "match":
+                match_intervals.append([0, end])
             else:
-                interval_alignment = self.alignment[:, non_match_start : self.length]
-            interval_seqs = get_interval_seqs(interval_alignment)
-            if len(interval_seqs) == 1:
-                match_intervals.append([non_match_start, self.length - 1])
-                logging.debug(
-                    "add match interval at end as only one seq [%d,%d]"
-                    % (non_match_start, self.length - 1)
-                )
-            elif len(interval_seqs) > 1 and non_match_start < match_start:
-                non_match_intervals.append([non_match_start, match_start - 1])
-                logging.debug(
-                    "add non-match interval at end as have alts [%d,%d]"
-                    % (non_match_start, match_start - 1)
-                )
-                match_intervals.append([match_start, self.length - 1])
-                logging.debug(
-                    "add match interval at end [%d,%d]" % (match_start, self.length - 1)
-                )
-            else:
-                non_match_intervals.append([non_match_start, self.length - 1])
-                logging.debug(
-                    "add only non-match interval at end as have alts [%d,%d]"
-                    % (non_match_start, self.length - 1)
-                )
+                non_match_intervals.append([0, end])
+            logging.debug(f"add whole short {added_interval} interval [0,{end}]")
+            match_count = 0
+            non_match_start = end + 1
+
+        # At end add last intervals
+        if match_count > 0:
+            if match_count >= self.min_match_length:
+                match_intervals.append([match_start, end])
+                logging.debug(f"add final match interval [{match_start},{end}]")
+                if non_match_start < match_start:
+                    end = match_start - 1
+        if match_count != self.length and non_match_start <= end:
+            non_match_intervals.append([non_match_start, end])
+            logging.debug(f"add non-match interval [{non_match_start},{end}]")
 
         # check all stretches of consensus are in an interval, and intervals don't overlap
         for i in range(self.length):

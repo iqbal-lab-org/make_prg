@@ -31,6 +31,7 @@ iupac = {
     "T": "T",
 }
 allowed_bases = set(iupac.keys())
+ambiguous_bases = allowed_bases.difference({"A", "C", "G", "T"})
 
 
 def get_interval_seqs(interval_alignment: AlignIO.MultipleSeqAlignment):
