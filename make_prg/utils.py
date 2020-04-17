@@ -1,9 +1,23 @@
 import logging
 import re
+import gzip
 from pathlib import Path
 from typing import Generator, Sequence
 
+from Bio import AlignIO
+
 from make_prg.prg_encoder import PrgEncoder
+
+def load_alignment_file(msa_file: str, alignment_format: str):
+    logging.info("Read from MSA file %s", msa_file)
+    if ".gz" in msa_file:
+        logging.debug("MSA is gzipped")
+        handle = gzip.open(msa_file, "rt")
+        alignment = AlignIO.read(handle, alignment_format)
+        handle.close()
+    else:
+        alignment = AlignIO.read(msa_file, alignment_format)
+    return alignment
 
 
 def remove_duplicates(seqs: Sequence) -> Generator:
