@@ -67,7 +67,7 @@ class TestMakePrgFromMsaFile_IntegrationTests(TestCase):
 
         infile = os.path.join(data_dir, "match.nonmatch.match.fa")
         aseq = AlignedSeq(infile)
-        self.assertEqual(aseq.prg, "AAACG 5 C 6 T 5 GGTT")
+        self.assertEqual(aseq.prg, "AAACG 5 T 6 C 5 GGTT")
 
         infile = os.path.join(data_dir, "shortmatch.nonmatch.match.fa")
         aseq = AlignedSeq(infile)
@@ -83,15 +83,15 @@ class TestMakePrgFromMsaFile_IntegrationTests(TestCase):
 
         infile = os.path.join(data_dir, "contains_n.fa")
         aseq = AlignedSeq(infile)
-        self.assertEqual(aseq.prg, "AAACG 5 C 6 T 5 GGTT")
+        self.assertEqual(aseq.prg, "AAACG 5 T 6 C 5 GGTT")
 
         infile = os.path.join(data_dir, "contains_RYKMSW.fa")
         aseq = AlignedSeq(infile)
-        self.assertEqual(aseq.prg, "AAACG 5 C 6 T 5 GGTT")
+        self.assertEqual(aseq.prg, "AAACG 5 T 6 C 5 GGTT")
 
         infile = os.path.join(data_dir, "contains_n_and_RYKMSW.fa")
         aseq = AlignedSeq(infile)
-        self.assertEqual(aseq.prg, "AAACG 5 C 6 T 5 GGTT")
+        self.assertEqual(aseq.prg, "AAACG 5 T 6 C 5 GGTT")
 
         infile = os.path.join(data_dir, "contains_n_and_RYKMSW_no_variants.fa")
         aseq = AlignedSeq(infile)

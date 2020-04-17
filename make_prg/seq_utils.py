@@ -35,11 +35,15 @@ ambiguous_bases = allowed_bases.difference({"A", "C", "G", "T"})
 
 
 def get_interval_seqs(interval_alignment: AlignIO.MultipleSeqAlignment):
-    """Replace - with nothing, remove seqs containing N or other non-allowed letters
-    and duplicate sequences containing RYKMSW, replacing with AGCT alternatives """
+    """
+    Replace - with nothing, remove seqs containing N or other non-allowed letters
+    and duplicate sequences containing RYKMSW, replacing with AGCT alternatives
+
+    The sequences are deliberately returned in the order they are received
+    """
     gapless_seqs = [str(record.seq.ungap("-")) for record in interval_alignment]
 
-    callback_seqs = []
+    callback_seqs, expanded_seqs = [], []
     expanded_set = set()
     for seq in remove_duplicates(gapless_seqs):
         if len(expanded_set) == 0:
@@ -47,8 +51,11 @@ def get_interval_seqs(interval_alignment: AlignIO.MultipleSeqAlignment):
         if not set(seq).issubset(allowed_bases):
             continue
         alternatives = [iupac[base] for base in seq]
-        for expanded_seq in itertools.product(*alternatives):
-            expanded_set.add("".join(expanded_seq))
+        for tuple_product in itertools.product(*alternatives):
+            expanded_str = "".join(tuple_product)
+            if expanded_str not in expanded_set:
+                expanded_set.add(expanded_str)
+                expanded_seqs.append(expanded_str)
 
     if len(expanded_set) == 0:
         logging.warning(
@@ -58,5 +65,5 @@ def get_interval_seqs(interval_alignment: AlignIO.MultipleSeqAlignment):
         logging.warning(
             "Using these sequences anyway, and should be ignored downstream"
         )
-        return sorted(callback_seqs)
-    return sorted(list(expanded_set))
+        return callback_seqs
+    return expanded_seqs

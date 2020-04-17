@@ -233,26 +233,10 @@ class AlignedSeq(object):
             assert len(seq_dict_keys) == len(
                 list(remove_duplicates(seq_dict_keys))
             ), "error, have duplicate dictionary keys"
-            assert (
-                len(
-                    [
-                        key
-                        for key in list(interval_seq_dict.keys())
-                        if key in list(small_interval_seq_dict.keys())
-                    ]
-                )
-                == 0
-            ), "error, should have no overlap of keys"
-            assert (
-                len(
-                    [
-                        key
-                        for key in list(small_interval_seq_dict.keys())
-                        if key in list(interval_seq_dict.keys())
-                    ]
-                )
-                == 0
-            ), "error, should have no overlap of keys"
+
+            keys_1 = interval_seq_dict.keys()
+            keys_2 = small_interval_seq_dict.keys()
+            assert keys_1.isdisjoint(keys_2), "error: should have no overlap of keys"
 
             logging.debug(
                 "Add classes corresponding to %d small sequences"
@@ -266,8 +250,8 @@ class AlignedSeq(object):
             interval_seqs = list(interval_seq_dict.keys())
             big_return_id_lists = []
             if len(interval_seqs) > 1:
-                # first transform sequences into kmer occurance vectors using a dict
-                logging.debug("First transform sequences into kmer occurance vectors")
+                # first transform sequences into kmer occurrence vectors using a dict
+                logging.debug("First transform sequences into kmer occurrence vectors")
 
                 # make dict based on number of kmers in all sequences
                 self.kmer_dict = {}
@@ -401,10 +385,11 @@ class AlignedSeq(object):
 
         for interval in self.all_intervals:
             if interval in self.match_intervals:
-                # WLOG can take first sequence as all same in this interval
+                # all seqs are not necessarily exactly the same: some can have 'N'
+                # thus still process all of them, to get the one with no 'N'.
                 sub_alignment = self.alignment[:, interval[0] : interval[1] + 1]
                 seqs = get_interval_seqs(sub_alignment)
-                assert len(seqs) > 0
+                assert 0 < len(seqs) <= 1, "Got >1 filtered sequences in match interval"
                 seq = seqs[0]
                 prg += seq
 
@@ -492,12 +477,6 @@ class AlignedSeq(object):
                         % (num_classes_in_partition, len(variant_seqs))
                     )
                 assert len(variant_seqs) > 1, "Only have one variant seq"
-
-                if len(variant_seqs) != len(list(remove_duplicates(variant_seqs))):
-                    print("variant_seqs: ")
-                    for s in variant_seqs:
-                        print(s)
-                        print(", ")
 
                 assert len(variant_seqs) == len(
                     list(remove_duplicates(variant_seqs))
