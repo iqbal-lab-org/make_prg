@@ -1,10 +1,13 @@
 import logging
+from collections import defaultdict
+from typing import List
 
 import numpy as np
 from Bio.AlignIO import MultipleSeqAlignment
 from sklearn.cluster import KMeans
 
 from make_prg.io_utils import load_alignment_file
+from make_prg.exceptions import ClusteringError
 from make_prg.seq_utils import (
     remove_duplicates,
     remove_gaps,
@@ -187,161 +190,140 @@ class AlignedSeq(object):
                 self.non_match_intervals.pop(i)
         self.match_intervals.sort()
 
+    @classmethod
     def kmeans_cluster_seqs_in_interval(
-        self, interval
-    ):  # , kmer_size=self.min_match_length):
-        """Divide sequences in interval into subgroups of similar
-           sequences. Return a list of lists of ids."""
-        if interval[1] - interval[0] <= self.min_match_length:
+        self,
+        interval: List[int],
+        alignment: MultipleSeqAlignment,
+        min_match_length: int,
+    ) -> List[List[str]]:
+        """Divide sequences in interval into subgroups of similar sequences."""
+        # id_lists: List[List[str]] = []
+        if interval[1] - interval[0] <= min_match_length:
             logging.info("Small variation site in interval %s \n", interval)
-            interval_alignment = self.alignment[:, interval[0] : interval[1] + 1]
+            interval_alignment = alignment[:, interval[0] : interval[1] + 1]
             interval_seqs = get_interval_seqs(interval_alignment)
-            return_id_lists = [
+            id_lists = [
                 [
                     record.id
-                    for record in self.alignment
+                    for record in alignment
                     if record.seq[interval[0] : interval[1] + 1].ungap("-") == seq
                 ]
                 for seq in interval_seqs
             ]
+            return id_lists
+
+        logging.debug(
+            "Get kmeans partition of interval [%d, %d]", interval[0], interval[1]
+        )
+
+        interval_alignment = alignment[:, interval[0] : interval[1] + 1]
+        seq_to_ids = defaultdict(list)
+        small_seq_to_ids = defaultdict(list)
+
+        for record in interval_alignment:
+            seq = str(record.seq.ungap("-"))
+            if len(seq) >= min_match_length:
+                seq_to_ids[seq].append(record.id)
+            else:
+                small_seq_to_ids[seq].append(record.id)
+        logging.debug(
+            f"Add classes for {len(seq_to_ids)} long "
+            f"and {len(small_seq_to_ids)} small sequences"
+        )
+
+        # The clustering is performed on unique sequences
+        interval_seqs = list(seq_to_ids.keys())
+        if len(interval_seqs) == 1:
+            raise ClusteringError(
+                "Only one sequence provided, no clustering to perform."
+            )
+
+        # first transform sequences into kmer occurrence vectors using a dict
+        logging.debug("First transform sequences into kmer occurrence vectors")
+
+        # collect all kmers
+        kmer_dict = {}
+        n = 0
+        for seq in interval_seqs:
+            for i in range(len(seq) - min_match_length + 1):
+                kmer = seq[i : i + min_match_length]
+                if kmer not in kmer_dict:
+                    kmer_dict[kmer] = n
+                    n += 1
+        logging.debug(f"Found {n} kmers")
+
+        # count all kmers
+        seq_kmer_counts = np.zeros(shape=(len(interval_seqs), n))
+        for j, seq in enumerate(interval_seqs):
+            counts = np.zeros(n)
+            for i in range(len(seq) - min_match_length + 1):
+                kmer = seq[i : i + min_match_length]
+                counts[kmer_dict[kmer]] += 1
+            seq_kmer_counts[j] = counts
+
+        # cluster sequences using kmeans
+        logging.debug("Now cluster:")
+        kmeans = KMeans(n_clusters=1, random_state=2).fit(seq_kmer_counts)
+        pre_cluster_inertia = kmeans.inertia_
+
+        cluster_inertia = pre_cluster_inertia
+        number_of_clusters = 1
+        logging.debug(f"initial inertia: {cluster_inertia}")
+        while (
+            cluster_inertia > 0
+            and cluster_inertia > pre_cluster_inertia / 2
+            and number_of_clusters < len(interval_seqs)
+        ):
+            number_of_clusters += 1
+            kmeans = KMeans(n_clusters=number_of_clusters, random_state=2).fit(
+                seq_kmer_counts
+            )
+            cluster_inertia = kmeans.inertia_
+            logging.debug(
+                "number of clusters: %d, inertia: %f",
+                number_of_clusters,
+                cluster_inertia,
+            )
+
+        # convert cluster numbers to sequence record IDs
+        clustered_ids = []
+        logging.debug("Extract equivalence classes from this partition")
+        if pre_cluster_inertia > 0:
+            cluster_ids = list(kmeans.predict(seq_kmer_counts))
+            for i in range(max(cluster_ids) + 1):
+                clustered_ids.append([])
+            for i, cluster_id in enumerate(cluster_ids):
+                clustered_ids[cluster_id].extend(seq_to_ids[interval_seqs[i]])
         else:
-            logging.debug(
-                "Get kmeans partition of interval [%d, %d]", interval[0], interval[1]
-            )
-            interval_alignment = self.alignment[:, interval[0] : interval[1] + 1]
-            interval_seq_dict = {}
-            small_interval_seq_dict = {}
-
-            for record in interval_alignment:
-                seq = remove_gaps(str(record.seq))
-                if seq in interval_seq_dict:
-                    interval_seq_dict[seq].append(record.id)
-                elif seq in small_interval_seq_dict:
-                    small_interval_seq_dict[seq].append(record.id)
-                elif len(seq) >= self.min_match_length:
-                    interval_seq_dict[seq] = [record.id]
-                else:
-                    small_interval_seq_dict[seq] = [record.id]
-
-            keys_1 = interval_seq_dict.keys()
-            keys_2 = small_interval_seq_dict.keys()
-            assert keys_1.isdisjoint(keys_2), "error: should have no overlap of keys"
-
-            logging.debug(
-                f"Add classes for {len(keys_1)} long and {len(keys_2)} small sequences"
-            )
-
-            interval_seqs = list(interval_seq_dict.keys())
-            big_return_id_lists = []
-            if len(interval_seqs) > 1:
-                # first transform sequences into kmer occurrence vectors using a dict
-                logging.debug("First transform sequences into kmer occurrence vectors")
-
-                # make dict based on number of kmers in all sequences
-                kmer_dict = {}
-                n = 0
-                for seq in interval_seqs:
-                    for i in range(len(seq) - self.min_match_length + 1):
-                        kmer = seq[i : i + self.min_match_length]
-                        if kmer not in kmer_dict:
-                            kmer_dict[kmer] = n
-                            n += 1
-                logging.debug("These vectors have length %d" % n)
-
-                # transform to vectors using dict
-                seq_kmer_counts = np.zeros(shape=(len(interval_seqs), n))
-                for j, seq in enumerate(interval_seqs):
-                    counts = np.zeros(n)
-                    for i in range(len(seq) - self.min_match_length + 1):
-                        counts[kmer_dict[seq[i : i + self.min_match_length]]] += 1
-                    seq_kmer_counts[j] = counts
-
-                # cluster sequences using kmeans
-                logging.debug("Now cluster:")
-                kmeans = KMeans(n_clusters=1, random_state=2).fit(seq_kmer_counts)
-                pre_cluster_inertia = kmeans.inertia_
-
-                cluster_inertia = pre_cluster_inertia
-                number_of_clusters = 1
-                logging.debug(f"initial inertia: {cluster_inertia}")
-                while (
-                    cluster_inertia > 0
-                    and cluster_inertia > pre_cluster_inertia / 2
-                    and number_of_clusters < len(interval_seqs)
-                ):
-                    number_of_clusters += 1
-                    kmeans = KMeans(n_clusters=number_of_clusters, random_state=2).fit(
-                        seq_kmer_counts
-                    )
-                    cluster_inertia = kmeans.inertia_
-                    logging.debug(
-                        "number of clusters: %d, inertia: %f",
-                        number_of_clusters,
-                        cluster_inertia,
-                    )
-
-                # convert cluster IDs to sequence record IDs
-                logging.debug("Extract equivalence classes from this partition")
-                if pre_cluster_inertia > 0:
-                    equiv_class_ids = list(kmeans.predict(seq_kmer_counts))
-                    for i in range(max(equiv_class_ids) + 1):
-                        big_return_id_lists.append([])
-                    for seq_number, cluster_id in enumerate(equiv_class_ids):
-                        big_return_id_lists[cluster_id].extend(
-                            interval_seq_dict[interval_seqs[seq_number]]
-                        )
-                else:
-                    logging.debug("pre_cluster_inertia is 0! No clustering.")
-                    for key in interval_seq_dict:
-                        logging.debug(
-                            "seq: %s, num_seqs with this seq: %d",
-                            key,
-                            len(interval_seq_dict[key]),
-                        )
-                    big_return_id_lists = [
-                        interval_seq_dict[key] for key in interval_seq_dict
-                    ]
-            elif len(interval_seqs) == 1:
-                big_return_id_lists = [interval_seq_dict[interval_seqs[0]]]
-
-            # now merge big and small return_id_lists so as to maintain the order of seqs before
-            logging.debug("Merge return id lists for the partitions")
-            return_id_lists = []
-            added_ids = []
-            for seq in small_interval_seq_dict:
+            logging.debug("pre_cluster_inertia is 0! No clustering.")
+            for key in seq_to_ids:
                 logging.debug(
-                    "add (small) return ids: %s" % small_interval_seq_dict[seq]
+                    "seq: %s, num_seqs with this seq: %d", key, len(seq_to_ids[key]),
                 )
-                return_id_lists.append(small_interval_seq_dict[seq])
-            for seq in interval_seq_dict:
-                not_added = [
-                    nid for nid in interval_seq_dict[seq] if nid not in added_ids
-                ]
-                if len(not_added) == len(interval_seq_dict[seq]):
-                    logging.debug(
-                        "want to add (big) return ids: %s" % interval_seq_dict[seq]
-                    )
-                    for i in range(len(big_return_id_lists)):
-                        if interval_seq_dict[seq][0] in big_return_id_lists[i]:
-                            logging.debug(
-                                "add (big) return ids %d: %s"
-                                % (i, big_return_id_lists[i])
-                            )
-                            return_id_lists.append(big_return_id_lists[i])
-                            added_ids.extend(return_id_lists[-1])
-                            break
-                else:
-                    assert (
-                        len(not_added) == 0
-                    ), "Equivalent sequences should be in same part of partition and are not"
+            clustered_ids = list(seq_to_ids.values())
+
+        logging.debug("Merge id lists for the partitions")
+        id_lists = []
+        for seq in small_seq_to_ids:
+            logging.debug("add (small) return ids: %s" % small_seq_to_ids[seq])
+            id_lists.append(small_seq_to_ids[seq])
+        added = set()
+        for ids in seq_to_ids.values():
+            logging.debug("want to add (big) return ids: %s" % ids)
+            if ids[0] in added:
+                continue
+            for cluster in clustered_ids:
+                if ids[0] in cluster:
+                    logging.debug("add (big) return ids %s" % cluster)
+                    id_lists.append(cluster)
+                    added = added.union(set(cluster))
+                    break
 
         assert len(interval_alignment) == sum(
-            [len(i) for i in return_id_lists]
+            [len(i) for i in id_lists]
         ), "I seem to have lost (or gained?) some sequences in the process of clustering"
-        assert (
-            len(return_id_lists) > 1
-        ), "should have some alternate alleles, not only one sequence, this is a non-match interval"
-        return return_id_lists
+        return id_lists
 
     def get_sub_alignment_by_list_id(self, list_of_id, interval=None):
         list_records = [record for record in self.alignment if record.id in list_of_id]
@@ -369,7 +351,7 @@ class AlignedSeq(object):
                 # Define variant site number and increment for next available
                 site_num = self.site
                 self.site += 2
-                variant_seqs = []
+                variant_prgs = []
 
                 # Define the variant seqs to add
                 if (self.nesting_level == self.max_nesting) or (
@@ -389,20 +371,22 @@ class AlignedSeq(object):
                             )
                         )
                     )
-                    variant_seqs = get_interval_seqs(sub_alignment)
-                    logging.debug("Which is equivalent to: %s" % variant_seqs)
+                    variant_prgs = get_interval_seqs(sub_alignment)
+                    logging.debug("Which is equivalent to: %s" % variant_prgs)
                 else:
                     # divide sequences into subgroups and define prg for each subgroup.
                     logging.debug(
                         "Divide sequences into subgroups and define prg for each subgroup."
                     )
                     recur = True
-                    list_list_id = self.kmeans_cluster_seqs_in_interval(interval)
+                    id_lists = self.kmeans_cluster_seqs_in_interval(
+                        interval, self.alignment, self.min_match_length
+                    )
                     list_sub_alignments = [
-                        self.get_sub_alignment_by_list_id(list_id, interval)
-                        for list_id in list_list_id
+                        self.get_sub_alignment_by_list_id(id_list, interval)
+                        for id_list in id_lists
                     ]
-                    num_classes_in_partition = len(list_list_id)
+                    num_clusters = len(id_lists)
 
                     if len(list_sub_alignments) == self.num_seqs:
                         logging.debug(
@@ -434,7 +418,7 @@ class AlignedSeq(object):
                             alignment=sub_alignment,
                             interval=interval,
                         )
-                        variant_seqs.append(sub__aligned_seq.prg)
+                        variant_prgs.append(sub__aligned_seq.prg)
                         self.site = sub__aligned_seq.site
 
                         if recur:
@@ -443,15 +427,15 @@ class AlignedSeq(object):
                             self.subAlignedSeqs[interval[0]].append(sub__aligned_seq)
                             # logging.debug("Length of subAlignedSeqs[%d] is %d", interval[0],
                             # len(self.subAlignedSeqs[interval[0]]))
-                    assert num_classes_in_partition == len(variant_seqs), (
+                    assert num_clusters == len(variant_prgs), (
                         "I don't seem to have a sub-prg sequence for all parts of the partition - there are %d "
                         "classes in partition, and %d variant seqs"
-                        % (num_classes_in_partition, len(variant_seqs))
+                        % (num_clusters, len(variant_prgs))
                     )
-                assert len(variant_seqs) > 1, "Only have one variant seq"
+                assert len(variant_prgs) > 1, "Only have one variant seq"
 
-                assert len(variant_seqs) == len(
-                    list(remove_duplicates(variant_seqs))
+                assert len(variant_prgs) == len(
+                    list(remove_duplicates(variant_prgs))
                 ), "have repeat variant seqs"
 
                 # Add the variant seqs to the prg
@@ -461,10 +445,10 @@ class AlignedSeq(object):
                     self.delim_char,
                 )  # considered making it so start of prg was not delim_char,
                 # but that would defeat the point if it
-                while len(variant_seqs) > 1:
-                    prg += variant_seqs.pop(0)
+                while len(variant_prgs) > 1:
+                    prg += variant_prgs.pop(0)
                     prg += "%s%d%s" % (self.delim_char, site_num + 1, self.delim_char)
-                prg += variant_seqs.pop()
+                prg += variant_prgs.pop()
                 prg += "%s%d%s" % (self.delim_char, site_num, self.delim_char)
 
         return prg

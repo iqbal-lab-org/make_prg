@@ -1,7 +1,14 @@
 import os
-from unittest import TestCase, mock
+import random
+from unittest import TestCase, mock, skip
+
+from Bio.AlignIO import MultipleSeqAlignment
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 
 from make_prg.make_prg_from_msa import AlignedSeq
+from make_prg.exceptions import ClusteringError
+from make_prg.seq_utils import standard_bases
 
 this_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 data_dir = os.path.join(this_dir, "tests", "data", "make_prg_from_msa")
@@ -45,6 +52,78 @@ class TestIntervalPartitioning(TestCase):
         match, non_match = tester.interval_partition()
         self.assertEqual(match, [[2, 4], [7, 9]])
         self.assertEqual(non_match, [[0, 1], [5, 6], [10, 11]])
+
+
+class TestKmeans(TestCase):
+    def test_one_seq_fails(self):
+        """Clustering requires at least 2 sequences"""
+        alignment = MultipleSeqAlignment([SeqRecord(Seq("AAAT"))])
+        with self.assertRaises(ClusteringError) as context:
+            AlignedSeq.kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
+        self.assertTrue("Only one sequence" in str(context.exception))
+
+    def test_two_identical_seqs_fails(self):
+        alignment = MultipleSeqAlignment(
+            [SeqRecord(Seq("AAAT")), SeqRecord(Seq("AAAT")),]
+        )
+        with self.assertRaises(ClusteringError) as context:
+            AlignedSeq.kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
+        self.assertTrue("Only one sequence" in str(context.exception))
+
+    def test_sequences_in_short_interval_separate_clusters(self):
+        alignment = MultipleSeqAlignment(
+            [
+                SeqRecord(Seq("AAAT"), id="s1"),
+                SeqRecord(Seq("AATT"), id="s2"),
+                SeqRecord(Seq("AAGT"), id="s3"),
+            ]
+        )
+        result = AlignedSeq.kmeans_cluster_seqs_in_interval([0, 3], alignment, 5)
+        self.assertEqual([["s1"], ["s2"], ["s3"]], result)
+
+    @skip(
+        "This fails, probably because kmean clustering should never run with this input"
+    )
+    def test_ambiguous_sequences_in_short_interval_separate_clusters(self):
+        alignment = MultipleSeqAlignment(
+            [SeqRecord(Seq("ARAT"), id="s1"), SeqRecord(Seq("WAAT"), id="s2"),]
+        )
+        result = AlignedSeq.kmeans_cluster_seqs_in_interval([0, 3], alignment, 5)
+        self.assertEqual([["s1"], ["s2"]], result)
+
+    def test_first_sequence_placed_in_first_cluster(self):
+        """
+        Runs kmeans clustering on randomly generated multiple sequence alignments
+        """
+        seq_len = 20
+        num_seqs = 20
+        bases = list(standard_bases)
+        # Function has different behaviour at below and above seq_len
+        for seq_len in [seq_len - 1, seq_len + 1]:
+            with self.subTest(min_match_len=seq_len - 1):
+                for _ in range(20):  # Run on a number of random alignments
+                    records = []
+                    for i in range(num_seqs):
+                        rand_seq = "".join(
+                            [random.choice(bases) for _ in range(seq_len)]
+                        )
+                        records.append(SeqRecord(Seq(rand_seq), id=f"s{i}"))
+                    alignment = MultipleSeqAlignment(records)
+                    result = AlignedSeq.kmeans_cluster_seqs_in_interval(
+                        [0, seq_len - 1], alignment, 1
+                    )
+                    self.assertTrue(result[0][0] == "s0")
+
+    def test_duplicate_sequence_ids_together(self):
+        alignment = MultipleSeqAlignment(
+            [
+                SeqRecord(Seq("AAAT"), id="s1"),
+                SeqRecord(Seq("AAAT"), id="s2"),
+                SeqRecord(Seq("C-CC"), id="s3"),
+            ]
+        )
+        result = AlignedSeq.kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
+        self.assertEqual([["s1", "s2"], ["s3"]], result)
 
 
 class TestMakePrgFromMsaFile_IntegrationTests(TestCase):
