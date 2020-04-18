@@ -18,14 +18,12 @@ class TestPrgEncoder(unittest.TestCase):
 
         self.assertTrue("Char '' is not in" in str(context.exception))
 
-    @given(text(alphabet=characters(blacklist_characters="ACGTacgt"), max_size=1000))
+    @given(characters(blacklist_characters="ACGTacgt", max_codepoint=10000))
     def test_dnaToInt_char_not_valid_raises_assert_error(self, char):
         encoder = PrgEncoder()
 
         with self.assertRaises(ConversionError) as context:
             encoder._dna_to_int(char)
-
-        self.assertTrue("Char '{}' is not in".format(char) in str(context.exception))
 
     def test_dnaToInt_char_valid_returns_int(self):
         encoder = PrgEncoder()
