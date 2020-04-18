@@ -1,0 +1,2 @@
+class ClusteringError(Exception):
+    pass
