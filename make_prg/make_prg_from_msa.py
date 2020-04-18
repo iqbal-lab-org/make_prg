@@ -325,8 +325,11 @@ class AlignedSeq(object):
         ), "I seem to have lost (or gained?) some sequences in the process of clustering"
         return id_lists
 
-    def get_sub_alignment_by_list_id(self, list_of_id, interval=None):
-        list_records = [record for record in self.alignment if record.id in list_of_id]
+    @classmethod
+    def get_sub_alignment_by_list_id(
+        self, id_list: List[str], alignment: MultipleSeqAlignment, interval=None
+    ):
+        list_records = [record for record in alignment if record.id in id_list]
         sub_alignment = MultipleSeqAlignment(list_records)
         if interval:
             sub_alignment = sub_alignment[:, interval[0] : interval[1] + 1]
@@ -383,17 +386,19 @@ class AlignedSeq(object):
                         interval, self.alignment, self.min_match_length
                     )
                     list_sub_alignments = [
-                        self.get_sub_alignment_by_list_id(id_list, interval)
+                        self.get_sub_alignment_by_list_id(
+                            id_list, self.alignment, interval
+                        )
                         for id_list in id_lists
                     ]
                     num_clusters = len(id_lists)
 
                     if len(list_sub_alignments) == self.num_seqs:
                         logging.debug(
-                            "Partition does not group any sequences together, all seqs get unique class in partition"
+                            "Clustering did not group any sequences together, each seq is a cluster"
                         )
                         recur = False
-                    elif interval[0] not in list(self.subAlignedSeqs.keys()):
+                    elif interval[0] not in self.subAlignedSeqs:
                         self.subAlignedSeqs[interval[0]] = []
                         logging.debug(
                             "subAlignedSeqs now has keys: %s",
@@ -408,7 +413,7 @@ class AlignedSeq(object):
 
                     while len(list_sub_alignments) > 0:
                         sub_alignment = list_sub_alignments.pop(0)
-                        sub__aligned_seq = AlignedSeq(
+                        sub_aligned_seq = AlignedSeq(
                             msa_file=self.msa_file,
                             alignment_format=self.alignment_format,
                             max_nesting=self.max_nesting,
@@ -418,13 +423,13 @@ class AlignedSeq(object):
                             alignment=sub_alignment,
                             interval=interval,
                         )
-                        variant_prgs.append(sub__aligned_seq.prg)
-                        self.site = sub__aligned_seq.site
+                        variant_prgs.append(sub_aligned_seq.prg)
+                        self.site = sub_aligned_seq.site
 
                         if recur:
                             # logging.debug("None not in snp_scores - try to add sub__aligned_seq to list in
                             # dictionary")
-                            self.subAlignedSeqs[interval[0]].append(sub__aligned_seq)
+                            self.subAlignedSeqs[interval[0]].append(sub_aligned_seq)
                             # logging.debug("Length of subAlignedSeqs[%d] is %d", interval[0],
                             # len(self.subAlignedSeqs[interval[0]]))
                     assert num_clusters == len(variant_prgs), (

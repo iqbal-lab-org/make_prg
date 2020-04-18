@@ -22,6 +22,14 @@ class TestGetIntervals(unittest.TestCase):
         expected = {"GAAAT", "AAAAT", "GGAAT", "AGAAT"}
         self.assertEqual(set(result), expected)
 
+    def test_first_sequence_in_is_first_sequence_out(self):
+        alignment = AlignIO.MultipleSeqAlignment(
+            [SeqRecord(Seq("TTTT")), SeqRecord(Seq("AAAA")), SeqRecord(Seq("CC-C")),]
+        )
+        result = get_interval_seqs(alignment)
+        expected = ["TTTT", "AAAA", "CCC"]
+        self.assertEqual(expected, result)
+
 
 class TestRemoveGaps(unittest.TestCase):
     def test_empty_string_returns_empty(self):
