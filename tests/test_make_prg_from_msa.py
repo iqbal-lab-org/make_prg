@@ -114,7 +114,7 @@ class TestKmeans(TestCase):
                     )
                     self.assertTrue(result[0][0] == "s0")
 
-    def test_duplicate_sequence_ids_together(self):
+    def test_duplicate_sequence_ids_clustered_together(self):
         alignment = MultipleSeqAlignment(
             [
                 SeqRecord(Seq("AAAT"), id="s1"),
@@ -124,6 +124,52 @@ class TestKmeans(TestCase):
         )
         result = AlignedSeq.kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
         self.assertEqual([["s1", "s2"], ["s3"]], result)
+
+
+def msas_equal(al1: MultipleSeqAlignment, al2: MultipleSeqAlignment):
+    if len(al1) != len(al2):
+        return False
+    for i in range(len(al1)):
+        if al1[i].seq != al2[i].seq:
+            return False
+        if al1[i].id != al2[i].id:
+            return False
+    return True
+
+
+class TestSubAlignments(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.alignment = MultipleSeqAlignment(
+            [
+                SeqRecord(Seq("AAAT"), id="s1"),
+                SeqRecord(Seq("C--C"), id="s2"),
+                SeqRecord(Seq("AATT"), id="s3"),
+                SeqRecord(Seq("GNGG"), id="s4"),
+            ]
+        )
+
+    def test_get_subalignment_sequence_order_maintained2(self):
+        result = AlignedSeq.get_sub_alignment_by_list_id(["s1", "s3"], self.alignment)
+        expected = MultipleSeqAlignment([self.alignment[0], self.alignment[2]])
+        self.assertTrue(msas_equal(expected, result))
+
+    def test_get_subalignment_sequence_order_maintained(self):
+        """
+        Sequences given rearranged are still output in input order
+        """
+        result = AlignedSeq.get_sub_alignment_by_list_id(["s3", "s1"], self.alignment)
+        expected = MultipleSeqAlignment([self.alignment[0], self.alignment[2]])
+        self.assertTrue(msas_equal(expected, result))
+
+    def test_get_subalignment_with_interval(self):
+        result = AlignedSeq.get_sub_alignment_by_list_id(
+            ["s2", "s3"], self.alignment, [0, 2]
+        )
+        expected = MultipleSeqAlignment(
+            [SeqRecord(Seq("C--"), id="s2"), SeqRecord(Seq("AAT"), id="s3"),]
+        )
+        self.assertTrue(msas_equal(expected, result))
 
 
 class TestMakePrgFromMsaFile_IntegrationTests(TestCase):
