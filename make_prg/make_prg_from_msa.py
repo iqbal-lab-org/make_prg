@@ -7,7 +7,6 @@ from Bio.AlignIO import MultipleSeqAlignment
 from sklearn.cluster import KMeans
 
 from make_prg.io_utils import load_alignment_file
-from make_prg.exceptions import ClusteringError
 from make_prg.seq_utils import (
     remove_duplicates,
     remove_gaps,
@@ -234,80 +233,85 @@ class AlignedSeq(object):
 
         # The clustering is performed on unique sequences
         interval_seqs = list(seq_to_ids.keys())
-        if len(interval_seqs) == 1:
-            raise ClusteringError(
-                "Only one sequence provided, no clustering to perform."
-            )
-
-        # first transform sequences into kmer occurrence vectors using a dict
-        logging.debug("First transform sequences into kmer occurrence vectors")
-
-        # collect all kmers
-        kmer_dict = {}
-        n = 0
-        for seq in interval_seqs:
-            for i in range(len(seq) - min_match_length + 1):
-                kmer = seq[i : i + min_match_length]
-                if kmer not in kmer_dict:
-                    kmer_dict[kmer] = n
-                    n += 1
-        logging.debug(f"Found {n} kmers")
-
-        # count all kmers
-        seq_kmer_counts = np.zeros(shape=(len(interval_seqs), n))
-        for j, seq in enumerate(interval_seqs):
-            counts = np.zeros(n)
-            for i in range(len(seq) - min_match_length + 1):
-                kmer = seq[i : i + min_match_length]
-                counts[kmer_dict[kmer]] += 1
-            seq_kmer_counts[j] = counts
-
-        # cluster sequences using kmeans
-        logging.debug("Now cluster:")
-        kmeans = KMeans(n_clusters=1, random_state=2).fit(seq_kmer_counts)
-        pre_cluster_inertia = kmeans.inertia_
-
-        cluster_inertia = pre_cluster_inertia
-        number_of_clusters = 1
-        logging.debug(f"initial inertia: {cluster_inertia}")
-        while (
-            cluster_inertia > 0
-            and cluster_inertia > pre_cluster_inertia / 2
-            and number_of_clusters < len(interval_seqs)
-        ):
-            number_of_clusters += 1
-            kmeans = KMeans(n_clusters=number_of_clusters, random_state=2).fit(
-                seq_kmer_counts
-            )
-            cluster_inertia = kmeans.inertia_
-            logging.debug(
-                "number of clusters: %d, inertia: %f",
-                number_of_clusters,
-                cluster_inertia,
-            )
-
-        # convert cluster numbers to sequence record IDs
         clustered_ids = []
-        logging.debug("Extract equivalence classes from this partition")
-        if pre_cluster_inertia > 0:
-            cluster_ids = list(kmeans.predict(seq_kmer_counts))
-            for i in range(max(cluster_ids) + 1):
-                clustered_ids.append([])
-            for i, cluster_id in enumerate(cluster_ids):
-                clustered_ids[cluster_id].extend(seq_to_ids[interval_seqs[i]])
+
+        if len(interval_seqs) == 1:
+            logging.info(
+                "Only one sequence >= min_match_len, no clustering to perform."
+            )
+            clustered_ids = [seq_to_ids[interval_seqs[0]]]
+
         else:
-            logging.debug("pre_cluster_inertia is 0! No clustering.")
-            for key in seq_to_ids:
-                logging.debug(
-                    "seq: %s, num_seqs with this seq: %d", key, len(seq_to_ids[key]),
+            # first transform sequences into kmer occurrence vectors using a dict
+            logging.debug("First transform sequences into kmer occurrence vectors")
+
+            # collect all kmers
+            kmer_dict = {}
+            n = 0
+            for seq in interval_seqs:
+                for i in range(len(seq) - min_match_length + 1):
+                    kmer = seq[i : i + min_match_length]
+                    if kmer not in kmer_dict:
+                        kmer_dict[kmer] = n
+                        n += 1
+            logging.debug(f"Found {n} kmers")
+
+            # count all kmers
+            seq_kmer_counts = np.zeros(shape=(len(interval_seqs), n))
+            for j, seq in enumerate(interval_seqs):
+                counts = np.zeros(n)
+                for i in range(len(seq) - min_match_length + 1):
+                    kmer = seq[i : i + min_match_length]
+                    counts[kmer_dict[kmer]] += 1
+                seq_kmer_counts[j] = counts
+
+            # cluster sequences using kmeans
+            logging.debug("Now cluster:")
+            kmeans = KMeans(n_clusters=1, random_state=2).fit(seq_kmer_counts)
+            pre_cluster_inertia = kmeans.inertia_
+
+            cluster_inertia = pre_cluster_inertia
+            number_of_clusters = 1
+            logging.debug(f"initial inertia: {cluster_inertia}")
+            while (
+                cluster_inertia > 0
+                and cluster_inertia > pre_cluster_inertia / 2
+                and number_of_clusters < len(interval_seqs)
+            ):
+                number_of_clusters += 1
+                kmeans = KMeans(n_clusters=number_of_clusters, random_state=2).fit(
+                    seq_kmer_counts
                 )
-            clustered_ids = list(seq_to_ids.values())
+                cluster_inertia = kmeans.inertia_
+                logging.debug(
+                    "number of clusters: %d, inertia: %f",
+                    number_of_clusters,
+                    cluster_inertia,
+                )
+
+            # convert cluster numbers to sequence record IDs
+            logging.debug("Extract equivalence classes from this partition")
+            if pre_cluster_inertia > 0:
+                cluster_ids = list(kmeans.predict(seq_kmer_counts))
+                for i in range(max(cluster_ids) + 1):
+                    clustered_ids.append([])
+                for i, cluster_id in enumerate(cluster_ids):
+                    clustered_ids[cluster_id].extend(seq_to_ids[interval_seqs[i]])
+            else:
+                logging.debug("pre_cluster_inertia is 0! No clustering.")
+                for key in seq_to_ids:
+                    logging.debug(
+                        "seq: %s, num_seqs with this seq: %d",
+                        key,
+                        len(seq_to_ids[key]),
+                    )
+                clustered_ids = list(seq_to_ids.values())
 
         logging.debug("Merge id lists for the partitions")
         id_lists = []
-        for seq in small_seq_to_ids:
-            logging.debug("add (small) return ids: %s" % small_seq_to_ids[seq])
-            id_lists.append(small_seq_to_ids[seq])
+        for ids in small_seq_to_ids.values():
+            logging.debug("add (small) return ids: %s" % ids)
+            id_lists.append(ids)
         added = set()
         for ids in seq_to_ids.values():
             logging.debug("want to add (big) return ids: %s" % ids)

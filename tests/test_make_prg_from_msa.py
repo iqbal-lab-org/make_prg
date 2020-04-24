@@ -55,20 +55,24 @@ class TestIntervalPartitioning(TestCase):
 
 
 class TestKmeans(TestCase):
-    def test_one_seq_fails(self):
-        """Clustering requires at least 2 sequences"""
-        alignment = MultipleSeqAlignment([SeqRecord(Seq("AAAT"))])
-        with self.assertRaises(ClusteringError) as context:
-            AlignedSeq.kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
-        self.assertTrue("Only one sequence" in str(context.exception))
+    def test_one_seq_returns_single_id(self):
+        alignment = MultipleSeqAlignment([SeqRecord(Seq("AAAT"), id="s1")])
+        result = AlignedSeq.kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
+        self.assertEqual(result, [["s1"]])
 
-    def test_two_identical_seqs_fails(self):
+    def test_two_seqs_one_below_min_match_len_separate_clusters(self):
         alignment = MultipleSeqAlignment(
-            [SeqRecord(Seq("AAAT")), SeqRecord(Seq("AAAT")),]
+            [SeqRecord(Seq("AATTTAT"), id="s1"), SeqRecord(Seq("AA---AT"), id="s2")]
         )
-        with self.assertRaises(ClusteringError) as context:
-            AlignedSeq.kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
-        self.assertTrue("Only one sequence" in str(context.exception))
+        result = AlignedSeq.kmeans_cluster_seqs_in_interval([0, 5], alignment, 5)
+        self.assertEqual(result, [["s1"], ["s2"]])
+
+    def test_two_identical_seqs_returns_two_ids_clustered(self):
+        alignment = MultipleSeqAlignment(
+            [SeqRecord(Seq("AAAT"), id="s1"), SeqRecord(Seq("AAAT"), id="s2"),]
+        )
+        result = AlignedSeq.kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
+        self.assertEqual(result, [["s1", "s2"]])
 
     def test_sequences_in_short_interval_separate_clusters(self):
         alignment = MultipleSeqAlignment(
@@ -79,6 +83,7 @@ class TestKmeans(TestCase):
             ]
         )
         result = AlignedSeq.kmeans_cluster_seqs_in_interval([0, 3], alignment, 5)
+        # Each sequence is below min_match_len (5), so goes into own cluster
         self.assertEqual([["s1"], ["s2"], ["s3"]], result)
 
     @skip(
@@ -114,7 +119,7 @@ class TestKmeans(TestCase):
                     )
                     self.assertTrue(result[0][0] == "s0")
 
-    def test_duplicate_sequence_ids_clustered_together(self):
+    def test_two_identical_sequences_clustered_together(self):
         alignment = MultipleSeqAlignment(
             [
                 SeqRecord(Seq("AAAT"), id="s1"),
