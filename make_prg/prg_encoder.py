@@ -9,6 +9,9 @@ class EncodeError(Exception):
     pass
 
 
+PRG_Ints = List[int]
+
+
 class PrgEncoder:
     """
     A class that converts a prg string as produced by this program into an integer vector.
@@ -29,7 +32,7 @@ class PrgEncoder:
         if encoding is not None:
             self.encoding = encoding
 
-    def encode(self, prg: str) -> List[int]:
+    def encode(self, prg: str) -> PRG_Ints:
         marker_units = prg.split()
         encoding = []
         for unit in marker_units:
@@ -37,7 +40,7 @@ class PrgEncoder:
         return encoding
 
     @staticmethod
-    def write_encoding_to(
+    def write(
         encoding: List[int],
         write_to: BinaryIO,
         byteorder: str = "little",

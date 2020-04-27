@@ -22,7 +22,7 @@ class TestPrgEncoder(unittest.TestCase):
     def test_dnaToInt_char_not_valid_raises_assert_error(self, char):
         encoder = PrgEncoder()
 
-        with self.assertRaises(ConversionError) as context:
+        with self.assertRaises(ConversionError):
             encoder._dna_to_int(char)
 
     def test_dnaToInt_char_valid_returns_int(self):
@@ -56,10 +56,8 @@ class TestPrgEncoder(unittest.TestCase):
         encoder = PrgEncoder()
         unit = ""
 
-        with self.assertRaises(EncodeError) as err:
+        with self.assertRaises(EncodeError):
             encoder._encode_unit(unit)
-
-        self.assertTrue("Cannot encode an empty string")
 
     @patch.object(PrgEncoder, "_dna_to_int", side_effect=[1, 2, 3, 4])
     def test_encode_unit_dna_returns_list_of_ints_between_1_and_4(
@@ -107,12 +105,21 @@ class TestPrgEncoder(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
-    def test_encode_prg_with_one_site_and_one_alt(self):
+    def test_encode_prg_one_site_deletion(self):
         encoder = PrgEncoder()
         prg = " 5  6 C 5 "
 
         actual = encoder.encode(prg)
         expected = [5, 6, 2, 5]
+
+        self.assertEqual(actual, expected)
+
+    def test_encode_prg_one_site_deletion2(self):
+        encoder = PrgEncoder()
+        prg = " 5 C 6  5 "
+
+        actual = encoder.encode(prg)
+        expected = [5, 2, 6, 5]
 
         self.assertEqual(actual, expected)
 
@@ -171,16 +178,16 @@ class TestPrgEncoder(unittest.TestCase):
 
     def test_write_encoding_to_empty_encoding_writes_nothing(self):
         encoding = []
-        write_to = BytesIO()
-        PrgEncoder.write_encoding_to(encoding, write_to)
-        write_to.seek(0)
+        ostream = BytesIO()
+        PrgEncoder.write(encoding, ostream)
+        ostream.seek(0)
 
-        self.assertEqual(write_to.read(), b"")
+        self.assertEqual(ostream.read(), b"")
 
     def test_write_encoding_to_encoding_with_one_int(self):
         encoding = [1]
         write_to = BytesIO()
-        PrgEncoder.write_encoding_to(encoding, write_to)
+        PrgEncoder.write(encoding, write_to)
         write_to.seek(0)
 
         actual = write_to.read()
@@ -191,7 +198,7 @@ class TestPrgEncoder(unittest.TestCase):
     def test_write_encoding_to_encoding_with_two_ints(self):
         encoding = [1, 4]
         write_to = BytesIO()
-        PrgEncoder.write_encoding_to(encoding, write_to)
+        PrgEncoder.write(encoding, write_to)
         write_to.seek(0)
 
         actual = write_to.read()

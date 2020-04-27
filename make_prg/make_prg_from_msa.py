@@ -298,29 +298,16 @@ class AlignedSeq(object):
                     clustered_ids[cluster_id].extend(all_ids[i])
             else:
                 logging.debug("pre_cluster_inertia is 0! No clustering.")
-                for key in seq_to_ids:
-                    logging.debug(
-                        "seq: %s, num_seqs with this seq: %d",
-                        key,
-                        len(seq_to_ids[key]),
-                    )
                 clustered_ids = list(seq_to_ids.values())
 
         logging.debug("Merge id lists for the partitions")
         first_id = interval_alignment[0].id
         id_lists = [[]]  # Reserve space for first seq id
-        added = set()
-        for ids in seq_to_ids.values():
-            if ids[0] in added:
-                continue
-            for cluster in clustered_ids:
-                if ids[0] in cluster:
-                    if first_id in set(ids):
-                        id_lists[0] = cluster
-                    else:
-                        id_lists.append(cluster)
-                    added = added.union(set(cluster))
-                    break
+        for cluster in clustered_ids:
+            if first_id in set(cluster):
+                id_lists[0] = cluster
+            else:
+                id_lists.append(cluster)
 
         for ids in small_seq_to_ids.values():
             if first_id in set(ids):

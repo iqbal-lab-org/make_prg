@@ -58,22 +58,17 @@ def run(options):
             max_nesting=options.max_nesting,
             min_match_length=options.min_match_length,
         )
-        logging.info("Write PRG file to %s.prg", prefix)
+        logging.info(f"Write PRG file to {prefix}.prg")
         io_utils.write_prg(prefix, aseq.prg)
         m = aseq.max_nesting_level_reached
-        logging.info("Max_nesting_reached\t%d", m)
+        logging.info(f"Max_nesting_reached\t{m}")
 
-    logging.info("Write GFA file to %s.gfa", prefix)
-    io_utils.write_gfa("%s.gfa" % prefix, aseq.prg)
+    logging.info(f"Write GFA file to {prefix}.gfa")
+    io_utils.write_gfa(f"{prefix}.gfa", aseq.prg)
 
     summary_file = Path(prefix).parent / "summary.tsv"
     with summary_file.open("a") as s:
         s.write(
-            "%s\t%d\t%d\t%f\n"
-            % (
-                options.MSA,
-                aseq.site - 2,
-                aseq.max_nesting_level_reached,
-                aseq.prop_in_match_intervals,
-            )
+            f"{options.MSA}\t{aseq.site - 2}\t"
+            f"{aseq.max_nesting_level_reached}\t{aseq.prop_in_match_intervals}\n"
         )

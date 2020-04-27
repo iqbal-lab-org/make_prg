@@ -5,7 +5,7 @@ from pathlib import Path
 
 from Bio import AlignIO
 
-from make_prg.prg_encoder import PrgEncoder
+from make_prg.prg_encoder import PrgEncoder, PRG_Ints
 
 
 def load_alignment_file(
@@ -176,9 +176,9 @@ def write_prg(output_prefix: str, prg_string: str):
             file=prg,
         )
 
-    binary_encoding_filename = Path(output_prefix + ".bin")
+    prg_ints_fpath = Path(output_prefix + ".bin")
     prg_encoder = PrgEncoder()
-    prg_encoding = prg_encoder.encode(prg_string)
+    prg_ints: PRG_Ints = prg_encoder.encode(prg_string)
 
-    with binary_encoding_filename.open("wb") as write_to:
-        prg_encoder.write_encoding_to(prg_encoding, write_to)
+    with prg_ints_fpath.open("wb") as ostream:
+        prg_encoder.write(prg_ints, ostream)
