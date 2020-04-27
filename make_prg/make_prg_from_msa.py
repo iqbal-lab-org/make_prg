@@ -1,6 +1,7 @@
 import logging
 from collections import defaultdict
 from typing import List
+from itertools import chain
 
 import numpy as np
 from Bio.AlignIO import MultipleSeqAlignment
@@ -197,10 +198,10 @@ class AlignedSeq(object):
         min_match_length: int,
     ) -> List[List[str]]:
         """Divide sequences in interval into subgroups of similar sequences."""
-        # id_lists: List[List[str]] = []
+        interval_alignment = alignment[:, interval[0] : interval[1] + 1]
+
         if interval[1] - interval[0] <= min_match_length:
             logging.info("Small variation site in interval %s \n", interval)
-            interval_alignment = alignment[:, interval[0] : interval[1] + 1]
             interval_seqs = get_interval_seqs(interval_alignment)
             id_lists = [
                 [
@@ -216,7 +217,6 @@ class AlignedSeq(object):
             "Get kmeans partition of interval [%d, %d]", interval[0], interval[1]
         )
 
-        interval_alignment = alignment[:, interval[0] : interval[1] + 1]
         seq_to_ids = defaultdict(list)
         small_seq_to_ids = defaultdict(list)
 
@@ -232,14 +232,12 @@ class AlignedSeq(object):
         )
 
         # The clustering is performed on unique sequences
-        interval_seqs = list(seq_to_ids.keys())
         clustered_ids = []
-
-        if len(interval_seqs) == 1:
+        if len(seq_to_ids) == 1:
             logging.info(
                 "Only one sequence >= min_match_len, no clustering to perform."
             )
-            clustered_ids = [seq_to_ids[interval_seqs[0]]]
+            clustered_ids = [list(seq_to_ids.values())[0]]
 
         else:
             # first transform sequences into kmer occurrence vectors using a dict
@@ -248,7 +246,7 @@ class AlignedSeq(object):
             # collect all kmers
             kmer_dict = {}
             n = 0
-            for seq in interval_seqs:
+            for seq in seq_to_ids:
                 for i in range(len(seq) - min_match_length + 1):
                     kmer = seq[i : i + min_match_length]
                     if kmer not in kmer_dict:
@@ -257,8 +255,8 @@ class AlignedSeq(object):
             logging.debug(f"Found {n} kmers")
 
             # count all kmers
-            seq_kmer_counts = np.zeros(shape=(len(interval_seqs), n))
-            for j, seq in enumerate(interval_seqs):
+            seq_kmer_counts = np.zeros(shape=(len(seq_to_ids), n))
+            for j, seq in enumerate(seq_to_ids):
                 counts = np.zeros(n)
                 for i in range(len(seq) - min_match_length + 1):
                     kmer = seq[i : i + min_match_length]
@@ -276,7 +274,7 @@ class AlignedSeq(object):
             while (
                 cluster_inertia > 0
                 and cluster_inertia > pre_cluster_inertia / 2
-                and number_of_clusters < len(interval_seqs)
+                and number_of_clusters < len(seq_to_ids)
             ):
                 number_of_clusters += 1
                 kmeans = KMeans(n_clusters=number_of_clusters, random_state=2).fit(
@@ -295,8 +293,9 @@ class AlignedSeq(object):
                 cluster_ids = list(kmeans.predict(seq_kmer_counts))
                 for i in range(max(cluster_ids) + 1):
                     clustered_ids.append([])
+                all_ids = list(seq_to_ids.values())
                 for i, cluster_id in enumerate(cluster_ids):
-                    clustered_ids[cluster_id].extend(seq_to_ids[interval_seqs[i]])
+                    clustered_ids[cluster_id].extend(all_ids[i])
             else:
                 logging.debug("pre_cluster_inertia is 0! No clustering.")
                 for key in seq_to_ids:
@@ -308,21 +307,26 @@ class AlignedSeq(object):
                 clustered_ids = list(seq_to_ids.values())
 
         logging.debug("Merge id lists for the partitions")
-        id_lists = []
-        for ids in small_seq_to_ids.values():
-            logging.debug("add (small) return ids: %s" % ids)
-            id_lists.append(ids)
+        first_id = interval_alignment[0].id
+        id_lists = [[]]  # Reserve space for first seq id
         added = set()
         for ids in seq_to_ids.values():
-            logging.debug("want to add (big) return ids: %s" % ids)
             if ids[0] in added:
                 continue
             for cluster in clustered_ids:
                 if ids[0] in cluster:
-                    logging.debug("add (big) return ids %s" % cluster)
-                    id_lists.append(cluster)
+                    if first_id in set(ids):
+                        id_lists[0] = cluster
+                    else:
+                        id_lists.append(cluster)
                     added = added.union(set(cluster))
                     break
+
+        for ids in small_seq_to_ids.values():
+            if first_id in set(ids):
+                id_lists[0] = ids
+            else:
+                id_lists.append(ids)
 
         assert len(interval_alignment) == sum(
             [len(i) for i in id_lists]
