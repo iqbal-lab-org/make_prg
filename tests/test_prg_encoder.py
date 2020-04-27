@@ -1,14 +1,20 @@
-import unittest
+from unittest import TestCase
 from unittest.mock import patch, Mock, call
 from io import BytesIO
 
 from hypothesis import given
-from hypothesis.strategies import text, characters, integers, from_regex
+from hypothesis.strategies import characters, integers, from_regex
 
-from make_prg.prg_encoder import PrgEncoder, ConversionError, EncodeError
+from make_prg.prg_encoder import (
+    PrgEncoder,
+    ConversionError,
+    EncodeError,
+    BYTES_PER_INT,
+    ENDIANNESS,
+)
 
 
-class TestPrgEncoder(unittest.TestCase):
+class TestDnaToInt(TestCase):
     def test_dnaToInt_empty_string_raises_assert_error(self):
         encoder = PrgEncoder()
         char = ""
@@ -25,25 +31,16 @@ class TestPrgEncoder(unittest.TestCase):
         with self.assertRaises(ConversionError):
             encoder._dna_to_int(char)
 
-    def test_dnaToInt_char_valid_returns_int(self):
+    def test_dnaToInt_default_encoding_int(self):
         encoder = PrgEncoder()
-        char = "A"
-
-        actual = encoder._dna_to_int(char)
+        uppercase = encoder._dna_to_int("A")
         expected = 1
+        self.assertEqual(uppercase, expected)
 
-        self.assertEqual(actual, expected)
+        lowercase = encoder._dna_to_int("a")
+        self.assertEqual(lowercase, expected)
 
-    def test_dnaToInt_char_valid_but_lowercase_returns_int(self):
-        encoder = PrgEncoder()
-        char = "a"
-
-        actual = encoder._dna_to_int(char)
-        expected = 1
-
-        self.assertEqual(actual, expected)
-
-    def test_dnaToInt_char_valid_non_default_encoding(self):
+    def test_dnaToInt_custom_encoding(self):
         encoder = PrgEncoder(encoding={"A": 7})
         char = "a"
 
@@ -52,56 +49,49 @@ class TestPrgEncoder(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
-    def test_encode_unit_empty_string_raises_error(self):
-        encoder = PrgEncoder()
-        unit = ""
 
+class TestEncodeUnit(TestCase):
+    def test_encode_empty_string_fails(self):
+        encoder = PrgEncoder()
         with self.assertRaises(EncodeError):
-            encoder._encode_unit(unit)
+            encoder._encode_unit("")
 
     @patch.object(PrgEncoder, "_dna_to_int", side_effect=[1, 2, 3, 4])
     def test_encode_unit_dna_returns_list_of_ints_between_1_and_4(
         self, mock_method: Mock
     ):
         encoder = PrgEncoder()
-        unit = "ACGT"
-
-        actual = encoder._encode_unit(unit)
+        actual = encoder._encode_unit("ACGT")
         expected = [1, 2, 3, 4]
-
         self.assertEqual(actual, expected)
 
-        calls = [call(c) for c in "ACGT"]
-        mock_method.assert_has_calls(calls)
-
-        self.assertEqual(mock_method.call_count, 4)
+        self.assertEqual(mock_method.call_args_list, [call(c) for c in "ACGT"])
 
     @given(integers(min_value=0))
-    def test_encode_unit_integer_string_returns_list_with_just_that_int(self, unit):
+    def test_single_numeric_chars_converted_to_ints(self, integer):
         encoder = PrgEncoder()
-
-        actual = encoder._encode_unit(str(unit))
-        expected = [unit]
+        actual = encoder._encode_unit(str(integer))
+        expected = [integer]
 
         self.assertEqual(actual, expected)
 
-    def test_encode_unit_prg_with_invalid_chars_raises_error(self):
+    def test_invalid_string_fails(self):
         encoder = PrgEncoder()
-        unit = "foo"
-
-        with self.assertRaises(EncodeError) as context:
-            encoder._encode_unit(unit)
-
-        self.assertTrue(
-            "Unit {} contains invalid characters".format(unit) in str(context.exception)
-        )
+        with self.assertRaises(EncodeError):
+            encoder._encode_unit("foo")
 
     def test_encode_empty_string_returns_empty(self):
         encoder = PrgEncoder()
-        prg = ""
+        actual = encoder.encode("")
+
+        self.assertEqual(actual, [])
+
+    def test_encode_prg_with_one_snp(self):
+        encoder = PrgEncoder()
+        prg = "5 A 6 C 5"
 
         actual = encoder.encode(prg)
-        expected = []
+        expected = [5, 1, 6, 2, 5]
 
         self.assertEqual(actual, expected)
 
@@ -123,25 +113,7 @@ class TestPrgEncoder(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
-    def test_encode_prg_with_one_site_and_one_alt_no_spaces_at_ends(self):
-        encoder = PrgEncoder()
-        prg = "5  6 C 5"
-
-        actual = encoder.encode(prg)
-        expected = [5, 6, 2, 5]
-
-        self.assertEqual(actual, expected)
-
-    def test_encode_prg_with_one_site_and_two_alts(self):
-        encoder = PrgEncoder()
-        prg = "5 A 6 C 5"
-
-        actual = encoder.encode(prg)
-        expected = [5, 1, 6, 2, 5]
-
-        self.assertEqual(actual, expected)
-
-    def test_encode_prg_with_one_site_and_two_alts_longer_than_one_base(self):
+    def test_encode_prg_multi_base_alleles(self):
         encoder = PrgEncoder()
         prg = "5 GA 6 CT 5"
 
@@ -150,7 +122,7 @@ class TestPrgEncoder(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
-    def test_encode_prg_with_long_site_numbers_and_two_alts_longer_than_one_base(self):
+    def test_encode_prg_nonlinear_markers(self):
         encoder = PrgEncoder()
         prg = "55 GA 63 Ct 55"
 
@@ -159,7 +131,7 @@ class TestPrgEncoder(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
-    def test_encode_prg_with_space_at_start_and_only_letters(self):
+    def test_encode_prg_spacing_no_variants(self):
         encoder = PrgEncoder()
         prg = " a "
 
@@ -169,14 +141,17 @@ class TestPrgEncoder(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     @given(from_regex(r" ?[0-9]* [ACGTacgt]* [0-9]* ", fullmatch=True))
-    def test_encode_permutations_of_valid_input(self, prg):
+    def test_permutations_of_valid_input_passes(self, prg):
         encoder = PrgEncoder()
-
         encoder.encode(prg)
 
-        self.assertTrue(True)
 
-    def test_write_encoding_to_empty_encoding_writes_nothing(self):
+def to_bytes(integer: int):
+    return integer.to_bytes(BYTES_PER_INT, ENDIANNESS)
+
+
+class TestWritePrgInts(TestCase):
+    def test_empty_encoding_writes_nothing(self):
         encoding = []
         ostream = BytesIO()
         PrgEncoder.write(encoding, ostream)
@@ -184,24 +159,23 @@ class TestPrgEncoder(unittest.TestCase):
 
         self.assertEqual(ostream.read(), b"")
 
-    def test_write_encoding_to_encoding_with_one_int(self):
-        encoding = [1]
+    def test_write_single_int(self):
+        prg_ints = [1]
         write_to = BytesIO()
-        PrgEncoder.write(encoding, write_to)
+        PrgEncoder.write(prg_ints, write_to)
         write_to.seek(0)
 
         actual = write_to.read()
-        expected = int(1).to_bytes(4, "little")
-
+        expected = to_bytes(1)
         self.assertEqual(actual, expected)
 
-    def test_write_encoding_to_encoding_with_two_ints(self):
+    def test_write_two_ints(self):
         encoding = [1, 4]
         write_to = BytesIO()
         PrgEncoder.write(encoding, write_to)
         write_to.seek(0)
 
         actual = write_to.read()
-        expected = int(1).to_bytes(4, "little") + int(4).to_bytes(4, "little")
+        expected = b"".join(map(to_bytes, encoding))
 
         self.assertEqual(actual, expected)

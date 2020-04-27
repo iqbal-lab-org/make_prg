@@ -11,6 +11,9 @@ class EncodeError(Exception):
 
 PRG_Ints = List[int]
 
+BYTES_PER_INT = 4
+ENDIANNESS = "little"
+
 
 class PrgEncoder:
     """
@@ -42,12 +45,12 @@ class PrgEncoder:
     @staticmethod
     def write(
         encoding: List[int],
-        write_to: BinaryIO,
-        byteorder: str = "little",
-        num_bytes: int = 4,
+        ostream: BinaryIO,
+        byteorder: str = ENDIANNESS,
+        num_bytes: int = BYTES_PER_INT,
     ):
         for integer in encoding:
-            write_to.write(integer.to_bytes(num_bytes, byteorder=byteorder))
+            ostream.write(integer.to_bytes(num_bytes, byteorder=byteorder))
 
     def _dna_to_int(self, input_char: str) -> int:
         input_char = input_char.upper()
