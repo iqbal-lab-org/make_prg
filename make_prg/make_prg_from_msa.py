@@ -233,11 +233,10 @@ class AlignedSeq(object):
 
         # The clustering is performed on unique sequences
         clustered_ids = []
-        if len(seq_to_ids) == 1:
-            logging.info(
-                "Only one sequence >= min_match_len, no clustering to perform."
-            )
-            clustered_ids = [list(seq_to_ids.values())[0]]
+        if len(seq_to_ids) <= 1:
+            logging.info("<= 1 sequence >= min_match_len, no clustering to perform.")
+            if len(seq_to_ids) == 1:
+                clustered_ids = [list(seq_to_ids.values())[0]]
 
         else:
             # first transform sequences into kmer occurrence vectors using a dict

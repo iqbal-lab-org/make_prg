@@ -107,6 +107,19 @@ class TestKmeansClusters(TestCase):
         result = AlignedSeq.kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
         self.assertEqual([["s1", "s2"], ["s3"]], result)
 
+    def test_all_sequences_below_min_match_len(self):
+        alignment = MultipleSeqAlignment(
+            [
+                SeqRecord(Seq("AA---AT"), id="s1"),
+                SeqRecord(Seq("AA---TT"), id="s2"),
+                SeqRecord(Seq("CA--CAT"), id="s3"),
+            ]
+        )
+        result = AlignedSeq.kmeans_cluster_seqs_in_interval(
+            [0, len(alignment[0])], alignment, 6
+        )
+        self.assertEqual([["s1"], ["s2"], ["s3"]], result)
+
 
 class TestKMeansOrdering(TestCase):
     def test_first_sequence_placed_in_first_cluster(self):
