@@ -15,6 +15,10 @@ BYTES_PER_INT = 4
 ENDIANNESS = "little"
 
 
+def to_bytes(integer: int):
+    return integer.to_bytes(BYTES_PER_INT, ENDIANNESS)
+
+
 class PrgEncoder:
     """
     A class that converts a prg string as produced by this program into an integer vector.
@@ -44,13 +48,9 @@ class PrgEncoder:
 
     @staticmethod
     def write(
-        encoding: List[int],
-        ostream: BinaryIO,
-        byteorder: str = ENDIANNESS,
-        num_bytes: int = BYTES_PER_INT,
+        encoding: List[int], ostream: BinaryIO,
     ):
-        for integer in encoding:
-            ostream.write(integer.to_bytes(num_bytes, byteorder=byteorder))
+        ostream.write(b"".join(map(to_bytes, encoding)))
 
     def _dna_to_int(self, input_char: str) -> int:
         input_char = input_char.upper()
