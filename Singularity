@@ -9,7 +9,7 @@ from: python:3.8-alpine
 
     # INSTALL DEPS
     apk update && apk upgrade && \
-    apk --no-cache add lapack libstdc++ openblas-dev && \
+    apk --no-cache add lapack libstdc++ openblas-dev bash && \
     apk --no-cache add --virtual .builddeps g++ gcc gfortran musl-dev lapack-dev git
 
     # CLONE
