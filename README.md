@@ -1,6 +1,6 @@
 # make_prg
 
-A tool to create a PRG for input to [Pandora][pandora] from a Multiple Sequence
+A tool to create a PRG for input to [Pandora][pandora] and [Gramtools][gramtools] from a Multiple Sequence
 Alignment.
 
 [TOC]: #
@@ -138,3 +138,4 @@ max_forks_make_fasta
 [tags]: https://cloud.sylabs.io/library/mbhall88/default/make_prg
 [pandora]: https://github.com/rmcolq/pandora
 [nf]: https://www.nextflow.io/
+[gramtools]: https://github.com/iqbal-lab-org/gramtools
