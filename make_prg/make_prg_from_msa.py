@@ -7,11 +7,13 @@ from sklearn.cluster import KMeans
 
 from make_prg import MSA
 from make_prg.io_utils import load_alignment_file
-from make_prg.seq_utils import (
+from make_prg.utils import (
+    ambiguous_bases,
     remove_duplicates,
     remove_gaps,
     get_interval_seqs,
-    ambiguous_bases,
+    enforce_multisequence_nonmatch_intervals,
+    enforce_alignment_interval_bijection,
 )
 
 
@@ -46,11 +48,11 @@ class AlignedSeq(object):
         self.interval = interval
         self.consensus = self.get_consensus(self.alignment)
         self.length = len(self.consensus)
-        (self.match_intervals, self.non_match_intervals) = self.interval_partition()
-        self.check_nonmatch_intervals()
-        self.all_intervals = self.match_intervals + self.non_match_intervals
-        logging.info("Non match intervals: %s", self.non_match_intervals)
-        self.all_intervals.sort()
+        (
+            self.match_intervals,
+            self.non_match_intervals,
+            self.all_intervals,
+        ) = self.partition_alignment_into_intervals()
 
         # properties for stats
         self.subAlignedSeqs = {}
@@ -85,7 +87,7 @@ class AlignedSeq(object):
 
         return consensus_string
 
-    def interval_partition(self):
+    def partition_alignment_into_intervals(self):
         """Return a list of intervals in which we have
         consensus sequence longer than min_match_length, and
         a list of the non-match intervals left."""
@@ -143,44 +145,17 @@ class AlignedSeq(object):
             non_match_intervals.append([non_match_start, end])
             logging.debug(f"add non-match interval [{non_match_start},{end}]")
 
-        # check all stretches of consensus are in an interval, and intervals don't overlap
-        for i in range(self.length):
-            count_match = 0
-            for interval in match_intervals:
-                if interval[0] <= i <= interval[1]:
-                    count_match += 1
-            count_non_match = 0
-            for interval in non_match_intervals:
-                if interval[0] <= i <= interval[1]:
-                    count_non_match += 1
+        enforce_alignment_interval_bijection(
+            match_intervals, non_match_intervals, self.length
+        )
 
-            assert count_match | count_non_match, (
-                "Failed to correctly identify match intervals: position %d "
-                "appeared in both/neither match and non-match intervals" % i
-            )
-            assert count_match + count_non_match == 1, (
-                "Failed to correctly identify match intervals: position "
-                "%d appeared in %d intervals" % (i, count_match + count_non_match)
-            )
-
-        return match_intervals, non_match_intervals
-
-    def check_nonmatch_intervals(self):
-        """
-        Goes through non-match intervals and makes sure there is more than one sequence there, else makes it a match
-        interval.
-        Example reasons for such a conversion to occur:
-            - 'N' in a sequence causes it to be filtered out, and left with a single useable sequence
-            - '-' in sequences causes them to appear different, but they are the same
-        """
-        for i in reversed(range(len(self.non_match_intervals))):
-            interval = self.non_match_intervals[i]
-            interval_alignment = self.alignment[:, interval[0] : interval[1] + 1]
-            interval_seqs = get_interval_seqs(interval_alignment)
-            if len(interval_seqs) < 2:
-                self.match_intervals.append(self.non_match_intervals[i])
-                self.non_match_intervals.pop(i)
-        self.match_intervals.sort()
+        logging.info("Non match intervals: %s", non_match_intervals)
+        enforce_multisequence_nonmatch_intervals(
+            match_intervals, non_match_intervals, self.alignment
+        )
+        all_intervals = match_intervals + non_match_intervals
+        all_intervals.sort()
+        return match_intervals, non_match_intervals, all_intervals
 
     @classmethod
     def kmeans_cluster_seqs_in_interval(

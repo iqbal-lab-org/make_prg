@@ -6,7 +6,7 @@ from Bio import AlignIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from make_prg.seq_utils import remove_gaps, get_interval_seqs
+from make_prg.utils import remove_gaps, get_interval_seqs
 
 
 class TestGetIntervals(unittest.TestCase):

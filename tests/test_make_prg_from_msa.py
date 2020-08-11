@@ -8,7 +8,12 @@ from Bio.SeqRecord import SeqRecord
 
 from make_prg import MSA
 from make_prg.make_prg_from_msa import AlignedSeq
-from make_prg.seq_utils import standard_bases
+from make_prg.utils import (
+    standard_bases,
+    enforce_multisequence_nonmatch_intervals,
+    enforce_alignment_interval_bijection,
+    PartitioningError,
+)
 
 this_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 data_dir = os.path.join(this_dir, "tests", "data", "make_prg_from_msa")
@@ -33,6 +38,11 @@ class TestConsensusString(TestCase):
         result = AlignedSeq.get_consensus(alignment)
         self.assertEqual(result, "*A*TA")
 
+    def test_indel_nonmatch(self):
+        alignment = make_alignment(["AAAA", "A--A"])
+        result = AlignedSeq.get_consensus(alignment)
+        self.assertEqual(result, "A**A")
+
     def test_IUPACAmbiguous_nonmatch(self):
         alignment = make_alignment(["RYA", "RTA"])
         result = AlignedSeq.get_consensus(alignment)
@@ -47,42 +57,87 @@ class TestConsensusString(TestCase):
         self.assertEqual(result, "*TA")
 
 
-@mock.patch.object(AlignedSeq, "check_nonmatch_intervals")
+class TestIntervalConsistency(TestCase):
+    def test_nonmatch_interval_switching_indels(self):
+        """Because the sequences are the same, despite different alignment"""
+        alignment = make_alignment(["A---A", "A-A--"])
+        match_intervals = []
+        non_match_intervals = [[0, 5]]
+        enforce_multisequence_nonmatch_intervals(
+            match_intervals, non_match_intervals, alignment
+        )
+        self.assertEqual(match_intervals, [[0, 5]])
+        self.assertEqual(non_match_intervals, [])
+
+    def test_nonmatch_interval_switching_Ns(self):
+        """'N's make sequences get removed"""
+        alignment = make_alignment(["ANAAA", "ATAAT"])
+        match_intervals = []
+        non_match_intervals = [[0, 5]]
+        enforce_multisequence_nonmatch_intervals(
+            match_intervals, non_match_intervals, alignment
+        )
+        self.assertEqual(match_intervals, [[0, 5]])
+        self.assertEqual(non_match_intervals, [])
+
+    def test_position_in_several_intervals_fails(self):
+        match_intervals = [[0, 1], [1, 2]]
+        with self.assertRaises(PartitioningError):
+            enforce_alignment_interval_bijection(match_intervals, [], 3)
+
+    def test_position_in_no_interval_fails(self):
+        match_intervals = [[0, 1]]
+        with self.assertRaises(PartitioningError):
+            enforce_alignment_interval_bijection(match_intervals, [], 3)
+
+    def test_position_in_match_and_nonmatch_intervals_fails(self):
+        match_intervals = [[0, 2]]
+        nmatch_intervals = [[2, 3]]
+        with self.assertRaises(PartitioningError):
+            enforce_alignment_interval_bijection(match_intervals, nmatch_intervals, 4)
+
+    def test_bijection_respected_passes(self):
+        match_intervals = [[0, 2], [5, 10]]
+        nmatch_intervals = [[3, 4]]
+        enforce_alignment_interval_bijection(match_intervals, nmatch_intervals, 11)
+
+
+@mock.patch("make_prg.make_prg_from_msa.enforce_multisequence_nonmatch_intervals")
 @mock.patch.object(AlignedSeq, "get_prg")
 @mock.patch.object(AlignedSeq, "get_consensus")
 class TestIntervalPartitioning(TestCase):
     def test_all_non_match(self, get_consensus, _, __):
         get_consensus.return_value = "******"
         tester = AlignedSeq("_", alignment="_", min_match_length=3)
-        match, non_match = tester.interval_partition()
+        match, non_match, _ = tester.partition_alignment_into_intervals()
         self.assertEqual(match, [])
         self.assertEqual(non_match, [[0, 5]])
 
     def test_all_match(self, get_consensus, _, __):
         get_consensus.return_value = "ATATAAA"
         tester = AlignedSeq("_", alignment="_", min_match_length=3)
-        match, non_match = tester.interval_partition()
+        match, non_match, _ = tester.partition_alignment_into_intervals()
         self.assertEqual(match, [[0, 6]])
         self.assertEqual(non_match, [])
 
     def test_short_match_counted_as_non_match(self, get_consensus, _, __):
         get_consensus.return_value = "AT***"
         tester = AlignedSeq("_", alignment="_", min_match_length=3)
-        match, non_match = tester.interval_partition()
+        match, non_match, _ = tester.partition_alignment_into_intervals()
         self.assertEqual(match, [])
         self.assertEqual(non_match, [[0, 4]])
 
     def test_match_non_match_match(self, get_consensus, _, __):
         get_consensus.return_value = "ATT**AAAC"
         tester = AlignedSeq("_", alignment="_", min_match_length=3)
-        match, non_match = tester.interval_partition()
+        match, non_match, _ = tester.partition_alignment_into_intervals()
         self.assertEqual(match, [[0, 2], [5, 8]])
         self.assertEqual(non_match, [[3, 4]])
 
     def test_end_in_non_match(self, get_consensus, _, __):
         get_consensus.return_value = "**ATT**AAA*C"
         tester = AlignedSeq("_", alignment="_", min_match_length=3)
-        match, non_match = tester.interval_partition()
+        match, non_match, _ = tester.partition_alignment_into_intervals()
         self.assertEqual(match, [[2, 4], [7, 9]])
         self.assertEqual(non_match, [[0, 1], [5, 6], [10, 11]])
 
