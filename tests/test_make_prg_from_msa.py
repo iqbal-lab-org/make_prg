@@ -56,6 +56,11 @@ class TestConsensusString(TestCase):
         result = AlignedSeq.get_consensus(alignment)
         self.assertEqual(result, "*TA")
 
+    def test_all_gap_nonmatch(self):
+        alignment = make_alignment(["A--A", "A--A"])
+        result = AlignedSeq.get_consensus(alignment)
+        self.assertEqual(result, "A**A")
+
 
 class TestIntervalConsistency(TestCase):
     def test_nonmatch_interval_switching_indels(self):

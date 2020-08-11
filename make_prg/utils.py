@@ -20,10 +20,6 @@ def remove_duplicates(seqs: Sequence) -> Generator:
         yield x
 
 
-def remove_gaps(sequence: str) -> str:
-    return sequence.replace("-", "")
-
-
 iupac = {
     "R": "GA",
     "Y": "TC",

@@ -10,7 +10,6 @@ from make_prg.io_utils import load_alignment_file
 from make_prg.utils import (
     ambiguous_bases,
     remove_duplicates,
-    remove_gaps,
     get_interval_seqs,
     enforce_multisequence_nonmatch_intervals,
     enforce_alignment_interval_bijection,
@@ -78,9 +77,12 @@ class AlignedSeq(object):
         consensus_string = ""
         for i in range(alignment.get_alignment_length()):
             column = set([record.seq[i] for record in alignment])
-            if "N" in column:
-                column.remove("N")
-            if len(ambiguous_bases.intersection(column)) > 0 or len(column) != 1:
+            column = column.difference({"N"})
+            if (
+                len(ambiguous_bases.intersection(column)) > 0
+                or len(column) != 1
+                or column == {"-"}
+            ):
                 consensus_string += "*"
             else:
                 consensus_string += column.pop()
@@ -96,20 +98,20 @@ class AlignedSeq(object):
 
         logging.debug("consensus: %s" % self.consensus)
         for i in range(self.length):
-            letter = self.consensus[i]
-            if letter != "*":
+            if self.consensus[i] != "*":
                 # In a match region.
                 if match_count == 0:
                     match_start = i
                 match_count += 1
-            elif match_count > 0:
-                # Have reached a non-match. Check if previous match string is long enough to add to match_regions
-                match_string = remove_gaps(
-                    self.consensus[match_start : match_start + match_count]
+            else:
+                if match_count == 0:
+                    continue
+                logging.debug(
+                    "have match string %s"
+                    % self.consensus[match_start : match_start + match_count]
                 )
-                logging.debug("have match string %s" % match_string)
 
-                if len(match_string) >= self.min_match_length:
+                if (match_count - match_start + 1) >= self.min_match_length:
                     if non_match_start < match_start:
                         non_match_intervals.append([non_match_start, match_start - 1])
                         logging.debug(
@@ -118,9 +120,8 @@ class AlignedSeq(object):
                     end = match_start + match_count - 1
                     match_intervals.append([match_start, end])
                     logging.debug(f"add match interval [{match_start},{end}]")
-                    non_match_start = i
+                    non_match_start = match_start = i
                 match_count = 0
-                match_start = non_match_start
 
         end = self.length - 1
         if self.length < self.min_match_length:
@@ -318,24 +319,21 @@ class AlignedSeq(object):
                 if (self.nesting_level == self.max_nesting) or (
                     interval[1] - interval[0] <= self.min_match_length
                 ):
-                    # Have reached max nesting level, just add all variants in interval.
                     logging.debug(
                         "Have reached max nesting level or have a small variant site, so add all variant "
                         "sequences in interval."
                     )
                     sub_alignment = self.alignment[:, interval[0] : interval[1] + 1]
-                    logging.debug(
-                        "Variant seqs found: %s"
-                        % list(
+                    if logging.getLogger().isEnabledFor(logging.DEBUG):
+                        seqs = list(
                             remove_duplicates(
                                 [str(record.seq) for record in sub_alignment]
                             )
                         )
-                    )
+                        logging.debug(f"Variant seqs found: {seqs}")
                     variant_prgs = get_interval_seqs(sub_alignment)
                     logging.debug("Which is equivalent to: %s" % variant_prgs)
                 else:
-                    # divide sequences into subgroups and define prg for each subgroup.
                     logging.debug(
                         "Divide sequences into subgroups and define prg for each subgroup."
                     )
@@ -385,11 +383,7 @@ class AlignedSeq(object):
                         self.site = sub_aligned_seq.site
 
                         if recur:
-                            # logging.debug("None not in snp_scores - try to add sub__aligned_seq to list in
-                            # dictionary")
                             self.subAlignedSeqs[interval[0]].append(sub_aligned_seq)
-                            # logging.debug("Length of subAlignedSeqs[%d] is %d", interval[0],
-                            # len(self.subAlignedSeqs[interval[0]]))
                     assert num_clusters == len(variant_prgs), (
                         "I don't seem to have a sub-prg sequence for all parts of the partition - there are %d "
                         "classes in partition, and %d variant seqs"
@@ -401,18 +395,13 @@ class AlignedSeq(object):
                     list(remove_duplicates(variant_prgs))
                 ), "have repeat variant seqs"
 
-                # Add the variant seqs to the prg
-                prg += "%s%d%s" % (
-                    self.delim_char,
-                    site_num,
-                    self.delim_char,
-                )  # considered making it so start of prg was not delim_char,
-                # but that would defeat the point if it
+                # Add the variant seqs to the prg.
+                prg += f"{self.delim_char}{site_num}{self.delim_char}"
                 while len(variant_prgs) > 1:
                     prg += variant_prgs.pop(0)
-                    prg += "%s%d%s" % (self.delim_char, site_num + 1, self.delim_char)
+                    prg += f"{self.delim_char}{site_num + 1}{self.delim_char}"
                 prg += variant_prgs.pop()
-                prg += "%s%d%s" % (self.delim_char, site_num, self.delim_char)
+                prg += f"{self.delim_char}{site_num}{self.delim_char}"
 
         return prg
 
