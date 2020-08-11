@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 
 from make_prg import MSA
-from make_prg.io_utils import load_alignment_file, MSA
+from make_prg.io_utils import load_alignment_file
 from make_prg.seq_utils import (
     remove_duplicates,
     remove_gaps,
@@ -105,10 +105,9 @@ class AlignedSeq(object):
                 match_string = remove_gaps(
                     self.consensus[match_start : match_start + match_count]
                 )
-                match_len = len(match_string)
                 logging.debug("have match string %s" % match_string)
 
-                if match_len >= self.min_match_length:
+                if len(match_string) >= self.min_match_length:
                     if non_match_start < match_start:
                         non_match_intervals.append([non_match_start, match_start - 1])
                         logging.debug(

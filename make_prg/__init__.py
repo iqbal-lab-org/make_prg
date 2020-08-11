@@ -1,7 +1,11 @@
+# ___Constants/Aliases___ #
 from Bio.AlignIO import MultipleSeqAlignment
 
 MSA = MultipleSeqAlignment
+NESTING_LVL = 5
+MIN_MATCH_LEN = 7
 
+# ___Version___ #
 from pkg_resources import get_distribution
 
 try:
