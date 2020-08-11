@@ -1,3 +1,7 @@
+from Bio.AlignIO import MultipleSeqAlignment
+
+MSA = MultipleSeqAlignment
+
 from pkg_resources import get_distribution
 
 try:

@@ -1,13 +1,12 @@
 import logging
 from collections import defaultdict
 from typing import List
-from itertools import chain
 
 import numpy as np
-from Bio.AlignIO import MultipleSeqAlignment
 from sklearn.cluster import KMeans
 
-from make_prg.io_utils import load_alignment_file
+from make_prg import MSA
+from make_prg.io_utils import load_alignment_file, MSA
 from make_prg.seq_utils import (
     remove_duplicates,
     remove_gaps,
@@ -18,7 +17,8 @@ from make_prg.seq_utils import (
 
 class AlignedSeq(object):
     """
-    Object based on a set of aligned sequences. Note min_match_length must be strictly greater than max_nesting + 1.
+    Object based on a set of aligned sequences.
+    Note min_match_length must be strictly greater than max_nesting + 1.
     """
 
     def __init__(
@@ -39,12 +39,12 @@ class AlignedSeq(object):
         self.nesting_level = nesting_level
         self.min_match_length = min_match_length
         self.site = site
-        self.alignment = alignment
+        self.alignment: MSA = alignment
         if self.alignment is None:
             self.alignment = load_alignment_file(msa_file, alignment_format)
 
         self.interval = interval
-        self.consensus = self.get_consensus()
+        self.consensus = self.get_consensus(self.alignment)
         self.length = len(self.consensus)
         (self.match_intervals, self.non_match_intervals) = self.interval_partition()
         self.check_nonmatch_intervals()
@@ -67,36 +67,29 @@ class AlignedSeq(object):
         else:
             self.prg = self.get_prg()
 
-    def get_consensus(self):
-        """Given a set of aligment records from AlignIO, creates
-        a consensus string.
+    @classmethod
+    def get_consensus(cls, alignment: MSA):
+        """ Produces a 'consensus string' from an MSA: at each position of the
+        MSA, the string has a base if all aligned sequences agree, and a "*" if not.
         IUPAC ambiguous bases result in non-consensus and are later expanded in the prg.
         N results in consensus at that position unless they are all N."""
-        first_string = str(self.alignment[0].seq)
         consensus_string = ""
-        for i, letter in enumerate(first_string):
-            consensus = True
-            for record in self.alignment:
-                if letter == "N" or record.seq[i] == "N":
-                    if letter == "N" and record.seq[i] != "N":
-                        letter = record.seq[i]
-                    continue
-                if letter != record.seq[i] or record.seq[i] in ambiguous_bases:
-                    consensus = False
-                    break
-            if consensus and letter != "N":
-                consensus_string += letter
-            else:
+        for i in range(alignment.get_alignment_length()):
+            column = set([record.seq[i] for record in alignment])
+            if "N" in column:
+                column.remove("N")
+            if len(ambiguous_bases.intersection(column)) > 0 or len(column) != 1:
                 consensus_string += "*"
-        assert len(first_string) == len(consensus_string)
+            else:
+                consensus_string += column.pop()
+
         return consensus_string
 
     def interval_partition(self):
         """Return a list of intervals in which we have
         consensus sequence longer than min_match_length, and
         a list of the non-match intervals left."""
-        match_intervals = []
-        non_match_intervals = []
+        match_intervals, non_match_intervals = list(), list()
         match_count, match_start, non_match_start = 0, 0, 0
 
         logging.debug("consensus: %s" % self.consensus)
@@ -192,10 +185,7 @@ class AlignedSeq(object):
 
     @classmethod
     def kmeans_cluster_seqs_in_interval(
-        self,
-        interval: List[int],
-        alignment: MultipleSeqAlignment,
-        min_match_length: int,
+        self, interval: List[int], alignment: MSA, min_match_length: int,
     ) -> List[List[str]]:
         """Divide sequences in interval into subgroups of similar sequences."""
         interval_alignment = alignment[:, interval[0] : interval[1] + 1]
@@ -321,10 +311,10 @@ class AlignedSeq(object):
 
     @classmethod
     def get_sub_alignment_by_list_id(
-        self, id_list: List[str], alignment: MultipleSeqAlignment, interval=None
+        self, id_list: List[str], alignment: MSA, interval=None
     ):
         list_records = [record for record in alignment if record.id in id_list]
-        sub_alignment = MultipleSeqAlignment(list_records)
+        sub_alignment = MSA(list_records)
         if interval:
             sub_alignment = sub_alignment[:, interval[0] : interval[1] + 1]
         return sub_alignment
