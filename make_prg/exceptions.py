@@ -1,2 +1,0 @@
-class ClusteringError(Exception):
-    pass
