@@ -4,6 +4,12 @@ import itertools
 
 from Bio import AlignIO
 
+NONMATCH = "*"
+
+
+def is_non_match(letter: str):
+    return letter == NONMATCH
+
 
 def remove_duplicates(seqs: Sequence) -> Generator:
     seen = set()
