@@ -62,7 +62,7 @@ def get_interval_seqs(interval_alignment: AlignIO.MultipleSeqAlignment):
 
     if len(expanded_set) == 0:
         logging.warning(
-            "WARNING: Every sequence must have contained an N in this slice - redo sequence curation because this is nonsense"
+            "WARNING: Every sequence must have contained an N in this slice - redo sequence curation"
         )
         logging.warning(f'Sequences were: {" ".join(callback_seqs)}')
         logging.warning(

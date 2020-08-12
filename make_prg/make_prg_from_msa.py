@@ -11,6 +11,7 @@ from make_prg.seq_utils import (
     ambiguous_bases,
     remove_duplicates,
     get_interval_seqs,
+    NONMATCH,
 )
 from make_prg.interval_partition import IntervalPartitioner
 
@@ -53,6 +54,11 @@ class AlignedSeq(object):
         ) = IntervalPartitioner(
             self.consensus, self.min_match_length, self.alignment
         ).get_intervals()
+        logging.info(
+            "match intervals: %s; non_match intervals: %s",
+            self.match_intervals,
+            self.non_match_intervals,
+        )
 
         # properties for stats
         self.subAlignedSeqs = {}
@@ -84,7 +90,7 @@ class AlignedSeq(object):
                 or len(column) != 1
                 or column == {"-"}
             ):
-                consensus_string += "*"
+                consensus_string += NONMATCH
             else:
                 consensus_string += column.pop()
 

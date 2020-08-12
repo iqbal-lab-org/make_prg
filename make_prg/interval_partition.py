@@ -61,6 +61,9 @@ class Interval:
             and self.type is other.type
         )
 
+    def __repr__(self):
+        return f"[{self.start}, {self.stop}]"
+
 
 Intervals = List[Interval]
 
@@ -132,8 +135,9 @@ class IntervalPartitioner:
         self, interval: Interval, alignment: MSA, end: bool = False
     ) -> Optional[Interval]:
         """
-        If we are given a match interval < min_match_length, we return a new or extended
-        non_match interval
+        i)If we are given a match interval < min_match_length, we return an extended non_match interval
+        ii)If we are given a non_match interval containing 1+ empty sequence, we pad it with
+           previous match_interval, if any, to avoid empty alleles in resulting prg.
         """
         if interval.type is IntervalType.Match:
             # The +1 is because we also extend the non_match interval
