@@ -63,13 +63,6 @@ def register_parser(subparsers):
         action="store_true",
         help="Do not overwrite pre-existing prg file with same name",
     )
-    subparser_prg_from_msa.add_argument(
-        "-v",
-        "--verbose",
-        dest="verbose",
-        action="store_true",
-        help="Run with high verbosity " "(debug level logging)",
-    )
     subparser_prg_from_msa.set_defaults(func=run)
 
     return subparser_prg_from_msa
@@ -88,23 +81,17 @@ def run(options):
         options.min_match_length,
     )
 
-    if options.verbose:
-        log_level = logging.DEBUG
-        msg = "Using debug logging"
-    else:
-        log_level = logging.INFO
-        msg = "Using info logging"
-
+    # Set up file logging
     log_file = f"{prefix}.log"
     if os.path.exists(log_file):
         os.unlink(log_file)
-    logging.basicConfig(
-        filename=log_file,
-        level=log_level,
-        format="%(asctime)s %(message)s",
-        datefmt="%d/%m/%Y %I:%M:%S",
+    formatter = logging.Formatter(
+        fmt="%(levelname)s %(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S"
     )
-    logging.info(msg)
+    handler = logging.FileHandler(log_file)
+    handler.setFormatter(formatter)
+    logging.getLogger().addHandler(handler)
+
     logging.info(
         "Input parameters max_nesting: %d, min_match_length: %d",
         options.max_nesting,
