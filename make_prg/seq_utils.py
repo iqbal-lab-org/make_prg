@@ -1,14 +1,19 @@
 import logging
-from typing import Generator, Sequence
+from typing import Generator, Sequence, Tuple
 import itertools
 
-from Bio import AlignIO
+from make_prg import MSA
 
 NONMATCH = "*"
+GAP = "-"
 
 
 def is_non_match(letter: str):
     return letter == NONMATCH
+
+
+def is_gap(letter: str):
+    return letter == GAP
 
 
 def remove_duplicates(seqs: Sequence) -> Generator:
@@ -37,7 +42,15 @@ standard_bases = {"A", "C", "G", "T"}
 ambiguous_bases = allowed_bases.difference(standard_bases)
 
 
-def get_interval_seqs(interval_alignment: AlignIO.MultipleSeqAlignment):
+def has_empty_sequence(alignment: MSA, interval: Tuple[int, int]) -> bool:
+    sub_alignment = alignment[:, interval[0] : interval[1] + 1]
+    for record in sub_alignment:
+        if all(map(is_gap, record.seq)):
+            return True
+    return False
+
+
+def get_interval_seqs(interval_alignment: MSA):
     """
     Replace - with nothing, remove seqs containing N or other non-allowed letters
     and duplicate sequences containing RYKMSW, replacing with AGCT alternatives

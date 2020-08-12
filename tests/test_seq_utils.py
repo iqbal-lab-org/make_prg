@@ -1,13 +1,14 @@
-import unittest
+from unittest import TestCase
 
 from Bio import AlignIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from make_prg.seq_utils import get_interval_seqs
+from tests import make_alignment
+from make_prg.seq_utils import get_interval_seqs, has_empty_sequence
 
 
-class TestGetIntervals(unittest.TestCase):
+class TestGetIntervals(TestCase):
     def test_ambiguous_bases_one_seq(self):
         alignment = AlignIO.MultipleSeqAlignment([SeqRecord(Seq("RWAAT"))])
         result = get_interval_seqs(alignment)
@@ -27,3 +28,9 @@ class TestGetIntervals(unittest.TestCase):
         result = get_interval_seqs(alignment)
         expected = ["TTTT", "AAAA", "CCC"]
         self.assertEqual(expected, result)
+
+
+class TestEmptySeq(TestCase):
+    def test_sub_alignment_with_empty_sequence(self):
+        msa = make_alignment(["TTAGGTTT", "TTA--TTT", "GGA-TTTT"])
+        self.assertTrue(has_empty_sequence(msa, [3, 4]))

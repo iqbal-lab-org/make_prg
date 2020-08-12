@@ -99,9 +99,16 @@ class TestIntervalPartitioning(TestCase):
 
     def test_match_non_match_match(self):
         tester = IntervalPartitioner("ATT**AAAC", min_match_length=3, alignment=MSA([]))
-        match, non_match, _ = tester.get_intervals()
-        self.assertEqual(match, make_typed_intervals([[0, 2], [5, 8]], Match))
-        self.assertEqual(non_match, make_typed_intervals([[3, 4]], NonMatch))
+        match, non_match, all_match = tester.get_intervals()
+        expected_matches = make_typed_intervals([[0, 2], [5, 8]], Match)
+        expected_non_matches = make_typed_intervals([[3, 4]], NonMatch)
+        self.assertEqual(match, expected_matches)
+        self.assertEqual(non_match, expected_non_matches)
+        # Check interval sorting works
+        self.assertEqual(
+            all_match,
+            [expected_matches[0], expected_non_matches[0], expected_matches[1]],
+        )
 
     def test_end_in_non_match(self):
         tester = IntervalPartitioner(
@@ -127,3 +134,34 @@ class TestIntervalPartitioning(TestCase):
         match, non_match, _ = tester2.get_intervals()
         self.assertEqual(match, [])
         self.assertEqual(non_match, make_typed_intervals([[0, 4]], NonMatch))
+
+    def test_avoid_empty_alleles_long_match(self):
+        """
+        If we let the non-match interval be only [4,5],
+        this would result in an empty allele in the prg,
+        so require padding using the preceding match sequence
+        """
+        msa = make_alignment(["TTAAGGTTT", "TTAA--TTT"])
+        tester = IntervalPartitioner("TTAA**TTT", min_match_length=3, alignment=msa)
+        match, non_match, _ = tester.get_intervals()
+        self.assertEqual(match, make_typed_intervals([[0, 2], [6, 8]], Match))
+        self.assertEqual(non_match, make_typed_intervals([[3, 5]], NonMatch))
+
+    def test_avoid_empty_alleles_short_match(self):
+        """
+        Padding behaviour also expected, but now the leading match interval becomes too
+        short and collapses to a non_match interval
+        """
+        msa = make_alignment(["TTAGGTTT", "TTA--TTT"])
+        tester = IntervalPartitioner("TTA**TTT", min_match_length=3, alignment=msa)
+        match, non_match, _ = tester.get_intervals()
+        self.assertEqual(match, make_typed_intervals([[5, 7]], Match))
+        self.assertEqual(non_match, make_typed_intervals([[0, 4]], NonMatch))
+
+    def test_avoid_empty_alleles_previous_non_match_merged(self):
+        """Edge case of collapsed match interval, part 2"""
+        msa = make_alignment(["CCTTAGGTTT", "AATTA--TTT"])
+        tester = IntervalPartitioner("**TTA**TTT", min_match_length=3, alignment=msa)
+        match, non_match, _ = tester.get_intervals()
+        self.assertEqual(match, make_typed_intervals([[7, 9]], Match))
+        self.assertEqual(non_match, make_typed_intervals([[0, 6]], NonMatch))
