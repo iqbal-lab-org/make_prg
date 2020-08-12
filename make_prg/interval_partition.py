@@ -7,7 +7,7 @@ from typing import List, Tuple, Optional
 
 from make_prg import MSA
 
-from make_prg.seq_utils import get_interval_seqs, is_non_match
+from make_prg.seq_utils import get_interval_seqs, is_non_match, has_empty_sequence
 
 
 class PartitioningError(Exception):
@@ -18,22 +18,24 @@ class IntervalType(Enum):
     Match = auto()
     NonMatch = auto()
 
-
-def get_type(letter: str) -> IntervalType:
-    if letter == "*":
-        return IntervalType.NonMatch
-    else:
-        return IntervalType.Match
+    @classmethod
+    def from_char(cls, letter: str) -> "IntervalType":
+        if letter == "*":
+            return IntervalType.NonMatch
+        else:
+            return IntervalType.Match
 
 
 def is_type(letter: str, interval_type: IntervalType) -> bool:
-    if get_type(letter) is interval_type:
+    if IntervalType.from_char(letter) is interval_type:
         return True
     else:
         return False
 
 
 class Interval:
+    """Stores a closed interval [a,b]"""
+
     def __init__(self, it_type: IntervalType, start: int, stop: int = None):
         self.type = it_type
         self.start = start
@@ -117,7 +119,7 @@ class IntervalPartitioner:
         )
 
     def _new_interval(self, letter: str, start_pos: int) -> Interval:
-        return Interval(get_type(letter), start_pos)
+        return Interval(IntervalType.from_char(letter), start_pos)
 
     def _append(self, interval: Interval):
         if interval.type is IntervalType.Match:
@@ -154,17 +156,34 @@ class IntervalPartitioner:
                     self._append(last_non_match)
                 return last_non_match
         else:
-            pass
+            if len(self._match_intervals) > 0 and has_empty_sequence(
+                alignment, (interval.start, interval.stop)
+            ):
+                # Pad interval with sequence to avoid empty alleles
+                len_match = len(self._match_intervals[-1])
+                if len_match - 1 < self.mml:
+                    # Case: match is now too small, converted to non_match
+                    self._match_intervals.pop()
+                    interval.modify_by(-1 * len_match, 0)
+                    if len(self._non_match_intervals) > 0:
+                        # Case: merge previous non_match with this non_match
+                        self._non_match_intervals[-1].modify_by(0, len(interval))
+                        return None
+                else:
+                    self._match_intervals[-1].modify_by(0, -1)
+                    interval.modify_by(-1, 0)
+
         self._append(interval)
         return None
 
     @classmethod
     def enforce_multisequence_nonmatch_intervals(
         cls, match_intervals: Intervals, non_match_intervals: Intervals, alignment: MSA
-    ):
+    ) -> None:
         """
         Goes through non-match intervals and makes sure there is more than one sequence there, else makes it a match
         interval.
+        Modifies the intervals in-place.
         Example reasons for such a conversion to occur:
             - 'N' in a sequence causes it to be filtered out, and left with a single useable sequence
             - '-' in sequences causes them to appear different, but they are the same
