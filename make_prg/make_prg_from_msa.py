@@ -7,10 +7,12 @@ from sklearn.cluster import KMeans
 
 from make_prg import MSA
 from make_prg.io_utils import load_alignment_file
-from make_prg.utils import (
+from make_prg.seq_utils import (
     ambiguous_bases,
     remove_duplicates,
     get_interval_seqs,
+)
+from make_prg.interval_partition import (
     enforce_multisequence_nonmatch_intervals,
     enforce_alignment_interval_bijection,
 )
@@ -111,7 +113,7 @@ class AlignedSeq(object):
                     % self.consensus[match_start : match_start + match_count]
                 )
 
-                if (match_count - match_start + 1) >= self.min_match_length:
+                if match_count >= self.min_match_length:
                     if non_match_start < match_start:
                         non_match_intervals.append([non_match_start, match_start - 1])
                         logging.debug(
@@ -126,7 +128,7 @@ class AlignedSeq(object):
         end = self.length - 1
         if self.length < self.min_match_length:
             # Special case: a short sequence can still get classified as a match interval
-            added_interval = "match" if "*" in self.consensus else "non_match"
+            added_interval = "non_match" if "*" in self.consensus else "match"
             if added_interval == "match":
                 match_intervals.append([0, end])
             else:
@@ -296,8 +298,6 @@ class AlignedSeq(object):
 
     def get_prg(self):
         prg = ""
-        # last_char = None
-        # skip_char = False
 
         for interval in self.all_intervals:
             if interval in self.match_intervals:
@@ -305,7 +305,7 @@ class AlignedSeq(object):
                 # thus still process all of them, to get the one with no 'N'.
                 sub_alignment = self.alignment[:, interval[0] : interval[1] + 1]
                 seqs = get_interval_seqs(sub_alignment)
-                assert 0 < len(seqs) <= 1, "Got >1 filtered sequences in match interval"
+                assert len(seqs) == 1, "Got >1 filtered sequences in match interval"
                 seq = seqs[0]
                 prg += seq
 
@@ -324,15 +324,8 @@ class AlignedSeq(object):
                         "sequences in interval."
                     )
                     sub_alignment = self.alignment[:, interval[0] : interval[1] + 1]
-                    if logging.getLogger().isEnabledFor(logging.DEBUG):
-                        seqs = list(
-                            remove_duplicates(
-                                [str(record.seq) for record in sub_alignment]
-                            )
-                        )
-                        logging.debug(f"Variant seqs found: {seqs}")
                     variant_prgs = get_interval_seqs(sub_alignment)
-                    logging.debug("Which is equivalent to: %s" % variant_prgs)
+                    logging.debug(f"Variant seqs found: {variant_prgs}")
                 else:
                     logging.debug(
                         "Divide sequences into subgroups and define prg for each subgroup."

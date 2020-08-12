@@ -8,8 +8,8 @@ from Bio.SeqRecord import SeqRecord
 
 from make_prg import MSA
 from make_prg.make_prg_from_msa import AlignedSeq
-from make_prg.utils import (
-    standard_bases,
+from make_prg.seq_utils import standard_bases
+from make_prg.interval_partition import (
     enforce_multisequence_nonmatch_intervals,
     enforce_alignment_interval_bijection,
     PartitioningError,
@@ -113,38 +113,49 @@ class TestIntervalConsistency(TestCase):
 class TestIntervalPartitioning(TestCase):
     def test_all_non_match(self, get_consensus, _, __):
         get_consensus.return_value = "******"
-        tester = AlignedSeq("_", alignment="_", min_match_length=3)
+        tester = AlignedSeq("_", alignment=MSA([]), min_match_length=3)
         match, non_match, _ = tester.partition_alignment_into_intervals()
         self.assertEqual(match, [])
         self.assertEqual(non_match, [[0, 5]])
 
     def test_all_match(self, get_consensus, _, __):
         get_consensus.return_value = "ATATAAA"
-        tester = AlignedSeq("_", alignment="_", min_match_length=3)
+        tester = AlignedSeq("_", alignment=MSA([]), min_match_length=3)
         match, non_match, _ = tester.partition_alignment_into_intervals()
         self.assertEqual(match, [[0, 6]])
         self.assertEqual(non_match, [])
 
     def test_short_match_counted_as_non_match(self, get_consensus, _, __):
         get_consensus.return_value = "AT***"
-        tester = AlignedSeq("_", alignment="_", min_match_length=3)
+        tester = AlignedSeq("_", alignment=MSA([]), min_match_length=3)
         match, non_match, _ = tester.partition_alignment_into_intervals()
         self.assertEqual(match, [])
         self.assertEqual(non_match, [[0, 4]])
 
     def test_match_non_match_match(self, get_consensus, _, __):
         get_consensus.return_value = "ATT**AAAC"
-        tester = AlignedSeq("_", alignment="_", min_match_length=3)
+        tester = AlignedSeq("_", alignment=MSA([]), min_match_length=3)
         match, non_match, _ = tester.partition_alignment_into_intervals()
         self.assertEqual(match, [[0, 2], [5, 8]])
         self.assertEqual(non_match, [[3, 4]])
 
     def test_end_in_non_match(self, get_consensus, _, __):
         get_consensus.return_value = "**ATT**AAA*C"
-        tester = AlignedSeq("_", alignment="_", min_match_length=3)
+        tester = AlignedSeq("_", alignment=MSA([]), min_match_length=3)
         match, non_match, _ = tester.partition_alignment_into_intervals()
         self.assertEqual(match, [[2, 4], [7, 9]])
         self.assertEqual(non_match, [[0, 1], [5, 6], [10, 11]])
+
+    def test_consensus_smaller_than_min_match_len(self, get_consensus, _, __):
+        """
+        Usually, a match smaller than min_match_length counts as non-match,
+        but if the whole string is smaller than min_match_length, counts as match.
+        """
+        get_consensus.return_value = "TTATT"
+        tester = AlignedSeq("_", alignment=MSA([]), min_match_length=7)
+        match, non_match, _ = tester.partition_alignment_into_intervals()
+        self.assertEqual(match, [[0, 4]])
+        self.assertEqual(non_match, [])
 
 
 class TestKmeansClusters(TestCase):
