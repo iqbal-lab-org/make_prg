@@ -12,10 +12,7 @@ from make_prg.seq_utils import (
     remove_duplicates,
     get_interval_seqs,
 )
-from make_prg.interval_partition import (
-    enforce_multisequence_nonmatch_intervals,
-    enforce_alignment_interval_bijection,
-)
+from make_prg.interval_partition import IntervalPartitioner
 
 
 class AlignedSeq(object):
@@ -53,7 +50,9 @@ class AlignedSeq(object):
             self.match_intervals,
             self.non_match_intervals,
             self.all_intervals,
-        ) = self.partition_alignment_into_intervals()
+        ) = IntervalPartitioner(
+            self.consensus, self.min_match_length, self.alignment
+        ).get_intervals()
 
         # properties for stats
         self.subAlignedSeqs = {}
@@ -90,75 +89,6 @@ class AlignedSeq(object):
                 consensus_string += column.pop()
 
         return consensus_string
-
-    def partition_alignment_into_intervals(self):
-        """Return a list of intervals in which we have
-        consensus sequence longer than min_match_length, and
-        a list of the non-match intervals left."""
-        match_intervals, non_match_intervals = list(), list()
-        match_count, match_start, non_match_start = 0, 0, 0
-
-        logging.debug("consensus: %s" % self.consensus)
-        for i in range(self.length):
-            if self.consensus[i] != "*":
-                # In a match region.
-                if match_count == 0:
-                    match_start = i
-                match_count += 1
-            else:
-                if match_count == 0:
-                    continue
-                logging.debug(
-                    "have match string %s"
-                    % self.consensus[match_start : match_start + match_count]
-                )
-
-                if match_count >= self.min_match_length:
-                    if non_match_start < match_start:
-                        non_match_intervals.append([non_match_start, match_start - 1])
-                        logging.debug(
-                            f"add non-match interval [{non_match_start},{match_start - 1}]"
-                        )
-                    end = match_start + match_count - 1
-                    match_intervals.append([match_start, end])
-                    logging.debug(f"add match interval [{match_start},{end}]")
-                    non_match_start = match_start = i
-                match_count = 0
-
-        end = self.length - 1
-        if self.length < self.min_match_length:
-            # Special case: a short sequence can still get classified as a match interval
-            added_interval = "non_match" if "*" in self.consensus else "match"
-            if added_interval == "match":
-                match_intervals.append([0, end])
-            else:
-                non_match_intervals.append([0, end])
-            logging.debug(f"add whole short {added_interval} interval [0,{end}]")
-            match_count = 0
-            non_match_start = end + 1
-
-        # At end add last intervals
-        if match_count > 0:
-            if match_count >= self.min_match_length:
-                match_intervals.append([match_start, end])
-                logging.debug(f"add final match interval [{match_start},{end}]")
-                if non_match_start < match_start:
-                    end = match_start - 1
-        if match_count != self.length and non_match_start <= end:
-            non_match_intervals.append([non_match_start, end])
-            logging.debug(f"add non-match interval [{non_match_start},{end}]")
-
-        enforce_alignment_interval_bijection(
-            match_intervals, non_match_intervals, self.length
-        )
-
-        logging.info("Non match intervals: %s", non_match_intervals)
-        enforce_multisequence_nonmatch_intervals(
-            match_intervals, non_match_intervals, self.alignment
-        )
-        all_intervals = match_intervals + non_match_intervals
-        all_intervals.sort()
-        return match_intervals, non_match_intervals, all_intervals
 
     @classmethod
     def kmeans_cluster_seqs_in_interval(
@@ -303,7 +233,7 @@ class AlignedSeq(object):
             if interval in self.match_intervals:
                 # all seqs are not necessarily exactly the same: some can have 'N'
                 # thus still process all of them, to get the one with no 'N'.
-                sub_alignment = self.alignment[:, interval[0] : interval[1] + 1]
+                sub_alignment = self.alignment[:, interval.start : interval.stop + 1]
                 seqs = get_interval_seqs(sub_alignment)
                 assert len(seqs) == 1, "Got >1 filtered sequences in match interval"
                 seq = seqs[0]
@@ -317,13 +247,15 @@ class AlignedSeq(object):
 
                 # Define the variant seqs to add
                 if (self.nesting_level == self.max_nesting) or (
-                    interval[1] - interval[0] <= self.min_match_length
+                    interval.stop - interval.start <= self.min_match_length
                 ):
                     logging.debug(
                         "Have reached max nesting level or have a small variant site, so add all variant "
                         "sequences in interval."
                     )
-                    sub_alignment = self.alignment[:, interval[0] : interval[1] + 1]
+                    sub_alignment = self.alignment[
+                        :, interval.start : interval.stop + 1
+                    ]
                     variant_prgs = get_interval_seqs(sub_alignment)
                     logging.debug(f"Variant seqs found: {variant_prgs}")
                 else:
@@ -332,11 +264,13 @@ class AlignedSeq(object):
                     )
                     recur = True
                     id_lists = self.kmeans_cluster_seqs_in_interval(
-                        interval, self.alignment, self.min_match_length
+                        [interval.start, interval.stop],
+                        self.alignment,
+                        self.min_match_length,
                     )
                     list_sub_alignments = [
                         self.get_sub_alignment_by_list_id(
-                            id_list, self.alignment, interval
+                            id_list, self.alignment, [interval.start, interval.stop]
                         )
                         for id_list in id_lists
                     ]
@@ -347,8 +281,8 @@ class AlignedSeq(object):
                             "Clustering did not group any sequences together, each seq is a cluster"
                         )
                         recur = False
-                    elif interval[0] not in self.subAlignedSeqs:
-                        self.subAlignedSeqs[interval[0]] = []
+                    elif interval.start not in self.subAlignedSeqs:
+                        self.subAlignedSeqs[interval.start] = []
                         logging.debug(
                             "subAlignedSeqs now has keys: %s",
                             list(self.subAlignedSeqs.keys()),
@@ -356,7 +290,7 @@ class AlignedSeq(object):
                     else:
                         logging.debug(
                             "subAlignedSeqs already had key %d in keys: %s. This shouldn't happen.",
-                            interval[0],
+                            interval.start,
                             list(self.subAlignedSeqs.keys()),
                         )
 
@@ -376,7 +310,7 @@ class AlignedSeq(object):
                         self.site = sub_aligned_seq.site
 
                         if recur:
-                            self.subAlignedSeqs[interval[0]].append(sub_aligned_seq)
+                            self.subAlignedSeqs[interval.start].append(sub_aligned_seq)
                     assert num_clusters == len(variant_prgs), (
                         "I don't seem to have a sub-prg sequence for all parts of the partition - there are %d "
                         "classes in partition, and %d variant seqs"
@@ -437,7 +371,7 @@ class AlignedSeq(object):
     def prop_in_match_intervals(self):
         length_match_intervals = 0
         for interval in self.match_intervals:
-            length_match_intervals += interval[1] - interval[0] + 1
+            length_match_intervals += interval.stop - interval.start + 1
         return length_match_intervals / float(self.length)
 
     @property
