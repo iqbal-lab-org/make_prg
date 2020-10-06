@@ -2,7 +2,7 @@ import logging
 from typing import Generator, Sequence, Tuple
 import itertools
 
-from make_prg import MSA
+from make_prg.from_msa import MSA
 
 NONMATCH = "*"
 GAP = "-"

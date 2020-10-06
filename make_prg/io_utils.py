@@ -5,11 +5,12 @@ from pathlib import Path
 
 from Bio import AlignIO
 
-from make_prg import MSA
+from make_prg.from_msa import MSA
 from make_prg.prg_encoder import PrgEncoder, PRG_Ints
 
 
 def load_alignment_file(msa_file: str, alignment_format: str) -> MSA:
+    msa_file = str(msa_file)
     logging.info("Read from MSA file %s", msa_file)
     if ".gz" in msa_file:
         logging.debug("MSA is gzipped")

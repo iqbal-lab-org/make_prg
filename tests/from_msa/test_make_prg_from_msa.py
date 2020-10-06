@@ -1,16 +1,16 @@
-import os
+from pathlib import Path
 import random
 from unittest import TestCase, skip
 
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from make_prg.make_prg_from_msa import AlignedSeq
+from make_prg.from_msa.aligned_seq import AlignedSeq
 from make_prg.seq_utils import standard_bases
-from tests import make_alignment, MSA
+from tests.from_msa import make_alignment, MSA
 
-this_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-data_dir = os.path.join(this_dir, "tests", "data", "make_prg_from_msa")
+this_dir = Path(__file__).resolve().parent
+data_dir = this_dir.parent / "data" / "make_prg_from_msa"
 
 
 class TestConsensusString(TestCase):
@@ -205,51 +205,51 @@ class TestSubAlignments(TestCase):
 
 class TestMakePrgFromMsaFile_IntegrationTests(TestCase):
     def test_answers(self):
-        infile = os.path.join(data_dir, "match.fa")
+        infile = data_dir / "match.fa"
         aseq = AlignedSeq(infile)
         self.assertEqual(aseq.prg, "ACGTGTTTTGTAACTGTGCCACACTCTCGAGACTGCATATGTGTC")
 
-        infile = os.path.join(data_dir, "nonmatch.fa")
+        infile = data_dir / "nonmatch.fa"
         aseq = AlignedSeq(infile)
         self.assertEqual(aseq.prg, " 5 AAACGTGGTT 6 CCCCCCCCCC 5 ")
 
-        infile = os.path.join(data_dir, "match.nonmatch.fa")
+        infile = data_dir / "match.nonmatch.fa"
         aseq = AlignedSeq(infile)
         self.assertEqual(aseq.prg, "AAACG 5 TGGTT 6 CCCCC 5 ")
 
-        infile = os.path.join(data_dir, "nonmatch.match.fa")
+        infile = data_dir / "nonmatch.match.fa"
         aseq = AlignedSeq(infile)
         self.assertEqual(aseq.prg, " 5 AAACGT 6 CCCCCC 5 GGTT")
 
-        infile = os.path.join(data_dir, "match.nonmatch.match.fa")
+        infile = data_dir / "match.nonmatch.match.fa"
         aseq = AlignedSeq(infile)
         self.assertEqual(aseq.prg, "AAACG 5 T 6 C 5 GGTT")
 
-        infile = os.path.join(data_dir, "shortmatch.nonmatch.match.fa")
+        infile = data_dir / "shortmatch.nonmatch.match.fa"
         aseq = AlignedSeq(infile)
         self.assertEqual(aseq.prg, " 5 AAACGT 6 ATTTTC 5 GGTT")
 
-        infile = os.path.join(data_dir, "match.nonmatch.shortmatch.fa")
+        infile = data_dir / "match.nonmatch.shortmatch.fa"
         aseq = AlignedSeq(infile)
         self.assertEqual(aseq.prg, "AAAC 5 GTGGTT 6 CCCCCT 5 ")
 
-        infile = os.path.join(data_dir, "match.staggereddash.fa")
+        infile = data_dir / "match.staggereddash.fa"
         aseq = AlignedSeq(infile)
         self.assertEqual(aseq.prg, "AAACGTGGTT")
 
-        infile = os.path.join(data_dir, "contains_n.fa")
+        infile = data_dir / "contains_n.fa"
         aseq = AlignedSeq(infile)
         self.assertEqual(aseq.prg, "AAACG 5 T 6 C 5 GGTT")
 
-        infile = os.path.join(data_dir, "contains_RYKMSW.fa")
+        infile = data_dir / "contains_RYKMSW.fa"
         aseq = AlignedSeq(infile)
         self.assertEqual(aseq.prg, "AAACG 5 T 6 C 5 GGTT")
 
-        infile = os.path.join(data_dir, "contains_n_and_RYKMSW.fa")
+        infile = data_dir / "contains_n_and_RYKMSW.fa"
         aseq = AlignedSeq(infile)
         self.assertEqual(aseq.prg, "AAACG 5 T 6 C 5 GGTT")
 
-        infile = os.path.join(data_dir, "contains_n_and_RYKMSW_no_variants.fa")
+        infile = data_dir / "contains_n_and_RYKMSW_no_variants.fa"
         aseq = AlignedSeq(infile)
         self.assertEqual(aseq.prg, "AAACGTGGTT")
 

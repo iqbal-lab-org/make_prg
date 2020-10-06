@@ -1,10 +1,3 @@
-# ___Constants/Aliases___ #
-from Bio.AlignIO import MultipleSeqAlignment
-
-MSA = MultipleSeqAlignment
-NESTING_LVL = 5
-MIN_MATCH_LEN = 7
-
 # ___Version___ #
 from pkg_resources import get_distribution
 
@@ -13,6 +6,4 @@ try:
 except:
     __version__ = "local"
 
-__all__ = ["make_prg_from_msa", "subcommands", "io_utils", "seq_utils"]
-
-from make_prg import *
+__all__ = ["from_msa", "subcommands", "io_utils", "seq_utils"]

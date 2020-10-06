@@ -4,7 +4,7 @@ from Bio import AlignIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from tests import make_alignment
+from tests.from_msa import make_alignment
 from make_prg.seq_utils import get_interval_seqs, has_empty_sequence
 
 

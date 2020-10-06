@@ -2,17 +2,18 @@ import logging
 import os
 from pathlib import Path
 
-from make_prg import make_prg_from_msa, io_utils, NESTING_LVL, MIN_MATCH_LEN
+from make_prg.from_msa import aligned_seq, NESTING_LVL, MIN_MATCH_LEN
+from make_prg import io_utils
 
 
 def register_parser(subparsers):
-    subparser_prg_from_msa = subparsers.add_parser(
-        "prg_from_msa",
-        usage="make_prg prg_from_msa [options] <MSA input file>",
+    subparser_msa = subparsers.add_parser(
+        "msa",
+        usage="make_prg msa [options] <MSA input file>",
         help="Make PRG from multiple sequence alignment",
     )
 
-    subparser_prg_from_msa.add_argument(
+    subparser_msa.add_argument(
         "MSA",
         action="store",
         type=str,
@@ -22,7 +23,7 @@ def register_parser(subparsers):
             "alignment_format type"
         ),
     )
-    subparser_prg_from_msa.add_argument(
+    subparser_msa.add_argument(
         "-f",
         "--alignment_format",
         dest="alignment_format",
@@ -33,7 +34,7 @@ def register_parser(subparsers):
             "alignment_format. See http://biopython.org/wiki/AlignIO. Default: fasta"
         ),
     )
-    subparser_prg_from_msa.add_argument(
+    subparser_msa.add_argument(
         "--max_nesting",
         dest="max_nesting",
         action="store",
@@ -43,7 +44,7 @@ def register_parser(subparsers):
             NESTING_LVL
         ),
     )
-    subparser_prg_from_msa.add_argument(
+    subparser_msa.add_argument(
         "--min_match_length",
         dest="min_match_length",
         action="store",
@@ -54,18 +55,18 @@ def register_parser(subparsers):
             "match. Default: {}".format(MIN_MATCH_LEN)
         ),
     )
-    subparser_prg_from_msa.add_argument(
+    subparser_msa.add_argument(
         "-p", "--prefix", dest="output_prefix", action="store", help="Output prefix"
     )
-    subparser_prg_from_msa.add_argument(
+    subparser_msa.add_argument(
         "--no_overwrite",
         dest="no_overwrite",
         action="store_true",
         help="Do not overwrite pre-existing prg file with same name",
     )
-    subparser_prg_from_msa.set_defaults(func=run)
+    subparser_msa.set_defaults(func=run)
 
-    return subparser_prg_from_msa
+    return subparser_msa
 
 
 def run(options):
@@ -101,7 +102,7 @@ def run(options):
     if os.path.isfile("%s.prg" % prefix) and options.no_overwrite:
         prg_file = "%s.prg" % prefix
         logging.info(f"Re-using existing prg file {prg_file}")
-        aseq = make_prg_from_msa.AlignedSeq(
+        aseq = aligned_seq.AlignedSeq(
             options.MSA,
             alignment_format=options.alignment_format,
             max_nesting=options.max_nesting,
@@ -109,7 +110,7 @@ def run(options):
             prg_file=prg_file,
         )
     else:
-        aseq = make_prg_from_msa.AlignedSeq(
+        aseq = aligned_seq.AlignedSeq(
             options.MSA,
             alignment_format=options.alignment_format,
             max_nesting=options.max_nesting,

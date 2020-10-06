@@ -5,7 +5,7 @@ from typing import List
 import numpy as np
 from sklearn.cluster import KMeans
 
-from make_prg import MSA
+from make_prg.from_msa import MSA
 from make_prg.io_utils import load_alignment_file
 from make_prg.seq_utils import (
     ambiguous_bases,
@@ -13,7 +13,7 @@ from make_prg.seq_utils import (
     get_interval_seqs,
     NONMATCH,
 )
-from make_prg.interval_partition import IntervalPartitioner
+from make_prg.from_msa.interval_partition import IntervalPartitioner
 
 
 class AlignedSeq(object):

@@ -5,7 +5,7 @@ match/non_match intervals.
 from enum import Enum, auto
 from typing import List, Tuple, Optional
 
-from make_prg import MSA
+from make_prg.from_msa import MSA
 
 from make_prg.seq_utils import get_interval_seqs, is_non_match, has_empty_sequence
 

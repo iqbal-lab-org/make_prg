@@ -1,8 +1,8 @@
 from unittest import TestCase
 from typing import List
 
-from tests import make_alignment, MSA
-from make_prg.interval_partition import (
+from tests.from_msa import make_alignment, MSA
+from make_prg.from_msa.interval_partition import (
     IntervalType,
     Interval,
     IntervalPartitioner,
