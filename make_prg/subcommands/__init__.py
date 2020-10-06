@@ -1,1 +1,1 @@
-__all__ = ["from_msa.py"]
+__all__ = ["from_msa"]
