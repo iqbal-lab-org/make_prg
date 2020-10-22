@@ -13,9 +13,9 @@ from make_prg.seq_utils import (
 from make_prg.from_msa.interval_partition import IntervalPartitioner
 
 
-class AlignedSeq(object):
+class PrgBuilder(object):
     """
-    Object based on a set of aligned sequences.
+    Prg builder based from a multiple sequence alignment.
     Note min_match_length must be strictly greater than max_nesting + 1.
     """
 
@@ -63,14 +63,14 @@ class AlignedSeq(object):
         # make prg
         self.delim_char = " "
         self.prg = ""
-        if prg_file:
+        if prg_file is not None:
             logging.info(
                 "Reading from a PRG file which already exists. To regenerate, delete it."
             )
             with open(prg_file, "r") as f:
                 self.prg = f.read()
         else:
-            self.prg = self.get_prg()
+            self.prg = self._get_prg()
 
     @classmethod
     def get_consensus(cls, alignment: MSA):
@@ -99,11 +99,11 @@ class AlignedSeq(object):
     ):
         list_records = [record for record in alignment if record.id in id_list]
         sub_alignment = MSA(list_records)
-        if interval:
+        if interval is not None:
             sub_alignment = sub_alignment[:, interval[0] : interval[1] + 1]
         return sub_alignment
 
-    def get_prg(self):
+    def _get_prg(self):
         prg = ""
 
         for interval in self.all_intervals:
@@ -136,9 +136,6 @@ class AlignedSeq(object):
                     variant_prgs = get_interval_seqs(sub_alignment)
                     logging.debug(f"Variant seqs found: {variant_prgs}")
                 else:
-                    logging.debug(
-                        "Divide sequences into subgroups and define prg for each subgroup."
-                    )
                     recur = True
                     id_lists = kmeans_cluster_seqs_in_interval(
                         [interval.start, interval.stop],
@@ -173,7 +170,7 @@ class AlignedSeq(object):
 
                     while len(list_sub_alignments) > 0:
                         sub_alignment = list_sub_alignments.pop(0)
-                        sub_aligned_seq = AlignedSeq(
+                        sub_aligned_seq = PrgBuilder(
                             msa_file=self.msa_file,
                             alignment_format=self.alignment_format,
                             max_nesting=self.max_nesting,

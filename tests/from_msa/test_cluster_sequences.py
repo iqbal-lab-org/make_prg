@@ -13,7 +13,7 @@ from make_prg.from_msa.cluster_sequences import (
     kmeans_cluster_seqs_in_interval,
 )
 
-from tests.from_msa import MSA
+from tests.from_msa import make_alignment, MSA
 
 
 class TestCountKmers(TestCase):
@@ -110,7 +110,7 @@ class TestClustering_Kmeans(TestCase):
         result = kmeans_cluster_seqs_in_interval([0, 3], alignment, 2)
         mockfit.assert_called_once()
 
-    def test_GivenTwoIdenticalSequences_clustered_together(self):
+    def test_TwoIdenticalSequencesClusteredTogether(self):
         alignment = MSA(
             [
                 SeqRecord(Seq("AAAT"), id="s1"),
@@ -120,6 +120,70 @@ class TestClustering_Kmeans(TestCase):
         )
         result = kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
         self.assertEqual([["s1", "s2"], ["s3"]], result)
+
+    def test_GivenTwoSequenceGroups_ReturnsTwoClusters(self):
+        sequences = ["CATATAAAATA", "CATATAATATA", "GGGGCGGGCCC", "GGGGCGGGCGC"]
+        expected_clustering = [["s0", "s1"], ["s2", "s3"]]
+        seq_size = len(sequences[0])
+        alignment = make_alignment(sequences)
+        for kmer_size in range(1, 7):
+            result = kmeans_cluster_seqs_in_interval(
+                [0, seq_size - 1], alignment, kmer_size
+            )
+            self.assertEqual(expected_clustering, result)
+
+    def test_GivenThreeSequenceGroups_ReturnsThreeClusters(self):
+        sequences = [
+            "CCCCCCAACCT",
+            "CCCCCCAATCT",
+            "GGGGCGGGCCC",
+            "GGGGCGGGCGC",
+            "TTTAATTTTAA",
+            "TTTAAGTTTAA",
+        ]
+        expected_clustering = [["s0", "s1"], ["s2", "s3"], ["s4", "s5"]]
+        seq_size = len(sequences[0])
+        alignment = make_alignment(sequences)
+        for kmer_size in range(1, 7):
+            result = kmeans_cluster_seqs_in_interval(
+                [0, seq_size - 1], alignment, kmer_size
+            )
+            self.assertEqual(expected_clustering, result)
+
+    def test_GivenAllSequencesOneSnpApart_ReturnsNoClustering(self):
+        sequences = ["CATATAAAATA", "CATATAACATA", "CATATAAGATA", "CATATAATATA"]
+        seq_size = len(sequences[0])
+        alignment = make_alignment(sequences)
+        expected_clustering = [[record.id] for record in alignment]
+        for kmer_size in range(1, 7):
+            result = kmeans_cluster_seqs_in_interval(
+                [0, seq_size - 1], alignment, kmer_size
+            )
+            self.assertEqual(expected_clustering, result)
+
+    def test_GivenAllSequencesSmallEditDist_ReturnsNoClustering(self):
+        """Cf graph 157.pdf in issue #15"""
+        sequences = [
+            "gctccgccggtcccgccggtcc",
+            "gctccgccgggcccgccggtcc",
+            "tctccgccggtcccgccggtcc",
+            "gctcagccggtcccgccggtcc",
+            "gctccgccggtcccaccggtcc",
+            "gctccgccggtaccgccggtcc",
+            "gctccgctggtcccgccggtcc",
+            "gctccgccggtcccgctggtcc",
+            "gctccgccggtcccgccggtct",
+            "gctccgccggtcccgcctgtcc",
+            "gctccgccggtcctgccggtcc",
+        ]
+        seq_size = len(sequences[0])
+        alignment = make_alignment(sequences)
+        expected_clustering = [[record.id] for record in alignment]
+        for kmer_size in range(4, 8):
+            result = kmeans_cluster_seqs_in_interval(
+                [0, seq_size - 1], alignment, kmer_size
+            )
+            self.assertEqual(expected_clustering, result)
 
 
 class TestKMeansOrdering(TestCase):
@@ -139,14 +203,12 @@ class TestKMeansOrdering(TestCase):
         # Function has different behaviour at below and above seq_len
         for seq_len in [seq_len - 1, seq_len + 1]:
             with self.subTest(min_match_len=seq_len):
-                for _ in range(20):  # Run on a number of random alignments
-                    records = []
-                    for i in range(num_seqs):
-                        rand_seq = "".join(
-                            [random.choice(bases) for _ in range(seq_len)]
-                        )
-                        records.append(SeqRecord(Seq(rand_seq), id=f"s{i}"))
-                    alignment = MSA(records)
+                for _ in range(5):  # Run on a number of random alignments
+                    sequences = [
+                        "".join(random.choices(bases, k=seq_len))
+                        for _ in range(num_seqs)
+                    ]
+                    alignment = make_alignment(sequences)
                     result = kmeans_cluster_seqs_in_interval(
                         [0, seq_len - 1], alignment, 1
                     )

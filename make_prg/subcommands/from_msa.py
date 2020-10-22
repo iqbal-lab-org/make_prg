@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-from make_prg.from_msa import aligned_seq, NESTING_LVL, MIN_MATCH_LEN
+from make_prg.from_msa import prg_builder, NESTING_LVL, MIN_MATCH_LEN
 from make_prg import io_utils
 
 
@@ -102,7 +102,7 @@ def run(options):
     if os.path.isfile("%s.prg" % prefix) and options.no_overwrite:
         prg_file = "%s.prg" % prefix
         logging.info(f"Re-using existing prg file {prg_file}")
-        aseq = aligned_seq.AlignedSeq(
+        aseq = prg_builder.PrgBuilder(
             options.MSA,
             alignment_format=options.alignment_format,
             max_nesting=options.max_nesting,
@@ -110,7 +110,7 @@ def run(options):
             prg_file=prg_file,
         )
     else:
-        aseq = aligned_seq.AlignedSeq(
+        aseq = prg_builder.PrgBuilder(
             options.MSA,
             alignment_format=options.alignment_format,
             max_nesting=options.max_nesting,
