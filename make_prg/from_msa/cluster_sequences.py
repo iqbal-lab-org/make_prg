@@ -1,8 +1,9 @@
 import logging
 from collections import defaultdict
 from typing import List, Dict, Iterator, Union
-from itertools import starmap, repeat
+from itertools import starmap, repeat, chain
 from collections import Counter
+import time
 
 import numpy as np
 from sklearn.cluster import KMeans
@@ -19,6 +20,7 @@ KmerIDs = Dict[str, int]
 
 DISTANCE_THRESHOLD: float = 0.2
 LENGTH_THRESHOLD: int = 5
+MAX_CLUSTERS: int = 10
 
 
 def count_distinct_kmers(seqs: Sequences, kmer_size: int) -> KmerIDs:
@@ -64,6 +66,8 @@ def get_majority_char_in_column(sequences: Sequences, col_idx: int) -> str:
 
 
 def get_majority_string(sequences: Sequences) -> str:
+    if len(sequences) == 1:
+        return sequences[0]
     seqlen = len(sequences[0])
     if not all([len(seq) == seqlen for seq in sequences]):
         raise ValueError("Not all sequences have the same length")
@@ -124,6 +128,19 @@ def extract_clusters(
     return result
 
 
+def merge_clusters(clusters: List[ClusteredIDs], first_id: str) -> ClusteredIDs:
+    merged_clusters = list()
+    first_id_cluster = []
+    for cluster in chain.from_iterable(clusters):
+        if first_id in cluster:
+            first_id_cluster = cluster
+        else:
+            merged_clusters.append(cluster)
+    if len(first_id_cluster) == 0:
+        raise ValueError(f"Could not find {first_id} in any cluster")
+    return [first_id_cluster] + merged_clusters
+
+
 def kmeans_cluster_seqs_in_interval(
     interval: List[int], alignment: MSA, kmer_size: int,
 ) -> ClusteredIDs:
@@ -154,8 +171,11 @@ def kmeans_cluster_seqs_in_interval(
 
         while cluster_further(seqclustering):
             num_clusters += 1
+            if num_clusters >= MAX_CLUSTERS:
+                num_clusters = num_sequences
             if num_clusters == num_sequences:
                 break
+            start = time.time()
             kmeans = KMeans(n_clusters=num_clusters, random_state=2).fit(count_matrix)
             cluster_assignment = list(kmeans.predict(count_matrix))
             seqclustering = extract_clusters(seq_to_ids, cluster_assignment)
@@ -169,20 +189,9 @@ def kmeans_cluster_seqs_in_interval(
         )
 
     first_id = interval_alignment[0].id
-    id_lists = [[]]  # Reserve space for first seq id
-    for cluster in id_clustering:
-        if first_id in set(cluster):
-            id_lists[0] = cluster
-        else:
-            id_lists.append(cluster)
-
-    for ids in small_seq_to_ids.values():
-        if first_id in set(ids):
-            id_lists[0] = ids
-        else:
-            id_lists.append(ids)
+    result = merge_clusters([id_clustering, small_seq_to_ids.values()], first_id)
 
     assert len(interval_alignment) == sum(
-        [len(i) for i in id_lists]
-    ), "I seem to have lost (or gained?) some sequences in the process of clustering"
-    return id_lists
+        [len(i) for i in result]
+    ), "Each input sequence should be in a cluster"
+    return result

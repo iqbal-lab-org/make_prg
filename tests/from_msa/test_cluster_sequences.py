@@ -1,6 +1,7 @@
 from unittest import TestCase, skip
 from unittest.mock import patch, Mock
 import random
+from itertools import product
 
 from numpy import array, array_equal
 from Bio.Seq import Seq
@@ -21,6 +22,7 @@ from make_prg.from_msa.cluster_sequences import (
     sequences_are_one_reference_like,
     cluster_further,
     extract_clusters,
+    merge_clusters,
     kmeans_cluster_seqs_in_interval,
 )
 
@@ -243,11 +245,9 @@ class TestClustering_Trivial(TestCase):
 
 class TestClustering_SmallSequences(TestCase):
     def test_two_seqs_one_below_kmer_size_separate_clusters(self):
-        alignment = MSA(
-            [SeqRecord(Seq("AATTTAT"), id="s1"), SeqRecord(Seq("AA---AT"), id="s2")]
-        )
+        alignment = make_alignment(["AATTTAT", "AA---AT"])
         result = kmeans_cluster_seqs_in_interval([0, 5], alignment, 5)
-        self.assertEqual(result, [["s1"], ["s2"]])
+        self.assertEqual(result, [["s0"], ["s1"]])
 
     @skip(
         "This fails, probably because kmean clustering should never run with this input"
@@ -362,6 +362,29 @@ class TestClustering_RunKmeans(TestCase):
             )
             self.assertEqual(expected_clustering, result)
 
+    def test_GivenManyVeryDifferentSequences_EachSeqInOwnCluster(self):
+        # all 1024 distinct DNA 5-mers.
+        # We want each in one cluster, but do not want to run clustering 1023 times
+        all_5mers = list(map("".join, product(standard_bases, repeat=5)))
+        alignment = make_alignment(all_5mers)
+        result = kmeans_cluster_seqs_in_interval([0, 5], alignment, 5)
+        self.assertEqual(len(result), len(all_5mers))
+
+
+class TestMergeClusters(TestCase):
+    clusters = [["s1", "s2"], ["s3"]]
+    small_seqs = [["s4"], ["s5", "s6"]]
+    to_merge = [clusters, small_seqs]
+
+    def test_GivenFirstIDNotFound_Fails(self):
+        with self.assertRaises(ValueError):
+            merge_clusters(self.to_merge, "s200")
+
+    def test_GivenFirstIDFound_MergedAndFirstIDInFirstCluster(self):
+        actual = merge_clusters(self.to_merge, "s5")
+        expected = [["s5", "s6"], ["s1", "s2"], ["s3"], ["s4"]]
+        self.assertEqual(actual, expected)
+
 
 class TestKMeansOrdering(TestCase):
     """
@@ -375,11 +398,11 @@ class TestKMeansOrdering(TestCase):
         Runs kmeans clustering on randomly generated multiple sequence alignments
         """
         seq_len = 20
-        num_seqs = 20
+        num_seqs = 5
         bases = list(standard_bases)
         # Function has different behaviour at below and above seq_len
-        for seq_len in [seq_len - 1, seq_len + 1]:
-            with self.subTest(min_match_len=seq_len):
+        for used_len in [seq_len - 5, seq_len + 5]:
+            with self.subTest(kmer_size=seq_len):
                 for _ in range(5):  # Run on a number of random alignments
                     sequences = [
                         "".join(random.choices(bases, k=seq_len))
@@ -387,7 +410,7 @@ class TestKMeansOrdering(TestCase):
                     ]
                     alignment = make_alignment(sequences)
                     result = kmeans_cluster_seqs_in_interval(
-                        [0, seq_len - 1], alignment, 1
+                        [0, seq_len - 1], alignment, used_len
                     )
                     self.assertTrue(result[0][0] == "s0")
 
