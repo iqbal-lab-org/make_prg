@@ -19,6 +19,8 @@ from make_prg.from_msa.cluster_sequences import (
     LENGTH_THRESHOLD,
     get_one_ref_like_threshold_distance,
     sequences_are_one_reference_like,
+    cluster_further,
+    extract_clusters,
     kmeans_cluster_seqs_in_interval,
 )
 
@@ -182,6 +184,41 @@ class TestOneRefLikeClusters(TestCase):
         self.assertEqual(get_one_ref_like_threshold_distance(seqlen), 4)
         self.assertTrue(sequences_are_one_reference_like(sequences))
 
+    def test_GivenTightClusters_ClusterFurtherIsFalse(self):
+        clusters = [["AATA", "AAAA"], ["GGGC", "GGGG"]]
+        self.assertFalse(cluster_further(clusters))
+
+    def test_GivenDiverseClusters_ClusterFurtherIsTrue(self):
+        clusters = [["AATA", "GGGG"], ["TTTT", "TATT"]]
+        self.assertTrue(cluster_further(clusters))
+
+
+class TestExtractClusters(TestCase):
+    seqdict = dict(AT=["s1", "s2"], TT=["s3"], GG=["s4"])
+
+    def test_GivenTooFewClusterAssignments_Fails(self):
+        cluster_assignment = [0, 1]
+        with self.assertRaises(ValueError):
+            extract_clusters(self.seqdict, cluster_assignment)
+
+    def test_GivenDistinctClusters_ExtractCorrectSequenceClusters(self):
+        cluster_assignment = [2, 0, 1]
+        actual = extract_clusters(self.seqdict, cluster_assignment)
+        expected = [["TT"], ["GG"], ["AT"]]
+        self.assertEqual(actual, expected)
+
+    def test_GivenGroupedClusters_ExtractCorrectSequenceClusters(self):
+        cluster_assignment = [1, 1, 0]
+        actual = extract_clusters(self.seqdict, cluster_assignment)
+        expected = [["GG"], ["AT", "TT"]]
+        self.assertEqual(actual, expected)
+
+    def test_GivenGroupedClusters_ExtractCorrectIDClusters(self):
+        cluster_assignment = [0, 0, 1]
+        actual = extract_clusters(self.seqdict, cluster_assignment, extract_IDs=True)
+        expected = [["s1", "s2", "s3"], ["s4"]]
+        self.assertEqual(actual, expected)
+
 
 class TestClustering_Trivial(TestCase):
     def test_one_seq_returns_single_id(self):
@@ -240,11 +277,13 @@ class TestClustering_SmallSequences(TestCase):
 
 
 class TestClustering_RunKmeans(TestCase):
-    @patch("make_prg.from_msa.cluster_sequences.KMeans.fit")
+    @patch("make_prg.from_msa.cluster_sequences.KMeans")
     def test_GivenThreeSequencesAboveKmerSize_KMeansClusteringCalled(self, mockfit):
         alignment = make_alignment(["AAAT", "TTTT", "ATAT"])
-        mockfit.return_value = Mock(inertia_=0)
-        result = kmeans_cluster_seqs_in_interval([0, 3], alignment, 2)
+        try:
+            result = kmeans_cluster_seqs_in_interval([0, 3], alignment, 2)
+        except ValueError:
+            pass
         mockfit.assert_called_once()
 
     def test_TwoIdenticalSequencesClusteredTogether(self):
@@ -285,7 +324,8 @@ class TestClustering_RunKmeans(TestCase):
             result = kmeans_cluster_seqs_in_interval(
                 [0, seq_size - 1], alignment, kmer_size
             )
-            self.assertEqual(expected_clustering, result)
+            for cluster in expected_clustering:
+                self.assertTrue(cluster in result)
 
     def test_GivenAllSequencesOneSnpApart_ReturnsNoClustering(self):
         sequences = ["CATATAAAATA", "CATATAACATA", "CATATAAGATA", "CATATAATATA"]

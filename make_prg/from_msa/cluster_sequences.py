@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import List, Dict, Iterator
+from typing import List, Dict, Iterator, Union
 from itertools import starmap, repeat
 from collections import Counter
 
@@ -10,9 +10,11 @@ from sklearn.cluster import KMeans
 from make_prg.from_msa import MSA
 
 IDs = List[str]
-Clustering = List[IDs]
+SeqToIDs = Dict[str, IDs]
+ClusteredIDs = List[IDs]
 Sequence = str
 Sequences = List[str]
+ClusteredSeqs = List[Sequences]
 KmerIDs = Dict[str, int]
 
 DISTANCE_THRESHOLD: float = 0.2
@@ -98,17 +100,41 @@ def sequences_are_one_reference_like(sequences: Sequences) -> bool:
     return all(map(lambda dist: dist <= min_thresh, distance_iterator))
 
 
+def cluster_further(clusters: ClusteredSeqs) -> bool:
+    not_ref_like = lambda sequences: not sequences_are_one_reference_like(sequences)
+    return any(map(not_ref_like, clusters))
+
+
+def extract_clusters(
+    seqdict: SeqToIDs, cluster_assignment: List[int], extract_IDs: bool = False
+) -> Union[ClusteredSeqs, ClusteredIDs]:
+    if extract_IDs:
+        value_pool = list(seqdict.values())
+    else:
+        value_pool = [[seq] for seq in seqdict.keys()]
+    num_elems = len(cluster_assignment)
+    if num_elems != len(value_pool):
+        raise ValueError(
+            f"Mismatch between number of sequences/ID lists and number of cluster assignments"
+        )
+    num_clusters = max(cluster_assignment) + 1
+    result = [list() for _ in range(num_clusters)]
+    for cluster_num, clustered_elem in zip(cluster_assignment, value_pool):
+        result[cluster_num].extend(clustered_elem)
+    return result
+
+
 def kmeans_cluster_seqs_in_interval(
     interval: List[int], alignment: MSA, kmer_size: int,
-) -> Clustering:
+) -> ClusteredIDs:
     """Divide sequences in interval into subgroups of similar sequences."""
     interval_alignment = alignment[:, interval[0] : interval[1] + 1]
 
     logging.debug("Get kmeans partition of interval [%d, %d]", interval[0], interval[1])
 
     # Find unique sequences for clustering, but keep each sequence's IDs
-    seq_to_ids = defaultdict(list)
-    small_seq_to_ids = defaultdict(list)
+    seq_to_ids: SeqToIDs = defaultdict(list)
+    small_seq_to_ids: SeqToIDs = defaultdict(list)
 
     for record in interval_alignment:
         seq = str(record.seq.ungap("-"))
@@ -117,45 +143,34 @@ def kmeans_cluster_seqs_in_interval(
         else:
             small_seq_to_ids[seq].append(record.id)
 
-    clustered_ids = []
-    if len(seq_to_ids) <= 2:
-        clustered_ids.extend(seq_to_ids.values())
-
-    else:
+    num_clusters = 1
+    num_sequences = len(seq_to_ids)
+    if num_sequences > 2:
         distinct_sequences = list(seq_to_ids)
         distinct_kmers = count_distinct_kmers(distinct_sequences, kmer_size)
         count_matrix = count_kmer_occurrences(distinct_sequences, distinct_kmers)
+        cluster_assignment = [0 for _ in range(len(seq_to_ids))]
+        seqclustering: ClusteredSeqs = extract_clusters(seq_to_ids, cluster_assignment)
 
-        number_of_clusters = 1
-        kmeans = KMeans(n_clusters=number_of_clusters, random_state=2).fit(count_matrix)
-        pre_cluster_inertia = kmeans.inertia_
+        while cluster_further(seqclustering):
+            num_clusters += 1
+            if num_clusters == num_sequences:
+                break
+            kmeans = KMeans(n_clusters=num_clusters, random_state=2).fit(count_matrix)
+            cluster_assignment = list(kmeans.predict(count_matrix))
+            seqclustering = extract_clusters(seq_to_ids, cluster_assignment)
 
-        cluster_inertia = pre_cluster_inertia
-        while (
-            cluster_inertia > 0
-            and cluster_inertia > pre_cluster_inertia / 2
-            and number_of_clusters < len(seq_to_ids)
-        ):
-            number_of_clusters += 1
-            kmeans = KMeans(n_clusters=number_of_clusters, random_state=2).fit(
-                count_matrix
-            )
-            cluster_inertia = kmeans.inertia_
-
-        # convert cluster numbers to sequence record IDs
-        if pre_cluster_inertia > 0:
-            cluster_ids = list(kmeans.predict(count_matrix))
-            for i in range(max(cluster_ids) + 1):
-                clustered_ids.append([])
-            all_ids = list(seq_to_ids.values())
-            for i, cluster_id in enumerate(cluster_ids):
-                clustered_ids[cluster_id].extend(all_ids[i])
-        else:
-            clustered_ids = list(seq_to_ids.values())
+    if num_clusters == 1 or num_clusters == num_sequences:
+        cluster_assignment = list(range(num_sequences))
+    id_clustering = []
+    if num_sequences > 0:
+        id_clustering: ClusteredIDs = extract_clusters(
+            seq_to_ids, cluster_assignment, extract_IDs=True
+        )
 
     first_id = interval_alignment[0].id
     id_lists = [[]]  # Reserve space for first seq id
-    for cluster in clustered_ids:
+    for cluster in id_clustering:
         if first_id in set(cluster):
             id_lists[0] = cluster
         else:
