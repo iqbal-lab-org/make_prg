@@ -66,15 +66,15 @@ optional arguments:
 
 Available subcommands:
 
-    prg_from_msa
+    from_msa
                 Make PRG from multiple sequence alignment
 ```
 
-#### `prg_from_msa`
+#### `from_msa`
 
 ```
-$ make_prg prg_from_msa --help
-usage: make_prg prg_from_msa [options] <MSA input file>
+$ make_prg from_msa --help
+usage: make_prg from_msa [options] <MSA input file>
 
 positional arguments:
   MSA                   Input file: a multiple sequence alignment in supported alignment_format. If not in aligned fasta

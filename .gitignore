@@ -102,5 +102,6 @@ ENV/
 
 # vim
 *~
+*.swp
 
 .idea

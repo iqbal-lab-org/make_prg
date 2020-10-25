@@ -32,7 +32,7 @@ process make_prg {
     set(val("${tsv_fields['sample_id']}"), file("${tsv_fields['sample_id']}.max_nest${params.max_nesting}.min_match${params.min_match_length}.prg")) into make_prg_out
 
     """
-    make_prg prg_from_msa ${tsv_fields["infile"]} --max_nesting ${params.max_nesting} --alignment_format ${params.alignment_format} --min_match_length ${params.min_match_length} --prefix ${tsv_fields['sample_id']} -v
+    make_prg from_msa ${tsv_fields["infile"]} --max_nesting ${params.max_nesting} --alignment_format ${params.alignment_format} --min_match_length ${params.min_match_length} --prefix ${tsv_fields['sample_id']} -v
     """
 }
 

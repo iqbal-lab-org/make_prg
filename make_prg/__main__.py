@@ -9,7 +9,7 @@ def main():
     parser = argparse.ArgumentParser(
         prog="make_prg",
         usage="make_prg <subcommand> <options>",
-        description="script to run make_prg subcommands",
+        description="Subcommand entrypoint",
     )
 
     parser.add_argument("--version", action="version", version=__version__)

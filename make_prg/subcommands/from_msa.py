@@ -8,8 +8,8 @@ from make_prg import io_utils
 
 def register_parser(subparsers):
     subparser_msa = subparsers.add_parser(
-        "msa",
-        usage="make_prg msa [options] <MSA input file>",
+        "from_msa",
+        usage="make_prg from_msa [options] <MSA input file>",
         help="Make PRG from multiple sequence alignment",
     )
 
