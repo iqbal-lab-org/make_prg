@@ -9,14 +9,16 @@ import numpy as np
 from sklearn.cluster import KMeans
 
 from make_prg.from_msa import MSA
+from make_prg.seq_utils import ungap
 
-IDs = List[str]
-SeqToIDs = Dict[str, IDs]
-ClusteredIDs = List[IDs]
 Sequence = str
 Sequences = List[str]
+IDs = List[str]
+SeqToIDs = Dict[Sequence, IDs]
+SeqToSeqs = Dict[Sequence, Sequences]
+ClusteredIDs = List[IDs]
 ClusteredSeqs = List[Sequences]
-KmerIDs = Dict[str, int]
+KmerIDs = Dict[Sequence, int]
 
 DISTANCE_THRESHOLD: float = 0.2
 LENGTH_THRESHOLD: int = 5
@@ -110,12 +112,9 @@ def cluster_further(clusters: ClusteredSeqs) -> bool:
 
 
 def extract_clusters(
-    seqdict: SeqToIDs, cluster_assignment: List[int], extract_IDs: bool = False
-) -> Union[ClusteredSeqs, ClusteredIDs]:
-    if extract_IDs:
-        value_pool = list(seqdict.values())
-    else:
-        value_pool = [[seq] for seq in seqdict.keys()]
+    seqdict: Union[SeqToIDs, SeqToSeqs], cluster_assignment: List[int]
+) -> Union[ClusteredIDs, ClusteredSeqs]:
+    value_pool = list(seqdict.values())
     num_elems = len(cluster_assignment)
     if num_elems != len(value_pool):
         raise ValueError(
@@ -151,12 +150,15 @@ def kmeans_cluster_seqs_in_interval(
 
     # Find unique sequences for clustering, but keep each sequence's IDs
     seq_to_ids: SeqToIDs = defaultdict(list)
+    seq_to_gapped_seqs: SeqToSeqs = defaultdict(list)
     small_seq_to_ids: SeqToIDs = defaultdict(list)
 
     for record in interval_alignment:
-        seq = str(record.seq.ungap("-"))
+        seq_with_gaps = str(record.seq)
+        seq = ungap(seq_with_gaps)
         if len(seq) >= kmer_size:
             seq_to_ids[seq].append(record.id)
+            seq_to_gapped_seqs[seq].append(seq_with_gaps)
         else:
             small_seq_to_ids[seq].append(record.id)
 
@@ -167,7 +169,9 @@ def kmeans_cluster_seqs_in_interval(
         distinct_kmers = count_distinct_kmers(distinct_sequences, kmer_size)
         count_matrix = count_kmer_occurrences(distinct_sequences, distinct_kmers)
         cluster_assignment = [0 for _ in range(len(seq_to_ids))]
-        seqclustering: ClusteredSeqs = extract_clusters(seq_to_ids, cluster_assignment)
+        seqclustering: ClusteredSeqs = extract_clusters(
+            seq_to_gapped_seqs, cluster_assignment
+        )
 
         while cluster_further(seqclustering):
             num_clusters += 1
@@ -178,15 +182,13 @@ def kmeans_cluster_seqs_in_interval(
             start = time.time()
             kmeans = KMeans(n_clusters=num_clusters, random_state=2).fit(count_matrix)
             cluster_assignment = list(kmeans.predict(count_matrix))
-            seqclustering = extract_clusters(seq_to_ids, cluster_assignment)
+            seqclustering = extract_clusters(seq_to_gapped_seqs, cluster_assignment)
 
     if num_clusters == 1 or num_clusters == num_sequences:
         cluster_assignment = list(range(num_sequences))
     id_clustering = []
     if num_sequences > 0:
-        id_clustering: ClusteredIDs = extract_clusters(
-            seq_to_ids, cluster_assignment, extract_IDs=True
-        )
+        id_clustering: ClusteredIDs = extract_clusters(seq_to_ids, cluster_assignment)
 
     first_id = interval_alignment[0].id
     result = merge_clusters([id_clustering, small_seq_to_ids.values()], first_id)

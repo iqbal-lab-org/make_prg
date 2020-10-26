@@ -196,28 +196,30 @@ class TestOneRefLikeClusters(TestCase):
 
 
 class TestExtractClusters(TestCase):
-    seqdict = dict(AT=["s1", "s2"], TT=["s3"], GG=["s4"])
+    seqdict_ids = dict(AT=["s1", "s2"], TTT=["s3"], GGG=["s4"])
+    seqdict_gapped_seqs = dict(AT=["A-T", "AT-"], TTT=["TTT"], GGG=["GGG"])
 
     def test_GivenTooFewClusterAssignments_Fails(self):
         cluster_assignment = [0, 1]
-        with self.assertRaises(ValueError):
-            extract_clusters(self.seqdict, cluster_assignment)
+        for seqdict in [self.seqdict_ids, self.seqdict_gapped_seqs]:
+            with self.assertRaises(ValueError):
+                extract_clusters(seqdict, cluster_assignment)
 
     def test_GivenDistinctClusters_ExtractCorrectSequenceClusters(self):
         cluster_assignment = [2, 0, 1]
-        actual = extract_clusters(self.seqdict, cluster_assignment)
-        expected = [["TT"], ["GG"], ["AT"]]
+        actual = extract_clusters(self.seqdict_gapped_seqs, cluster_assignment)
+        expected = [["TTT"], ["GGG"], ["A-T", "AT-"]]
         self.assertEqual(actual, expected)
 
     def test_GivenGroupedClusters_ExtractCorrectSequenceClusters(self):
         cluster_assignment = [1, 1, 0]
-        actual = extract_clusters(self.seqdict, cluster_assignment)
-        expected = [["GG"], ["AT", "TT"]]
+        actual = extract_clusters(self.seqdict_gapped_seqs, cluster_assignment)
+        expected = [["GGG"], ["A-T", "AT-", "TTT"]]
         self.assertEqual(actual, expected)
 
     def test_GivenGroupedClusters_ExtractCorrectIDClusters(self):
         cluster_assignment = [0, 0, 1]
-        actual = extract_clusters(self.seqdict, cluster_assignment, extract_IDs=True)
+        actual = extract_clusters(self.seqdict_ids, cluster_assignment)
         expected = [["s1", "s2", "s3"], ["s4"]]
         self.assertEqual(actual, expected)
 
@@ -274,6 +276,24 @@ class TestClustering_SmallSequences(TestCase):
         result = kmeans_cluster_seqs_in_interval([0, len(alignment[0])], alignment, 6)
         mockKMeans.assert_not_called()
         self.assertEqual([["s1", "s4"], ["s2"], ["s3"]], result)
+
+
+class TestClustering_GappedSequences(TestCase):
+    def test_SequencesUnevenLengthIfGapsRemoved_ClusteringRuns(self):
+        """If check for 'one-ref' property in clusters
+        was on ungapped sequences, hamming distance computation would fail because sequences have different length"""
+        sequences = ["A---T", "AAAAT", "AAA-T"]
+        alignment = make_alignment(sequences)
+        actual = kmeans_cluster_seqs_in_interval([0, 4], alignment, 1)
+        expected = [["s0"], ["s1", "s2"]]
+        self.assertEqual(actual, expected)
+
+    def test_GivenRepeatedUngappedSequencesBelowKmerSize_EndUpInSameCluster(self):
+        sequences = ["A-A-T", "CCCCC", "AA--T"]
+        alignment = make_alignment(sequences)
+        actual = kmeans_cluster_seqs_in_interval([0, 4], alignment, 4)
+        expected = [["s0", "s2"], ["s1"]]
+        self.assertEqual(actual, expected)
 
 
 class TestClustering_RunKmeans(TestCase):

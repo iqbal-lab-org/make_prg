@@ -50,6 +50,10 @@ def has_empty_sequence(alignment: MSA, interval: Tuple[int, int]) -> bool:
     return False
 
 
+def ungap(seq: str) -> str:
+    return seq.replace("-", "")
+
+
 def get_interval_seqs(interval_alignment: MSA):
     """
     Replace - with nothing, remove seqs containing N or other non-allowed letters
@@ -57,7 +61,7 @@ def get_interval_seqs(interval_alignment: MSA):
 
     The sequences are deliberately returned in the order they are received
     """
-    gapless_seqs = [str(record.seq.ungap("-")) for record in interval_alignment]
+    gapless_seqs = [ungap(str(record.seq)) for record in interval_alignment]
 
     callback_seqs, expanded_seqs = [], []
     expanded_set = set()
