@@ -18,6 +18,7 @@ from make_prg.from_msa.cluster_sequences import (
     get_distances,
     DISTANCE_THRESHOLD,
     LENGTH_THRESHOLD,
+    MAX_CLUSTERS,
     get_one_ref_like_threshold_distance,
     sequences_are_one_reference_like,
     cluster_further,
@@ -388,7 +389,7 @@ class TestClustering_RunKmeans(TestCase):
         all_5mers = list(map("".join, product(standard_bases, repeat=5)))
         alignment = make_alignment(all_5mers)
         result = kmeans_cluster_seqs_in_interval([0, 5], alignment, 5)
-        self.assertEqual(len(result), len(all_5mers))
+        self.assertEqual(len(result), MAX_CLUSTERS)
 
 
 class TestMergeClusters(TestCase):

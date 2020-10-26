@@ -69,12 +69,12 @@ class TestSubAlignments(TestCase):
             ]
         )
 
-    def test_get_subalignment_sequence_order_maintained2(self):
+    def test_GivenOrderedIds_SubalignmentInSequenceOrder(self):
         result = PrgBuilder.get_sub_alignment_by_list_id(["s1", "s3"], self.alignment)
         expected = MSA([self.alignment[0], self.alignment[2]])
         self.assertTrue(msas_equal(expected, result))
 
-    def test_get_subalignment_sequence_order_maintained(self):
+    def test_GivenUnorderedIds_SubalignmentStillInSequenceOrder(self):
         """
         Sequences given rearranged are still output in input order
         """

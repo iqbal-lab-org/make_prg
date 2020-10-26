@@ -12,7 +12,7 @@ from make_prg.prg_encoder import PrgEncoder, PRG_Ints
 def load_alignment_file(msa_file: str, alignment_format: str) -> MSA:
     msa_file = str(msa_file)
     logging.info("Read from MSA file %s", msa_file)
-    if ".gz" in msa_file:
+    if msa_file.endswith(".gz"):
         logging.debug("MSA is gzipped")
         handle = gzip.open(msa_file, "rt")
         alignment = AlignIO.read(handle, alignment_format)

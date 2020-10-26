@@ -175,8 +175,8 @@ def kmeans_cluster_seqs_in_interval(
 
         while cluster_further(seqclustering):
             num_clusters += 1
-            if num_clusters >= MAX_CLUSTERS:
-                num_clusters = num_sequences
+            if num_clusters > MAX_CLUSTERS:
+                break
             if num_clusters == num_sequences:
                 break
             start = time.time()
