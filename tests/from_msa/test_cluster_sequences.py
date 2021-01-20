@@ -6,7 +6,6 @@ from itertools import product
 from numpy import array, array_equal
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from pandas import DataFrame
 
 from make_prg.seq_utils import standard_bases
 from make_prg.from_msa.cluster_sequences import (
