@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Singularity file as it is redundant with the new Dockerfile (that will be hosted on
   quay.io)
+- `scipy` dependency. We never actually explicitly use `scipy`.
 
 ## [0.1.0] - 2021-01-20
 ### Added
