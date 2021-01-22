@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="make_prg",
-    version="0.0.0",
+    version="0.1.1",
     packages=find_packages(),
     url="https://github.com/rmcolq/make_prg",
     license="MIT",
@@ -13,7 +13,6 @@ setup(
         "biopython>=1.70",
         "numpy>=1.14.0",
         "scikit-learn>=0.19.1",
-        "scipy>=1.0.1",
     ],
     classifiers=[
         "Development Status :: 4 - Beta",
