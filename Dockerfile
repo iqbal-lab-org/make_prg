@@ -3,8 +3,8 @@ MAINTAINER Michael Hall <michael@mbh.sh>
 
 # DEPENDENCIES
 RUN apk update && apk upgrade && \
-    apk --no-cache add bash fd 'py3-scikit-learn>=0.19.1' 'py3-numpy>=1.14.0' && \
-    apk --no-cache add --virtual .builddeps gcc py3-pip musl-dev
+    apk --no-cache add bash fd 'py3-scikit-learn>=0.19.1' 'py3-numpy>=1.14.0' py3-pip && \
+    apk --no-cache add --virtual .builddeps gcc musl-dev
 # INSTALL
 COPY . /make_prg
 WORKDIR /make_prg
@@ -19,4 +19,4 @@ RUN python3 -m pip uninstall -y nose hypothesis && \
     rm -rf /root/.cache && \
     rm -rf /make_prg
 
-CMD ["python", "-m", "make_prg"]
+CMD ["python3", "-m", "make_prg"]
