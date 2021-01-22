@@ -12,7 +12,7 @@ def main():
         description="Subcommand entrypoint",
     )
 
-    parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument("-V", "--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(
         title="Available subcommands", help="", metavar=""
     )
@@ -22,7 +22,7 @@ def main():
         "--verbose",
         dest="verbose",
         action="store_true",
-        help="Run with high verbosity " "(debug level logging)",
+        help="Run with high verbosity (debug level logging)",
     )
 
     from_msa.register_parser(subparsers)
