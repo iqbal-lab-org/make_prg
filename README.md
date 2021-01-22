@@ -1,22 +1,33 @@
 # make_prg
 
-A tool to create a PRG for input to [Pandora][pandora] and [Gramtools][gramtools] from a Multiple Sequence
-Alignment.
+A tool to create a PRG for input to [Pandora][pandora] and [Gramtools][gramtools] from a
+Multiple Sequence Alignment.
 
 [TOC]: #
 
-# Table of Contents
+## Table of Contents
 - [Install](#install)
+  - [Conda](#conda)
   - [Local](#local)
-  - [Singularity](#singularity)
+  - [Container](#container)
 - [Usage](#usage)
   - [CLI](#cli)
   - [Nextflow](#nextflow)
 - [Input](#input)
 - [Changing parameters](#changing-parameters)
 
-
 ## Install
+
+### Conda
+
+[![Conda (channel only)](https://img.shields.io/conda/vn/bioconda/make_prg)](https://anaconda.org/bioconda/make_prg)
+[![bioconda version](https://anaconda.org/bioconda/make_prg/badges/platforms.svg)](https://anaconda.org/bioconda/make_prg)
+
+Prerequisite: [`conda`][conda] (and bioconda channel [correctly set up][channels])
+
+```sh
+conda install make_prg
+```
 
 ### Local
 
@@ -25,30 +36,33 @@ Requirements: `python>=3`
 ```sh
 git clone https://github.com/rmcolq/make_prg.git
 cd make_prg
-python3 setup.py test
-python3 setup.py install
+python -m pip install .
+make_prg --help
+```
+
+To additionally run the tests
+
+```shell
+python -m pip install nose hypothesis
+nosetests tests/
 ```
 
 This installs the CLI tool `make_prg`. The nextflow script `make_prg_nexflow.nf` assumes
 that `make_prg` is installed.
 
-### Singularity
+### Container
 
-Requirement: `singularity>=3`
+Containers for this tool are [hosted on quay.io][tags].
 
-```sh
-URI="library://mbhall88/default/make_prg"
+An example, of running it in a [Singularity][singularity] container would be
+
+```
+tag="latest"
+URI="docker://quay.io/iqballab/make_prg:${tag}"
 singularity exec "$URI" make_prg --help
 ```
 
-You can also get a build for a specific commit. A list of the valid tags can be found
-[here][tags].
-
-```sh
-tag="0bb4a27"
-URI="library://mbhall88/default/make_prg:$tag"
-singularity exec "$URI" make_prg --help
-```
+A list of the valid tags can be found [here][tags].
 
 ## Usage
 
@@ -58,16 +72,16 @@ singularity exec "$URI" make_prg --help
 $ make_prg --help
 usage: make_prg <subcommand> <options>
 
-script to run make_prg subcommands
+Subcommand entrypoint
 
 optional arguments:
-  -h, --help    show this help message and exit
-  --version     show program's version number and exit
+  -h, --help     show this help message and exit
+  -V, --version  show program's version number and exit
+  -v, --verbose  Run with high verbosity (debug level logging)
 
 Available subcommands:
 
-    from_msa
-                Make PRG from multiple sequence alignment
+    from_msa     Make PRG from multiple sequence alignment
 ```
 
 #### `from_msa`
@@ -135,7 +149,10 @@ max_forks_make_prg      If working on a cluster which allows unlimited parallel 
 max_forks_make_fasta
 ```
 
-[tags]: https://cloud.sylabs.io/library/mbhall88/default/make_prg
-[pandora]: https://github.com/rmcolq/pandora
-[nf]: https://www.nextflow.io/
+[channels]: https://bioconda.github.io/user/install.html#set-up-channels
 [gramtools]: https://github.com/iqbal-lab-org/gramtools
+[nf]: https://www.nextflow.io/
+[pandora]: https://github.com/rmcolq/pandora
+[singularity]: https://sylabs.io/
+[tags]: https://quay.io/repository/iqballab/make_prg?tab=tags
+[conda]: https://conda.io
