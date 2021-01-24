@@ -383,10 +383,10 @@ class TestClustering_RunKmeans(TestCase):
             self.assertEqual(expected_clustering, result)
 
     def test_GivenManyVeryDifferentSequences_EachSeqInOwnCluster(self):
-        # all 256 distinct DNA 5-mers.
-        # We want each in one cluster, but do not want to run clustering 255 times
-        all_5mers = list(map("".join, product(standard_bases, repeat=4)))
-        alignment = make_alignment(all_5mers)
+        # all 256 distinct DNA 4-mers.
+        # We want clustering to keep looking for clusters, and stop at MAX_CLUSTERS
+        all_4mers = list(map("".join, product(standard_bases, repeat=4)))
+        alignment = make_alignment(all_4mers)
         result = kmeans_cluster_seqs_in_interval([0, 4], alignment, 4)
         self.assertEqual(len(result), MAX_CLUSTERS)
 
