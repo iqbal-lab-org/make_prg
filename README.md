@@ -52,6 +52,8 @@ that `make_prg` is installed.
 
 ### Container
 
+[![Docker Repository on Quay](https://quay.io/repository/iqballab/make_prg/status "Docker Repository on Quay")](https://quay.io/repository/iqballab/make_prg)
+
 Containers for this tool are [hosted on quay.io][tags].
 
 An example, of running it in a [Singularity][singularity] container would be
