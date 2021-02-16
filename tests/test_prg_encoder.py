@@ -10,7 +10,7 @@ from make_prg.prg_encoder import PrgEncoder, ConversionError, EncodeError, to_by
 
 
 class TestDnaToInt(TestCase):
-    def test_dnaToInt_empty_string_raises_assert_error(self):
+    def test_empty_string_raises_assert_error(self):
         encoder = PrgEncoder()
         char = ""
 
@@ -20,13 +20,13 @@ class TestDnaToInt(TestCase):
         self.assertTrue("Char '' is not in" in str(context.exception))
 
     @given(characters(blacklist_characters="ACGTacgt", max_codepoint=10000))
-    def test_dnaToInt_char_not_valid_raises_assert_error(self, char):
+    def test_char_not_valid_raises_assert_error(self, char):
         encoder = PrgEncoder()
 
         with self.assertRaises(ConversionError):
             encoder._dna_to_int(char)
 
-    def test_dnaToInt_default_encoding_int(self):
+    def test_default_encoding_int(self):
         encoder = PrgEncoder()
         uppercase = encoder._dna_to_int("A")
         expected = 1
@@ -35,7 +35,7 @@ class TestDnaToInt(TestCase):
         lowercase = encoder._dna_to_int("a")
         self.assertEqual(lowercase, expected)
 
-    def test_dnaToInt_custom_encoding(self):
+    def test_custom_encoding(self):
         encoder = PrgEncoder(encoding={"A": 7})
         char = "a"
 
@@ -46,15 +46,13 @@ class TestDnaToInt(TestCase):
 
 
 class TestEncodeUnit(TestCase):
-    def test_encode_empty_string_fails(self):
+    def test_empty_string_fails(self):
         encoder = PrgEncoder()
         with self.assertRaises(EncodeError):
             encoder._encode_unit("")
 
     @patch.object(PrgEncoder, "_dna_to_int", side_effect=[1, 2, 3, 4])
-    def test_encode_unit_dna_returns_list_of_ints_between_1_and_4(
-        self, mock_method: Mock
-    ):
+    def test_dna_returns_list_of_ints_between_1_and_4(self, mock_method: Mock):
         encoder = PrgEncoder()
         actual = encoder._encode_unit("ACGT")
         expected = [1, 2, 3, 4]
@@ -86,7 +84,7 @@ class TestEncodeUnit(TestCase):
         prg = "5 A 6 C 5"
 
         actual = encoder.encode(prg)
-        expected = [5, 1, 6, 2, 5]
+        expected = [5, 1, 6, 2, 6]
 
         self.assertEqual(actual, expected)
 
@@ -95,7 +93,7 @@ class TestEncodeUnit(TestCase):
         prg = " 5  6 C 5 "
 
         actual = encoder.encode(prg)
-        expected = [5, 6, 2, 5]
+        expected = [5, 6, 2, 6]
 
         self.assertEqual(actual, expected)
 
@@ -104,7 +102,7 @@ class TestEncodeUnit(TestCase):
         prg = " 5 C 6  5 "
 
         actual = encoder.encode(prg)
-        expected = [5, 2, 6, 5]
+        expected = [5, 2, 6, 6]
 
         self.assertEqual(actual, expected)
 
@@ -113,7 +111,7 @@ class TestEncodeUnit(TestCase):
         prg = "5 GA 6 CT 5"
 
         actual = encoder.encode(prg)
-        expected = [5, 3, 1, 6, 2, 4, 5]
+        expected = [5, 3, 1, 6, 2, 4, 6]
 
         self.assertEqual(actual, expected)
 
@@ -122,7 +120,7 @@ class TestEncodeUnit(TestCase):
         prg = "55 GA 63 Ct 55"
 
         actual = encoder.encode(prg)
-        expected = [55, 3, 1, 63, 2, 4, 55]
+        expected = [55, 3, 1, 63, 2, 4, 56]
 
         self.assertEqual(actual, expected)
 

@@ -22,9 +22,8 @@ def to_bytes(integer: int):
 class PrgEncoder:
     """
     A class that converts a prg string as produced by this program into an integer vector.
-    Public interface:
-        Production: run `run()`
-        Serialisation: run `write()`
+    Note that gramtools uses the following encoding for an A/T SNP: 5A6T6
+    Ie, requires an odd marker at the beginning of a site and an even marker at the end of a site.
     """
 
     encoding = {"A": 1, "C": 2, "G": 3, "T": 4}
@@ -38,6 +37,7 @@ class PrgEncoder:
         """
         if encoding is not None:
             self.encoding = encoding
+        self._seen_site_markers = set()
 
     def encode(self, prg: str) -> PRG_Ints:
         marker_units = prg.split()
@@ -48,7 +48,8 @@ class PrgEncoder:
 
     @staticmethod
     def write(
-        encoding: List[int], ostream: BinaryIO,
+        encoding: List[int],
+        ostream: BinaryIO,
     ):
         ostream.write(b"".join(map(to_bytes, encoding)))
 
@@ -67,7 +68,13 @@ class PrgEncoder:
         if chars_are_valid:
             output = [self._dna_to_int(char) for char in unit]
         elif unit.isdigit():
-            output = [int(unit)]
+            site_marker = int(unit)
+            if site_marker in self._seen_site_markers:
+                output = [site_marker + 1]
+                self._seen_site_markers.remove(site_marker)
+            else:
+                self._seen_site_markers.add(site_marker)
+                output = [site_marker]
         else:
             raise EncodeError("Unit {} contains invalid characters".format(unit))
 
