@@ -2,6 +2,7 @@ import logging
 import re
 import gzip
 from pathlib import Path
+from argparse import ArgumentParser
 
 from Bio import AlignIO
 
@@ -64,7 +65,7 @@ class GFA_Output:
 
     def build_gfa_string(self, prg_string, pre_var_id=None):
         """Takes prg_string and builds a gfa_string with fragments
-           from the prg_string."""
+        from the prg_string."""
         end_ids = []
         # iterate through sites present, updating gfa_string with each in turn
         while str(self.gfa_site) in prg_string:
@@ -146,32 +147,16 @@ def write_gfa(outfile, prg_string):
 # *****************/
 
 
-def write_prg(output_prefix: str, prg_string: str):
+def write_prg(prg_fname: Path, prg_string: str, options: ArgumentParser):
     """
-    Writes the prg to outfile.
+    Writes th prg to `output_file`.
     Writes it as a human readable string, and also as an integer vector
     """
-    prg_filename = Path(output_prefix + ".prg")
-    with prg_filename.open("w") as prg:
-        regex = re.compile(
-            r"^(?P<sample>.+)\.max_nest(?P<max_nest>\d+)\.min_match(?P<min_match>\d+)"
-        )
-        match = regex.search(prg_filename.stem)
-        try:
-            sample = match.group("sample")
-        except IndexError:
-            logging.warning(
-                "A sample name couldn't be parsed from the prefix. "
-                "Using 'sample' as sample name."
-            )
-            sample = "sample"
+    with prg_fname.open("w") as prg:
+        header = f">{options.prg_name} max_nest={options.max_nesting} min_match={options.min_match_length}"
+        print(f"{header}\n{prg_string}", file=prg)
 
-        max_nest = int(match.group("max_nest"))
-        min_match = int(match.group("min_match"))
-        header = f"{sample} max_nest={max_nest} min_match={min_match}"
-        print(f">{header}\n{prg_string}", file=prg)
-
-    prg_ints_fpath = Path(output_prefix + ".bin")
+    prg_ints_fpath = prg_fname.with_suffix(".bin")
     prg_encoder = PrgEncoder()
     prg_ints: PRG_Ints = prg_encoder.encode(prg_string)
 

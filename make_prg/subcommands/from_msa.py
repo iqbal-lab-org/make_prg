@@ -1,5 +1,4 @@
 import logging
-import os
 from pathlib import Path
 
 from make_prg.from_msa import prg_builder, NESTING_LVL, MIN_MATCH_LEN
@@ -40,9 +39,7 @@ def register_parser(subparsers):
         action="store",
         type=int,
         default=NESTING_LVL,
-        help="Maximum number of levels to use for nesting. Default: {}".format(
-            NESTING_LVL
-        ),
+        help="Maximum number of levels to use for nesting. Default: %(default)s",
     )
     subparser_msa.add_argument(
         "--min_match_length",
@@ -52,17 +49,28 @@ def register_parser(subparsers):
         default=MIN_MATCH_LEN,
         help=(
             "Minimum number of consecutive characters which must be identical for a "
-            "match. Default: {}".format(MIN_MATCH_LEN)
+            "match. Default: %(default)s"
         ),
     )
     subparser_msa.add_argument(
-        "-p", "--prefix", dest="output_prefix", action="store", help="Output prefix"
+        "-o",
+        "--output_dir",
+        dest="output_dir",
+        action="store",
+        help="Output directory. Default: location of MSA file",
+    )
+    subparser_msa.add_argument(
+        "-n",
+        "--prg_name",
+        dest="prg_name",
+        action="store",
+        help="Prg file name. Default: MSA file name",
     )
     subparser_msa.add_argument(
         "--no_overwrite",
         dest="no_overwrite",
         action="store_true",
-        help="Do not overwrite pre-existing prg file with same name",
+        help="By default, a prg file which already exists is overwritten and the prg is recomputed. Use this option to keep an existing prg file instead.",
     )
     subparser_msa.set_defaults(func=run)
 
@@ -70,22 +78,22 @@ def register_parser(subparsers):
 
 
 def run(options):
-    if options.output_prefix is None:
-        prefix = options.MSA
+    MSA_file = Path(options.MSA).resolve()
+    if not MSA_file.exists():
+        raise ValueError(f"File not found: {options.MSA}")
+    if options.output_dir is None:
+        output_dir = MSA_file.parent
     else:
-        if os.path.isdir(options.output_prefix):
-            prefix = os.path.join(options.output_prefix, os.path.basename(options.MSA))
-        else:
-            prefix = options.output_prefix
-    prefix += ".max_nest%d.min_match%d" % (
-        options.max_nesting,
-        options.min_match_length,
-    )
+        output_dir = Path(options.output_dir).resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if options.prg_name is None:
+        options.prg_name = MSA_file.stem
+    ofile_prefix = output_dir / options.prg_name
 
     # Set up file logging
-    log_file = f"{prefix}.log"
-    if os.path.exists(log_file):
-        os.unlink(log_file)
+    log_file = ofile_prefix.with_suffix(".log")
+    log_file.unlink(missing_ok=True)
     formatter = logging.Formatter(
         fmt="%(levelname)s %(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S"
     )
@@ -99,15 +107,15 @@ def run(options):
         options.min_match_length,
     )
 
-    if os.path.isfile("%s.prg" % prefix) and options.no_overwrite:
-        prg_file = "%s.prg" % prefix
-        logging.info(f"Re-using existing prg file {prg_file}")
+    prg_fname = ofile_prefix.with_suffix(".prg")
+    if prg_fname.exists() and options.no_overwrite:
+        logging.info(f"Re-using existing prg file {prg_fname}")
         aseq = prg_builder.PrgBuilder(
             options.MSA,
             alignment_format=options.alignment_format,
             max_nesting=options.max_nesting,
             min_match_length=options.min_match_length,
-            prg_file=prg_file,
+            prg_file=prg_fname,
         )
     else:
         aseq = prg_builder.PrgBuilder(
@@ -116,16 +124,17 @@ def run(options):
             max_nesting=options.max_nesting,
             min_match_length=options.min_match_length,
         )
-        logging.info(f"Write PRG file to {prefix}.prg")
-        io_utils.write_prg(prefix, aseq.prg)
+        logging.info(f"Write PRG file to {prg_fname}")
+        io_utils.write_prg(prg_fname, aseq.prg, options)
         m = aseq.max_nesting_level_reached
         logging.info(f"Max_nesting_reached\t{m}")
 
-    logging.info(f"Write GFA file to {prefix}.gfa")
-    io_utils.write_gfa(f"{prefix}.gfa", aseq.prg)
+    gfa_fname = ofile_prefix.with_suffix(".gfa")
+    logging.info(f"Write GFA file to {gfa_fname}")
+    io_utils.write_gfa(gfa_fname, aseq.prg)
 
-    summary_file = Path(prefix).parent / "summary.tsv"
-    with summary_file.open("a") as s:
+    summary_fname = output_dir / "summary.tsv"
+    with summary_fname.open("a") as s:
         s.write(
             f"{options.MSA}\t{aseq.site - 2}\t"
             f"{aseq.max_nesting_level_reached}\t{aseq.prop_in_match_intervals}\n"
