@@ -54,10 +54,11 @@ def register_parser(subparsers):
     )
     subparser_msa.add_argument(
         "-o",
-        "--output_dir",
+        "--outdir",
         dest="output_dir",
         action="store",
-        help="Output directory. Default: location of MSA file",
+        default=".",
+        help="Output directory. Default: Current working directory",
     )
     subparser_msa.add_argument(
         "-n",
@@ -81,10 +82,7 @@ def run(options):
     MSA_file = Path(options.MSA).resolve()
     if not MSA_file.exists():
         raise ValueError(f"File not found: {options.MSA}")
-    if options.output_dir is None:
-        output_dir = MSA_file.parent
-    else:
-        output_dir = Path(options.output_dir).resolve()
+    output_dir = Path(options.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if options.prg_name is None:
