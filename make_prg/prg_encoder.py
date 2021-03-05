@@ -37,7 +37,7 @@ class PrgEncoder:
         """
         if encoding is not None:
             self.encoding = encoding
-        self._seen_site_markers = set()
+        self._site_entry_markers = dict()  # Stores a count of each seen odd site marker
 
     def encode(self, prg: str) -> PRG_Ints:
         marker_units = prg.split()
@@ -69,11 +69,19 @@ class PrgEncoder:
             output = [self._dna_to_int(char) for char in unit]
         elif unit.isdigit():
             site_marker = int(unit)
-            if site_marker in self._seen_site_markers:
-                output = [site_marker + 1]
-                self._seen_site_markers.remove(site_marker)
+            if site_marker % 2 == 1:
+                if site_marker not in self._site_entry_markers:
+                    self._site_entry_markers[site_marker] = 1
+                    output = [site_marker]
+                else:
+                    self._site_entry_markers[site_marker] += 1
+                    if self._site_entry_markers[site_marker] > 2:
+                        raise ValueError(
+                            f"Prg error: odd site marker {site_marker} found >2 times"
+                        )
+                    # Convert site-closing odd marker to even marker
+                    output = [site_marker + 1]
             else:
-                self._seen_site_markers.add(site_marker)
                 output = [site_marker]
         else:
             raise EncodeError("Unit {} contains invalid characters".format(unit))

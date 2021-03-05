@@ -45,12 +45,20 @@ class TestDnaToInt(TestCase):
         self.assertEqual(actual, expected)
 
 
-class TestEncodeUnit(TestCase):
+class TestInvalidPrgs(TestCase):
     def test_empty_string_fails(self):
         encoder = PrgEncoder()
         with self.assertRaises(EncodeError):
             encoder._encode_unit("")
 
+    def test_repeated_odd_marker_fails(self):
+        prg = "5 A 6 C 5 AT 5 T 6 G 5"
+
+        with self.assertRaises(ValueError):
+            PrgEncoder().encode(prg)
+
+
+class TestEncodeUnit(TestCase):
     @patch.object(PrgEncoder, "_dna_to_int", side_effect=[1, 2, 3, 4])
     def test_dna_returns_list_of_ints_between_1_and_4(self, mock_method: Mock):
         encoder = PrgEncoder()
@@ -112,6 +120,24 @@ class TestEncodeUnit(TestCase):
 
         actual = encoder.encode(prg)
         expected = [5, 3, 1, 6, 2, 4, 6]
+
+        self.assertEqual(actual, expected)
+
+    def test_encode_prg_multiple_alleles(self):
+        encoder = PrgEncoder()
+        prg = "5 GA 6 CT 6 TA 5"
+
+        actual = encoder.encode(prg)
+        expected = [5, 3, 1, 6, 2, 4, 6, 4, 1, 6]
+
+        self.assertEqual(actual, expected)
+
+    def test_encode_prg_nested_variation(self):
+        encoder = PrgEncoder()
+        prg = "5 A 7 C 8 T 8 A 7 6 CT 6 TA 5"
+
+        actual = encoder.encode(prg)
+        expected = [5, 1, 7, 2, 8, 4, 8, 1, 8, 6, 2, 4, 6, 4, 1, 6]
 
         self.assertEqual(actual, expected)
 
