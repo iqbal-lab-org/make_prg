@@ -74,7 +74,7 @@ class PrgBuilder(object):
 
     @classmethod
     def get_consensus(cls, alignment: MSA):
-        """ Produces a 'consensus string' from an MSA: at each position of the
+        """Produces a 'consensus string' from an MSA: at each position of the
         MSA, the string has a base if all aligned sequences agree, and a "*" if not.
         IUPAC ambiguous bases result in non-consensus and are later expanded in the prg.
         N results in consensus at that position unless they are all N."""
@@ -137,7 +137,7 @@ class PrgBuilder(object):
                     logging.debug(f"Variant seqs found: {variant_prgs}")
                 else:
                     recur = True
-                    id_lists = kmeans_cluster_seqs_in_interval(
+                    id_lists, num_clusters = kmeans_cluster_seqs_in_interval(
                         [interval.start, interval.stop],
                         self.alignment,
                         self.min_match_length,

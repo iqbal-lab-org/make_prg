@@ -7,7 +7,7 @@ from numpy import array, array_equal
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-from make_prg.seq_utils import standard_bases
+from make_prg.seq_utils import standard_bases, ungap
 from make_prg.from_msa.cluster_sequences import (
     count_distinct_kmers,
     count_kmer_occurrences,
@@ -256,7 +256,10 @@ class TestClustering_SmallSequences(TestCase):
     )
     def test_ambiguous_sequences_in_short_interval_separate_clusters(self):
         alignment = MSA(
-            [SeqRecord(Seq("ARAT"), id="s1"), SeqRecord(Seq("WAAT"), id="s2"),]
+            [
+                SeqRecord(Seq("ARAT"), id="s1"),
+                SeqRecord(Seq("WAAT"), id="s2"),
+            ]
         )
         result = kmeans_cluster_seqs_in_interval([0, 3], alignment, 5)
         self.assertEqual([["s1"], ["s2"]], result)
@@ -389,6 +392,35 @@ class TestClustering_RunKmeans(TestCase):
         alignment = make_alignment(all_4mers)
         result = kmeans_cluster_seqs_in_interval([0, 4], alignment, 4)
         self.assertEqual(len(result), MAX_CLUSTERS)
+
+    def test_GivenSequencesWithSameKmerCounts_ClusteringInterrupted(self):
+        """
+        Sequences below are not 'one-ref-like', yet kmer counts are identical.
+        This is because the sequences contain repeats and gaps, making them
+        not identical from the point of view of edit distance.
+        Number of clusters will try to be increased, but kmeans will only find one,
+        as there is a single data point in kmer space.
+        This test checks the code deals with this by aborting further clustering.
+        """
+        sequences = [
+            "TTTTTTTGGGGGGGAAAAAAATTTTTTT-------AAAAAAATTTTTTTAAAAAAA-------",
+            "-------TTTTTTTAAAAAAATTTTTTTGGGGGGGAAAAAAATTTTTTT-------AAAAAAA",
+            "TTTTTTTAAAAAAATTTTTTTAAAAAAATTTTTTT-------GGGGGGG-------AAAAAAA",
+        ]
+        ungapped_sequences = list(map(ungap, sequences))
+        distinct_kmers = count_distinct_kmers(ungapped_sequences, kmer_size=7)
+        count_matrix = count_kmer_occurrences(ungapped_sequences, distinct_kmers)
+        distinct_count_patterns = set(map(str, count_matrix))
+        assert len(distinct_count_patterns) == 1
+        assert not sequences_are_one_reference_like(sequences)
+
+        expected_clustering = [["s0"], ["s1"], ["s2"]]
+        alignment = make_alignment(sequences)
+        result, num_clusters = kmeans_cluster_seqs_in_interval(
+            [0, len(sequences[0])], alignment, 7
+        )
+        self.assertEqual(result, expected_clustering)
+        self.assertEqual(num_clusters, 1)
 
 
 class TestMergeClusters(TestCase):
