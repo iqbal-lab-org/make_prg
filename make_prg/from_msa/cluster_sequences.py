@@ -121,6 +121,10 @@ def extract_clusters(
             f"Mismatch between number of sequences/ID lists and number of cluster assignments"
         )
     num_clusters = max(cluster_assignment) + 1
+    if set(cluster_assignment) != set(range(num_clusters)):
+        raise ValueError(
+            "Inconsistent cluster numbering (likely reason: more input sequences that clustered data points)"
+        )
     result = [list() for _ in range(num_clusters)]
     for cluster_num, clustered_elem in zip(cluster_assignment, value_pool):
         result[cluster_num].extend(clustered_elem)
@@ -185,14 +189,14 @@ def kmeans_cluster_seqs_in_interval(
             kmeans = KMeans(n_clusters=num_clusters, random_state=2).fit(count_matrix)
             prev_cluster_assignment = cluster_assignment
             cluster_assignment = list(kmeans.predict(count_matrix))
-            seqclustering = extract_clusters(seq_to_gapped_seqs, cluster_assignment)
-            # Below holds when kmer counts are v. similar, but alignments are not
-            # due to indel gaps between repeats.
-            if len(seqclustering) < num_clusters:
+            num_fitted_clusters = len(set(cluster_assignment))
+            # Below holds when alignments are different, but kmer counts are identical
+            # (due to repeats), making kmeans unable to fit requested number of clusters
+            if num_fitted_clusters < num_clusters:
                 cluster_assignment = prev_cluster_assignment
-                if len(seqclustering) == 1:
-                    num_clusters = 1
+                num_clusters -= 1
                 break
+            seqclustering = extract_clusters(seq_to_gapped_seqs, cluster_assignment)
 
     if num_clusters == 1 or num_clusters == num_sequences:
         cluster_assignment = list(range(num_sequences))
@@ -206,4 +210,4 @@ def kmeans_cluster_seqs_in_interval(
     assert len(interval_alignment) == sum(
         [len(i) for i in result]
     ), "Each input sequence should be in a cluster"
-    return result, num_clusters
+    return result

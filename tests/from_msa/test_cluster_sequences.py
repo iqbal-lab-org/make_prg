@@ -223,6 +223,20 @@ class TestExtractClusters(TestCase):
         expected = [["s1", "s2", "s3"], ["s4"]]
         self.assertEqual(actual, expected)
 
+    def test_GivenInconsistentClusterNumbers_RaisesError(self):
+        """
+        `gapped_clusters` can occur when number of distinct data points < requested number of
+        clusters in kmeans, leading to production of empty clusters and then
+        messing up prg construction.
+        `large_clusters` should never occur, cluster assigment should be consecutive integers from 0.
+        """
+        gapped_clusters = [0, 2, 2]
+        with self.assertRaises(ValueError):
+            extract_clusters(self.seqdict_ids, gapped_clusters)
+        large_clusters = [5, 6, 6]
+        with self.assertRaises(ValueError):
+            extract_clusters(self.seqdict_ids, large_clusters)
+
 
 class TestClustering_Trivial(TestCase):
     def test_one_seq_returns_single_id(self):
@@ -416,11 +430,8 @@ class TestClustering_RunKmeans(TestCase):
 
         expected_clustering = [["s0"], ["s1"], ["s2"]]
         alignment = make_alignment(sequences)
-        result, num_clusters = kmeans_cluster_seqs_in_interval(
-            [0, len(sequences[0])], alignment, 7
-        )
+        result = kmeans_cluster_seqs_in_interval([0, len(sequences[0])], alignment, 7)
         self.assertEqual(result, expected_clustering)
-        self.assertEqual(num_clusters, 1)
 
 
 class TestMergeClusters(TestCase):

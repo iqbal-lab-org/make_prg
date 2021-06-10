@@ -137,7 +137,7 @@ class PrgBuilder(object):
                     logging.debug(f"Variant seqs found: {variant_prgs}")
                 else:
                     recur = True
-                    id_lists, num_clusters = kmeans_cluster_seqs_in_interval(
+                    id_lists = kmeans_cluster_seqs_in_interval(
                         [interval.start, interval.stop],
                         self.alignment,
                         self.min_match_length,
@@ -157,10 +157,6 @@ class PrgBuilder(object):
                         recur = False
                     elif interval.start not in self.subAlignedSeqs:
                         self.subAlignedSeqs[interval.start] = []
-                        logging.debug(
-                            "subAlignedSeqs now has keys: %s",
-                            list(self.subAlignedSeqs.keys()),
-                        )
                     else:
                         logging.debug(
                             "subAlignedSeqs already had key %d in keys: %s. This shouldn't happen.",
@@ -210,35 +206,14 @@ class PrgBuilder(object):
     def max_nesting_level_reached(self):
         max_nesting = []
         if self.subAlignedSeqs == {}:
-            logging.debug(
-                "self.subAlignedSeqs == {} at nesting level %d for interval %s",
-                self.nesting_level,
-                self.interval,
-            )
             max_nesting.append(self.nesting_level)
         else:
-            logging.debug(
-                "self.subAlignedSeqs.keys(): %s", list(self.subAlignedSeqs.keys())
-            )
-            logging.debug(
-                "self.subAlignedSeqs[self.subAlignedSeqs.keys()[0]]: %s",
-                self.subAlignedSeqs[list(self.subAlignedSeqs.keys())[0]],
-            )
             for interval_start in list(self.subAlignedSeqs.keys()):
                 logging.debug("interval start: %d", interval_start)
                 for subaseq in self.subAlignedSeqs[interval_start]:
-                    logging.debug(
-                        "type of subAlignedSeqs object in list: %s", type(subaseq)
-                    )
                     recur = subaseq.max_nesting_level_reached
-                    logging.debug(
-                        "recur max level nesting returned: %d, which has type %s",
-                        recur,
-                        type(recur),
-                    )
                     max_nesting.append(recur)
         m = max(max_nesting)
-        logging.debug("found the max of %s is %d", max_nesting, m)
         return m
 
     @property
