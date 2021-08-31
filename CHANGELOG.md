@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `-S`, `--seqid` option to name the PRG sequence, which by default uses the file name.
+- `-N` shortcut for max nesting
+- `-L` shortcut for min match length
+
 ### Changed
 - `--prefix` CLI parameter of `from_msa` subcommand removed in favor of CLI parameters `--outdir`
    and `--prg_name`, with sensible defaults (current working directory and MSA file name stem respectively).
