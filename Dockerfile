@@ -10,11 +10,11 @@ COPY . /make_prg
 WORKDIR /make_prg
 RUN python3 -m pip install --no-cache-dir .
 # TEST
-RUN python3 -m pip install --no-cache-dir nose hypothesis
+RUN python3 -m pip install --no-cache-dir nose hypothesis pytest
 RUN nosetests -v tests/ && make_prg --help
 # CLEANUP
 WORKDIR /
-RUN python3 -m pip uninstall -y nose hypothesis && \
+RUN python3 -m pip uninstall -y nose hypothesis pytest && \
     apk del .builddeps && \
     rm -rf /root/.cache && \
     rm -rf /make_prg
