@@ -80,6 +80,7 @@ def register_parser(subparsers):
         action="store_true",
         help="By default, a prg file which already exists is overwritten and the prg is recomputed. Use this option to keep an existing prg file instead.",
     )
+    subparser_msa.add_argument("--log", help="Path to write log to. Default is stderr")
     subparser_msa.set_defaults(func=run)
 
     return subparser_msa
@@ -97,12 +98,12 @@ def run(options):
     ofile_prefix = output_dir / options.prg_name
 
     # Set up file logging
-    log_file = ofile_prefix.with_suffix(".log")
-    log_file.unlink(missing_ok=True)
     formatter = logging.Formatter(
         fmt="%(levelname)s %(asctime)s %(message)s", datefmt="%d/%m/%Y %I:%M:%S"
     )
-    handler = logging.FileHandler(log_file)
+    handler = (
+        logging.FileHandler(options.log) if options.log else logging.StreamHandler()
+    )
     handler.setFormatter(formatter)
     logging.getLogger().addHandler(handler)
 
