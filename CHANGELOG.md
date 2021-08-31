@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `-S`, `--seqid` option to name the PRG sequence, which by default uses the file name.
 - `-N` shortcut for max nesting
 - `-L` shortcut for min match length
+- `--log` to enable specifying log file should go to path. Default behaviour is now that
+  log goes to stderr by default
 
 ### Changed
 - `--prefix` CLI parameter of `from_msa` subcommand removed in favor of CLI parameters `--outdir`
