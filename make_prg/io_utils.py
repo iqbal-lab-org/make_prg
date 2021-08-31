@@ -152,8 +152,9 @@ def write_prg(prg_fname: Path, prg_string: str, options: ArgumentParser):
     Writes th prg to `output_file`.
     Writes it as a human readable string, and also as an integer vector
     """
+    seqid = options.seqid or options.prg_name
     with prg_fname.open("w") as prg:
-        header = f">{options.prg_name} max_nest={options.max_nesting} min_match={options.min_match_length}"
+        header = f">{seqid} max_nest={options.max_nesting} min_match={options.min_match_length}"
         print(f"{header}\n{prg_string}", file=prg)
 
     prg_ints_fpath = prg_fname.with_suffix(".bin")

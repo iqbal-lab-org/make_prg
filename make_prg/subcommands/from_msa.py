@@ -34,6 +34,7 @@ def register_parser(subparsers):
         ),
     )
     subparser_msa.add_argument(
+        "-N",
         "--max_nesting",
         dest="max_nesting",
         action="store",
@@ -42,6 +43,7 @@ def register_parser(subparsers):
         help="Maximum number of levels to use for nesting. Default: %(default)s",
     )
     subparser_msa.add_argument(
+        "-L",
         "--min_match_length",
         dest="min_match_length",
         action="store",
@@ -66,6 +68,11 @@ def register_parser(subparsers):
         dest="prg_name",
         action="store",
         help="Prg file name. Default: MSA file name",
+    )
+    subparser_msa.add_argument(
+        "-S",
+        "--seqid",
+        help="Sequence identifier to use for the output sequence/PRG. Default is the file name",
     )
     subparser_msa.add_argument(
         "--no_overwrite",
