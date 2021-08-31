@@ -93,22 +93,28 @@ $ make_prg from_msa --help
 usage: make_prg from_msa [options] <MSA input file>
 
 positional arguments:
-  MSA                   Input file: a multiple sequence alignment in supported alignment_format. If not in aligned fasta
-                        alignment_format, use -f to input the alignment_format type
+  MSA                   Input file: a multiple sequence alignment in supported alignment_format. If not in aligned fasta alignment_format, use -f to input
+                        the alignment_format type
 
 optional arguments:
   -h, --help            show this help message and exit
   -f ALIGNMENT_FORMAT, --alignment_format ALIGNMENT_FORMAT
-                        Alignment format of MSA, must be a biopython AlignIO input alignment_format. See
-                        http://biopython.org/wiki/AlignIO. Default: fasta
-  --max_nesting MAX_NESTING
+                        Alignment format of MSA, must be a biopython AlignIO input alignment_format. See http://biopython.org/wiki/AlignIO. Default: fasta
+  -N MAX_NESTING, --max_nesting MAX_NESTING
                         Maximum number of levels to use for nesting. Default: 5
-  --min_match_length MIN_MATCH_LENGTH
+  -L MIN_MATCH_LENGTH, --min_match_length MIN_MATCH_LENGTH
                         Minimum number of consecutive characters which must be identical for a match. Default: 7
-  -p OUTPUT_PREFIX, --prefix OUTPUT_PREFIX
-                        Output prefix
-  --no_overwrite        Do not overwrite pre-existing prg file with same name
-  -v, --verbose         Run with high verbosity (debug level logging)
+  -o OUTPUT_DIR, --outdir OUTPUT_DIR
+                        Output directory. Default: .
+  -n PRG_NAME, --prg_name PRG_NAME
+                        Prg file name. Default: MSA file name
+  -S SEQID, --seqid SEQID
+                        Sequence identifier to use for the output sequence/PRG. Default is the file name
+  --no_overwrite        Do not replace an existing prg file
+  --summary             Write a summary file
+  -O OUTPUT_TYPE, --output-type OUTPUT_TYPE
+                        p: PRG, b: Binary, g: GFA, a: All. Combinations are allowed i.e., gb: GFA and Binary. Default: a
+  --log LOG             Path to write log to. Default is stderr
 ```
 
 ### Nextflow

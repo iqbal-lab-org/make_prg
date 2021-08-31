@@ -8,7 +8,7 @@ setup(
     license="MIT",
     entry_points={"console_scripts": ["make_prg = make_prg.__main__:main"]},
     test_suite="nose.collector",
-    tests_require=["nose >= 1.3", "hypothesis >= 4.0"],
+    tests_require=["nose >= 1.3", "hypothesis >= 4.0", "pytest"],
     install_requires=[
         "biopython>=1.70",
         "numpy>=1.14.0",

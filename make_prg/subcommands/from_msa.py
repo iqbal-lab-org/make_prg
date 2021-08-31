@@ -3,6 +3,7 @@ from pathlib import Path
 
 from make_prg.from_msa import prg_builder, NESTING_LVL, MIN_MATCH_LEN
 from make_prg import io_utils
+from make_prg.subcommands.output_type import OutputType
 
 
 def register_parser(subparsers):
@@ -30,7 +31,7 @@ def register_parser(subparsers):
         default="fasta",
         help=(
             "Alignment format of MSA, must be a biopython AlignIO input "
-            "alignment_format. See http://biopython.org/wiki/AlignIO. Default: fasta"
+            "alignment_format. See http://biopython.org/wiki/AlignIO. Default: %(default)s"
         ),
     )
     subparser_msa.add_argument(
@@ -60,7 +61,7 @@ def register_parser(subparsers):
         dest="output_dir",
         action="store",
         default=".",
-        help="Output directory. Default: Current working directory",
+        help="Output directory. Default: %(default)s",
     )
     subparser_msa.add_argument(
         "-n",
@@ -78,10 +79,17 @@ def register_parser(subparsers):
         "--no_overwrite",
         dest="no_overwrite",
         action="store_true",
-        help="By default, a prg file which already exists is overwritten and the prg is recomputed. Use this option to keep an existing prg file instead.",
+        help="Do not replace an existing prg file",
     )
     subparser_msa.add_argument(
         "--summary", help="Write a summary file", action="store_true"
+    )
+    subparser_msa.add_argument(
+        "-O",
+        "--output-type",
+        help="p: PRG, b: Binary, g: GFA, a: All. Combinations are allowed i.e., gb: GFA and Binary. Default: %(default)s",
+        default="a",
+        type=OutputType,
     )
     subparser_msa.add_argument("--log", help="Path to write log to. Default is stderr")
     subparser_msa.set_defaults(func=run)
@@ -138,9 +146,10 @@ def run(options):
         m = aseq.max_nesting_level_reached
         logging.info(f"Max_nesting_reached\t{m}")
 
-    gfa_fname = ofile_prefix.with_suffix(".gfa")
-    logging.info(f"Write GFA file to {gfa_fname}")
-    io_utils.write_gfa(gfa_fname, aseq.prg)
+    if options.output_type.gfa:
+        gfa_fname = ofile_prefix.with_suffix(".gfa")
+        logging.info(f"Write GFA file to {gfa_fname}")
+        io_utils.write_gfa(gfa_fname, aseq.prg)
 
     if options.summary:
         summary_fname = output_dir / "summary.tsv"
