@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   log goes to stderr by default
 - `--summary` option to specify that user wants a summary file, rather than the default
   behaviour where they get no choice
+- `-O`, `--output-type` option to specify what output files are required. Defaults to
+  all
 
 ### Changed
 - `--prefix` CLI parameter of `from_msa` subcommand removed in favor of CLI parameters `--outdir`

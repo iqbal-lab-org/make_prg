@@ -153,13 +153,16 @@ def write_prg(prg_fname: Path, prg_string: str, options: ArgumentParser):
     Writes it as a human readable string, and also as an integer vector
     """
     seqid = options.seqid or options.prg_name
-    with prg_fname.open("w") as prg:
-        header = f">{seqid} max_nest={options.max_nesting} min_match={options.min_match_length}"
-        print(f"{header}\n{prg_string}", file=prg)
 
-    prg_ints_fpath = prg_fname.with_suffix(".bin")
-    prg_encoder = PrgEncoder()
-    prg_ints: PRG_Ints = prg_encoder.encode(prg_string)
+    if options.output_type.prg:
+        with prg_fname.open("w") as prg:
+            header = f">{seqid} max_nest={options.max_nesting} min_match={options.min_match_length}"
+            print(f"{header}\n{prg_string}", file=prg)
 
-    with prg_ints_fpath.open("wb") as ostream:
-        prg_encoder.write(prg_ints, ostream)
+    if options.output_type.binary:
+        prg_ints_fpath = prg_fname.with_suffix(".bin")
+        prg_encoder = PrgEncoder()
+        prg_ints: PRG_Ints = prg_encoder.encode(prg_string)
+
+        with prg_ints_fpath.open("wb") as ostream:
+            prg_encoder.write(prg_ints, ostream)
