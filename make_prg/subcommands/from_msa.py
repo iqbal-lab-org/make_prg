@@ -80,6 +80,9 @@ def register_parser(subparsers):
         action="store_true",
         help="By default, a prg file which already exists is overwritten and the prg is recomputed. Use this option to keep an existing prg file instead.",
     )
+    subparser_msa.add_argument(
+        "--summary", help="Write a summary file", action="store_true"
+    )
     subparser_msa.add_argument("--log", help="Path to write log to. Default is stderr")
     subparser_msa.set_defaults(func=run)
 
@@ -139,9 +142,10 @@ def run(options):
     logging.info(f"Write GFA file to {gfa_fname}")
     io_utils.write_gfa(gfa_fname, aseq.prg)
 
-    summary_fname = output_dir / "summary.tsv"
-    with summary_fname.open("a") as s:
-        s.write(
-            f"{options.MSA}\t{aseq.site - 2}\t"
-            f"{aseq.max_nesting_level_reached}\t{aseq.prop_in_match_intervals}\n"
-        )
+    if options.summary:
+        summary_fname = output_dir / "summary.tsv"
+        with summary_fname.open("a") as s:
+            s.write(
+                f"{options.MSA}\t{aseq.site - 2}\t"
+                f"{aseq.max_nesting_level_reached}\t{aseq.prop_in_match_intervals}\n"
+            )
