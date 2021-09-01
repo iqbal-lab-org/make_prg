@@ -19,4 +19,8 @@ RUN python3 -m pip uninstall -y nose hypothesis pytest && \
     rm -rf /root/.cache && \
     rm -rf /make_prg
 
+# so that the use of python uses the python3 in the container
+RUN python3 -m venv /venv
+ENV PATH=/venv/bin:$PATH
+
 CMD ["python3", "-m", "make_prg"]
