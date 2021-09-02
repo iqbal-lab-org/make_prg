@@ -17,11 +17,7 @@ def register_parser(subparsers):
         "MSA",
         action="store",
         type=str,
-        help=(
-            "Input file: a multiple sequence alignment in supported alignment_format. "
-            "If not in aligned fasta alignment_format, use -f to input the "
-            "alignment_format type"
-        ),
+        help="Input file: a multiple sequence alignment",
     )
     subparser_msa.add_argument(
         "-f",
