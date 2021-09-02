@@ -93,8 +93,7 @@ $ make_prg from_msa --help
 usage: make_prg from_msa [options] <MSA input file>
 
 positional arguments:
-  MSA                   Input file: a multiple sequence alignment in supported alignment_format. If not in aligned fasta alignment_format, use -f to input
-                        the alignment_format type
+  MSA                   Input file: a multiple sequence alignment
 
 optional arguments:
   -h, --help            show this help message and exit
