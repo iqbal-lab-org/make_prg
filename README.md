@@ -110,11 +110,11 @@ optional arguments:
   -S SEQID, --seqid SEQID
                         Sequence identifier to use for the output sequence/PRG. Default is the file name
   --no_overwrite        Do not replace an existing prg file
-  --summary             Write a summary file
   -O OUTPUT_TYPE, --output-type OUTPUT_TYPE
                         p: PRG, b: Binary, g: GFA, a: All. Combinations are allowed i.e., gb: GFA and Binary. Default: a
   --log LOG             Path to write log to. Default is stderr
 ```
+
 
 ### Nextflow
 
@@ -128,6 +128,7 @@ Requirements: [Nextflow][nf]
 
     Optional arguments:
 ```
+
 
 ## Input
 
@@ -163,3 +164,4 @@ max_forks_make_fasta
 [singularity]: https://sylabs.io/
 [tags]: https://quay.io/repository/iqballab/make_prg?tab=tags
 [conda]: https://conda.io
+
