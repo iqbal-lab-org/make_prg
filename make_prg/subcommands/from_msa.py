@@ -78,9 +78,6 @@ def register_parser(subparsers):
         help="Do not replace an existing prg file",
     )
     subparser_msa.add_argument(
-        "--summary", help="Write a summary file", action="store_true"
-    )
-    subparser_msa.add_argument(
         "-O",
         "--output-type",
         help="p: PRG, b: Binary, g: GFA, a: All. Combinations are allowed i.e., gb: GFA and Binary. Default: %(default)s",
@@ -147,10 +144,3 @@ def run(options):
         logging.info(f"Write GFA file to {gfa_fname}")
         io_utils.write_gfa(gfa_fname, aseq.prg)
 
-    if options.summary:
-        summary_fname = output_dir / "summary.tsv"
-        with summary_fname.open("a") as s:
-            s.write(
-                f"{options.MSA}\t{aseq.site - 2}\t"
-                f"{aseq.max_nesting_level_reached}\t{aseq.prop_in_match_intervals}\n"
-            )
