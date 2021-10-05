@@ -22,6 +22,13 @@ KmerIDs = Dict[Sequence, int]
 
 
 class ClusteringResult(object):
+    """
+    Stores the result of clustering as a ClusteredIDs object.
+    If clustering was not meaningful (e.g. one sequence per cluster),
+    returns a set of sequences instead that can be directly used as set of alternative
+    alleles of the variant site under construction.
+    """
+
     def __init__(
         self,
         clustered_ids: Union[ClusteredIDs, None],

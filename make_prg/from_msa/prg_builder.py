@@ -3,7 +3,11 @@ from typing import List
 
 from make_prg.from_msa import MSA
 from make_prg.io_utils import load_alignment_file
-from make_prg.from_msa.cluster_sequences import kmeans_cluster_seqs_in_interval
+from make_prg.from_msa.cluster_sequences import (
+    kmeans_cluster_seqs_in_interval,
+    ClusteredIDs,
+    Sequences,
+)
 from make_prg.seq_utils import (
     ambiguous_bases,
     remove_duplicates,
@@ -90,7 +94,6 @@ class PrgBuilder(object):
                 consensus_string += NONMATCH
             else:
                 consensus_string += column.pop()
-
         return consensus_string
 
     @classmethod
@@ -103,9 +106,84 @@ class PrgBuilder(object):
             sub_alignment = sub_alignment[:, interval[0] : interval[1] + 1]
         return sub_alignment
 
+    def prg_recur(self, interval, clustered_ids: ClusteredIDs) -> Sequences:
+        variant_prgs = []
+        num_clusters = len(clustered_ids)
+
+        list_sub_alignments = [
+            self.get_sub_alignment_by_list_id(
+                id_list, self.alignment, [interval.start, interval.stop]
+            )
+            for id_list in clustered_ids
+        ]
+
+        if interval.start not in self.subAlignedSeqs:
+            self.subAlignedSeqs[interval.start] = []
+        else:
+            logging.debug(
+                "subAlignedSeqs already had key %d in keys: %s. This shouldn't happen.",
+                interval.start,
+                list(self.subAlignedSeqs.keys()),
+            )
+
+        while len(list_sub_alignments) > 0:
+            sub_alignment = list_sub_alignments.pop(0)
+            sub_aligned_seq = PrgBuilder(
+                msa_file=self.msa_file,
+                alignment_format=self.alignment_format,
+                max_nesting=self.max_nesting,
+                nesting_level=self.nesting_level + 1,
+                min_match_length=self.min_match_length,
+                site=self.site,
+                alignment=sub_alignment,
+                interval=interval,
+            )
+            variant_prgs.append(sub_aligned_seq.prg)
+            self.site = sub_aligned_seq.site
+            self.subAlignedSeqs[interval.start].append(sub_aligned_seq)
+
+        assert num_clusters == len(variant_prgs), (
+            "I don't seem to have a sub-prg sequence for all parts of the partition - there are %d "
+            "classes in partition, and %d variant seqs"
+            % (num_clusters, len(variant_prgs))
+        )
+        return variant_prgs
+
+    def get_variants(self, interval) -> Sequences:
+        variant_prgs = []
+        no_attempt_to_cluster = (
+            self.nesting_level == self.max_nesting
+            or interval.stop - interval.start <= self.min_match_length
+        )
+        if no_attempt_to_cluster:
+            logging.debug(
+                "Max nesting level or small variant site, all variants added as alts"
+            )
+            sub_alignment = self.alignment[:, interval.start : interval.stop + 1]
+            variant_prgs = get_interval_seqs(sub_alignment)
+            logging.debug(f"Variant seqs found: {variant_prgs}")
+        else:
+            clustering_result = kmeans_cluster_seqs_in_interval(
+                [interval.start, interval.stop],
+                self.alignment,
+                self.min_match_length,
+            )
+            if clustering_result.no_clustering:
+                logging.debug(
+                    "Clustering did not group any sequences together, each seq is a cluster"
+                )
+                variant_prgs = clustering_result.sequences
+                logging.debug(f"Variant seqs found: {variant_prgs}")
+            else:
+                variant_prgs = self.prg_recur(interval, clustering_result.clustered_ids)
+        assert len(variant_prgs) > 1, "Only have one variant seq"
+        assert len(variant_prgs) == len(
+            list(remove_duplicates(variant_prgs))
+        ), "have repeat variant seqs"
+        return variant_prgs
+
     def _get_prg(self):
         prg = ""
-
         for interval in self.all_intervals:
             if interval in self.match_intervals:
                 # all seqs are not necessarily exactly the same: some can have 'N'
@@ -115,82 +193,11 @@ class PrgBuilder(object):
                 assert len(seqs) == 1, "Got >1 filtered sequences in match interval"
                 seq = seqs[0]
                 prg += seq
-
             else:
                 # Define variant site number and increment for next available
                 site_num = self.site
                 self.site += 2
-                variant_prgs = []
-
-                # Define the variant seqs to add
-                if (self.nesting_level == self.max_nesting) or (
-                    interval.stop - interval.start <= self.min_match_length
-                ):
-                    logging.debug(
-                        "Have reached max nesting level or have a small variant site, so add all variant "
-                        "sequences in interval."
-                    )
-                    sub_alignment = self.alignment[
-                        :, interval.start : interval.stop + 1
-                    ]
-                    variant_prgs = get_interval_seqs(sub_alignment)
-                    logging.debug(f"Variant seqs found: {variant_prgs}")
-                else:
-                    recur = True
-                    clustering_result = kmeans_cluster_seqs_in_interval(
-                        [interval.start, interval.stop],
-                        self.alignment,
-                        self.min_match_length,
-                    )
-                    list_sub_alignments = [
-                        self.get_sub_alignment_by_list_id(
-                            id_list, self.alignment, [interval.start, interval.stop]
-                        )
-                        for id_list in id_lists
-                    ]
-                    num_clusters = len(id_lists)
-
-                    if len(list_sub_alignments) == self.num_seqs:
-                        logging.debug(
-                            "Clustering did not group any sequences together, each seq is a cluster"
-                        )
-                        recur = False
-                    elif interval.start not in self.subAlignedSeqs:
-                        self.subAlignedSeqs[interval.start] = []
-                    else:
-                        logging.debug(
-                            "subAlignedSeqs already had key %d in keys: %s. This shouldn't happen.",
-                            interval.start,
-                            list(self.subAlignedSeqs.keys()),
-                        )
-
-                    while len(list_sub_alignments) > 0:
-                        sub_alignment = list_sub_alignments.pop(0)
-                        sub_aligned_seq = PrgBuilder(
-                            msa_file=self.msa_file,
-                            alignment_format=self.alignment_format,
-                            max_nesting=self.max_nesting,
-                            nesting_level=self.nesting_level + 1,
-                            min_match_length=self.min_match_length,
-                            site=self.site,
-                            alignment=sub_alignment,
-                            interval=interval,
-                        )
-                        variant_prgs.append(sub_aligned_seq.prg)
-                        self.site = sub_aligned_seq.site
-
-                        if recur:
-                            self.subAlignedSeqs[interval.start].append(sub_aligned_seq)
-                    assert num_clusters == len(variant_prgs), (
-                        "I don't seem to have a sub-prg sequence for all parts of the partition - there are %d "
-                        "classes in partition, and %d variant seqs"
-                        % (num_clusters, len(variant_prgs))
-                    )
-                assert len(variant_prgs) > 1, "Only have one variant seq"
-
-                assert len(variant_prgs) == len(
-                    list(remove_duplicates(variant_prgs))
-                ), "have repeat variant seqs"
+                variant_prgs = self.get_variants(interval)
 
                 # Add the variant seqs to the prg.
                 prg += f"{self.delim_char}{site_num}{self.delim_char}"
@@ -199,7 +206,6 @@ class PrgBuilder(object):
                     prg += f"{self.delim_char}{site_num + 1}{self.delim_char}"
                 prg += variant_prgs.pop()
                 prg += f"{self.delim_char}{site_num}{self.delim_char}"
-
         return prg
 
     @property
@@ -222,7 +228,3 @@ class PrgBuilder(object):
         for interval in self.match_intervals:
             length_match_intervals += interval.stop - interval.start + 1
         return length_match_intervals / float(self.length)
-
-    @property
-    def num_seqs(self):
-        return len(self.alignment)
