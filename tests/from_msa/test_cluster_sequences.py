@@ -24,9 +24,22 @@ from make_prg.from_msa.cluster_sequences import (
     extract_clusters,
     merge_clusters,
     kmeans_cluster_seqs_in_interval,
+    ClusteringResult,
 )
 
 from tests.from_msa import make_alignment, MSA
+
+
+class TestClusteringResult(TestCase):
+    def test_clustering_result_mutual_exclusivity(self):
+        sequences = ["AATA", "AAAA"]
+        clustered_ids = [["s0"], ["s1"]]
+        with self.assertRaises(ValueError):
+            ClusteringResult(clustered_ids, sequences)
+        with self.assertRaises(ValueError):
+            ClusteringResult(None, None)
+        ClusteringResult(clustered_ids, None)
+        ClusteringResult(None, sequences)
 
 
 class TestCountKmers(TestCase):

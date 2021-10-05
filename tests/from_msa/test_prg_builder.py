@@ -87,13 +87,16 @@ class TestSubAlignments(TestCase):
             ["s2", "s3"], self.alignment, [0, 2]
         )
         expected = MSA(
-            [SeqRecord(Seq("C--"), id="s2"), SeqRecord(Seq("AAT"), id="s3"),]
+            [
+                SeqRecord(Seq("C--"), id="s2"),
+                SeqRecord(Seq("AAT"), id="s3"),
+            ]
         )
         self.assertTrue(msas_equal(expected, result))
 
 
 class TestMakePrgFromMsaFile_IntegrationTests(TestCase):
-    def test_answers(self):
+    def test_answers_non_nested(self):
         infile = data_dir / "match.fa"
         aseq = PrgBuilder(infile)
         self.assertEqual(aseq.prg, "ACGTGTTTTGTAACTGTGCCACACTCTCGAGACTGCATATGTGTC")
@@ -144,3 +147,10 @@ class TestMakePrgFromMsaFile_IntegrationTests(TestCase):
 
         # with pytest.raises(Exception):
         #    aseq = AlignedSeq("test/fails.fa")
+
+    def test_answers_nested(self):
+        infile = data_dir / "nested_snps.fa"
+        aseq = PrgBuilder(infile, min_match_length=3)
+        self.assertEqual(
+            aseq.prg, " 5 AAAA 7 T 8 C 7 AAAAAA 6 CCCC 9 T 10 G 9 CCCCCC 5 "
+        )
