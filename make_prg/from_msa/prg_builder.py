@@ -137,7 +137,7 @@ class PrgBuilder(object):
                     logging.debug(f"Variant seqs found: {variant_prgs}")
                 else:
                     recur = True
-                    id_lists = kmeans_cluster_seqs_in_interval(
+                    clustering_result = kmeans_cluster_seqs_in_interval(
                         [interval.start, interval.stop],
                         self.alignment,
                         self.min_match_length,

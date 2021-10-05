@@ -20,6 +20,26 @@ ClusteredIDs = List[IDs]
 ClusteredSeqs = List[Sequences]
 KmerIDs = Dict[Sequence, int]
 
+
+class ClusteringResult(object):
+    def __init__(
+        self,
+        clustered_ids: Union[ClusteredIDs, None],
+        sequences: Union[Sequences, None],
+    ):
+        mutually_exclusive = (clustered_ids is None) ^ (sequences is None)
+        if not mutually_exclusive:
+            raise ValueError(
+                "Input arguments must be mutually exclusively set to 'None'"
+            )
+        self.clustered_ids = clustered_ids
+        self.sequences = sequences
+
+    @property
+    def no_clustering(self):
+        return self.clustered_ids is None
+
+
 DISTANCE_THRESHOLD: float = 0.2
 LENGTH_THRESHOLD: int = 5
 MAX_CLUSTERS: int = 10
@@ -150,9 +170,9 @@ def kmeans_cluster_seqs_in_interval(
     kmer_size: int,
 ) -> ClusteredIDs:
     """Divide sequences in interval into subgroups of similar sequences."""
-    interval_alignment = alignment[:, interval[0] : interval[1] + 1]
-
     logging.debug("Get kmeans partition of interval [%d, %d]", interval[0], interval[1])
+
+    interval_alignment = alignment[:, interval[0] : interval[1] + 1]
 
     # Find unique sequences for clustering, but keep each sequence's IDs
     seq_to_ids: SeqToIDs = defaultdict(list)
@@ -198,16 +218,21 @@ def kmeans_cluster_seqs_in_interval(
                 break
             seqclustering = extract_clusters(seq_to_gapped_seqs, cluster_assignment)
 
-    if num_clusters == 1 or num_clusters == num_sequences:
+    no_clustering = num_clusters == 1 or num_clusters == num_sequences
+    if no_clustering:
         cluster_assignment = list(range(num_sequences))
-    id_clustering = []
-    if num_sequences > 0:
-        id_clustering: ClusteredIDs = extract_clusters(seq_to_ids, cluster_assignment)
-
-    first_id = interval_alignment[0].id
-    result = merge_clusters([id_clustering, small_seq_to_ids.values()], first_id)
-
-    assert len(interval_alignment) == sum(
-        [len(i) for i in result]
-    ), "Each input sequence should be in a cluster"
+    if no_clustering and len(small_seq_to_ids) == 0:
+        result = ClusteringResult(None, list(seq_to_ids.keys()))
+    else:
+        first_id = interval_alignment[0].id
+        clustered_ids: ClusteredIDs = []
+        if num_sequences > 0:
+            clustered_ids = extract_clusters(seq_to_ids, cluster_assignment)
+        clustered_ids = merge_clusters(
+            [clustered_ids, small_seq_to_ids.values()], first_id
+        )
+        assert len(interval_alignment) == sum(
+            [len(i) for i in clustered_ids]
+        ), "Each input sequence should be in a cluster"
+        result = ClusteringResult(clustered_ids, None)
     return result
