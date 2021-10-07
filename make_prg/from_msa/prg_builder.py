@@ -2,19 +2,22 @@ import logging
 from typing import List
 
 from make_prg.from_msa import MSA
-from make_prg.io_utils import load_alignment_file
 from make_prg.from_msa.cluster_sequences import (
-    kmeans_cluster_seqs_in_interval,
     ClusteredIDs,
     Sequences,
-)
-from make_prg.seq_utils import (
-    ambiguous_bases,
-    remove_duplicates,
-    get_interval_seqs,
-    NONMATCH,
+    kmeans_cluster_seqs_in_interval,
 )
 from make_prg.from_msa.interval_partition import IntervalPartitioner
+from make_prg.io_utils import load_alignment_file
+from make_prg.seq_utils import (
+    NONMATCH,
+    ambiguous_bases,
+    count,
+    get_alignment_seqs,
+    get_interval_seqs,
+    remove_duplicates,
+    ungap,
+)
 
 
 class PrgBuilder(object):
@@ -106,6 +109,37 @@ class PrgBuilder(object):
             sub_alignment = sub_alignment[:, interval[0] : interval[1] + 1]
         return sub_alignment
 
+    @classmethod
+    def skip_clustering(
+        cls,
+        interval,
+        nesting_level: int,
+        max_nesting: int,
+        min_match_length: int,
+        alignment: MSA,
+    ) -> bool:
+        max_nesting_reached = nesting_level >= max_nesting
+        if max_nesting_reached:
+            return True
+
+        small_interval = interval.stop - interval.start <= min_match_length
+        if small_interval:
+            return True
+
+        sub_alignment = alignment[:, interval.start : interval.stop + 1]
+        num_unique_nongapped = count(
+            remove_duplicates(map(ungap, get_alignment_seqs(sub_alignment)))
+        )
+        if num_unique_nongapped <= 2:
+            return True
+
+        num_unique_gapped = count(remove_duplicates(get_alignment_seqs(sub_alignment)))
+        assert num_unique_nongapped <= num_unique_gapped
+        if num_unique_nongapped < num_unique_gapped:
+            return True
+
+        return False
+
     def prg_recur(self, interval, clustered_ids: ClusteredIDs) -> Sequences:
         variant_prgs = []
         num_clusters = len(clustered_ids)
@@ -151,14 +185,13 @@ class PrgBuilder(object):
 
     def get_variants(self, interval) -> Sequences:
         variant_prgs = []
-        no_attempt_to_cluster = (
-            self.nesting_level == self.max_nesting
-            or interval.stop - interval.start <= self.min_match_length
-        )
-        if no_attempt_to_cluster:
-            logging.debug(
-                "Max nesting level or small variant site, all variants added as alts"
-            )
+        if self.skip_clustering(
+            interval,
+            self.nesting_level,
+            self.max_nesting,
+            self.min_match_length,
+            self.alignment,
+        ):
             sub_alignment = self.alignment[:, interval.start : interval.stop + 1]
             variant_prgs = get_interval_seqs(sub_alignment)
             logging.debug(f"Variant seqs found: {variant_prgs}")

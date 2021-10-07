@@ -54,14 +54,23 @@ def ungap(seq: str) -> str:
     return seq.replace("-", "")
 
 
-def get_interval_seqs(interval_alignment: MSA):
+def count(iterable) -> int:
+    return sum(1 for elem in iterable)
+
+
+def get_alignment_seqs(alignment: MSA):
+    for record in alignment:
+        yield str(record.seq)
+
+
+def get_interval_seqs(alignment: MSA):
     """
     Replace - with nothing, remove seqs containing N or other non-allowed letters
     and duplicate sequences containing RYKMSW, replacing with AGCT alternatives
 
     The sequences are deliberately returned in the order they are received
     """
-    gapless_seqs = [ungap(str(record.seq)) for record in interval_alignment]
+    gapless_seqs = map(ungap, get_alignment_seqs(alignment))
 
     callback_seqs, expanded_seqs = [], []
     expanded_set = set()
