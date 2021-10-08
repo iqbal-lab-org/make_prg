@@ -14,7 +14,7 @@ from make_prg.seq_utils import (
     ambiguous_bases,
     count,
     get_alignment_seqs,
-    get_interval_seqs,
+    get_expanded_sequences,
     remove_duplicates,
     ungap,
 )
@@ -193,7 +193,7 @@ class PrgBuilder(object):
             self.alignment,
         ):
             sub_alignment = self.alignment[:, interval.start : interval.stop + 1]
-            variant_prgs = get_interval_seqs(sub_alignment)
+            variant_prgs = get_expanded_sequences(sub_alignment)
             logging.debug(f"Variant seqs found: {variant_prgs}")
         else:
             clustering_result = kmeans_cluster_seqs_in_interval(
@@ -222,7 +222,7 @@ class PrgBuilder(object):
                 # all seqs are not necessarily exactly the same: some can have 'N'
                 # thus still process all of them, to get the one with no 'N'.
                 sub_alignment = self.alignment[:, interval.start : interval.stop + 1]
-                seqs = get_interval_seqs(sub_alignment)
+                seqs = get_expanded_sequences(sub_alignment)
                 assert len(seqs) == 1, "Got >1 filtered sequences in match interval"
                 seq = seqs[0]
                 prg += seq

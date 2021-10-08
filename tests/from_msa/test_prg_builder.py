@@ -5,6 +5,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
 from make_prg.from_msa.prg_builder import PrgBuilder
+from make_prg.from_msa.interval_partition import IntervalType, Interval
 from tests.from_msa import make_alignment, MSA
 
 this_dir = Path(__file__).resolve().parent
@@ -60,13 +61,8 @@ def msas_equal(al1: MSA, al2: MSA):
 class TestSubAlignments(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.alignment = MSA(
-            [
-                SeqRecord(Seq("AAAT"), id="s1"),
-                SeqRecord(Seq("C--C"), id="s2"),
-                SeqRecord(Seq("AATT"), id="s3"),
-                SeqRecord(Seq("GNGG"), id="s4"),
-            ]
+        cls.alignment = make_alignment(
+            ["AAAT", "C--C", "AATT", "GNGG"], ["s1", "s2", "s3", "s4"]
         )
 
     def test_GivenOrderedIds_SubalignmentInSequenceOrder(self):
@@ -86,16 +82,60 @@ class TestSubAlignments(TestCase):
         result = PrgBuilder.get_sub_alignment_by_list_id(
             ["s2", "s3"], self.alignment, [0, 2]
         )
-        expected = MSA(
-            [
-                SeqRecord(Seq("C--"), id="s2"),
-                SeqRecord(Seq("AAT"), id="s3"),
-            ]
-        )
+        expected = make_alignment(["C--", "AAT"], ["s2", "s3"])
         self.assertTrue(msas_equal(expected, result))
 
 
-class TestMakePrgFromMsaFile_IntegrationTests(TestCase):
+class TestSkipClustering(TestCase):
+    """
+    Test the conditions under which clustering is not performed.
+    """
+
+    def setUp(self):
+        """
+        Set of parameters whereby clustering is to be performed.
+        We'll modify each of them in turn
+        """
+        self.aligned_seqs = ["ATTTTTTA", "A--TTTTA", "ATTTCTTA"]
+        self.tested_params = {
+            "interval": Interval(IntervalType.Match, 0, 7),
+            "max_nesting": 2,
+            "nesting_level": 1,
+            "min_match_length": 2,
+            "alignment": make_alignment(self.aligned_seqs),
+        }
+
+    def test_original_params_no_skip_clustering(self):
+        self.assertFalse(PrgBuilder.skip_clustering(**self.tested_params))
+
+    def test_max_nesting_reached_skip_clustering(self):
+        self.tested_params["nesting_level"] = 2
+        self.assertTrue(PrgBuilder.skip_clustering(**self.tested_params))
+
+    def test_small_interval_skip_clustering(self):
+        self.tested_params["interval"].stop = 1
+        self.assertTrue(PrgBuilder.skip_clustering(**self.tested_params))
+
+    def test_too_few_seqs_skip_clustering(self):
+        self.tested_params["alignment"] = self.tested_params["alignment"][0:1]
+        self.assertTrue(PrgBuilder.skip_clustering(**self.tested_params))
+
+    def test_ambiguous_alignment_skip_clustering(self):
+        """
+        `added_seq` below is an equally valid alignment as "A--TTTTA" to the sequence
+        "ATTAATTA"
+        If we have such ambiguous alignments (defined as more than one gapped alignment
+        corresponding to the same ungapped sequence), we choose not to cluster the
+        alignment, as it can create ambiguous graphs (whereby different paths spell same sequence)
+        """
+        added_seq = "ATTTT--A"
+        self.tested_params["alignment"] = make_alignment(
+            self.aligned_seqs + [added_seq]
+        )
+        self.assertTrue(PrgBuilder.skip_clustering(**self.tested_params))
+
+
+class Test_Integration_FullBuilds(TestCase):
     def test_answers_non_nested(self):
         infile = data_dir / "match.fa"
         aseq = PrgBuilder(infile)

@@ -63,7 +63,7 @@ def get_alignment_seqs(alignment: MSA):
         yield str(record.seq)
 
 
-def get_interval_seqs(alignment: MSA):
+def get_expanded_sequences(alignment: MSA):
     """
     Replace - with nothing, remove seqs containing N or other non-allowed letters
     and duplicate sequences containing RYKMSW, replacing with AGCT alternatives

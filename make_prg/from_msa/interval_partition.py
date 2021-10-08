@@ -7,7 +7,7 @@ from typing import List, Tuple, Optional
 
 from make_prg.from_msa import MSA
 
-from make_prg.seq_utils import get_interval_seqs, is_non_match, has_empty_sequence
+from make_prg.seq_utils import get_expanded_sequences, is_non_match, has_empty_sequence
 
 
 class PartitioningError(Exception):
@@ -193,7 +193,7 @@ class IntervalPartitioner:
         for i in reversed(range(len(non_match_intervals))):
             interval = non_match_intervals[i]
             interval_alignment = alignment[:, interval.start : interval.stop + 1]
-            interval_seqs = get_interval_seqs(interval_alignment)
+            interval_seqs = get_expanded_sequences(interval_alignment)
             if len(interval_seqs) < 2:
                 changed_interval = non_match_intervals[i]
                 match_intervals.append(
