@@ -188,9 +188,14 @@ class Test_Integration_FullBuilds(TestCase):
         # with pytest.raises(Exception):
         #    aseq = AlignedSeq("test/fails.fa")
 
-    def test_answers_nested(self):
-        infile = data_dir / "nested_snps.fa"
+    def test_nested_snp_backgrounds(self):
+        infile = data_dir / "nested_snps_seq_backgrounds.fa"
         aseq = PrgBuilder(infile, min_match_length=3)
         self.assertEqual(
             aseq.prg, " 5 AAAA 7 T 8 C 7 AAAAAA 6 CCCC 9 T 10 G 9 CCCCCC 5 "
         )
+
+    def test_nested_snps_under_del(self):
+        infile = data_dir / "nested_snps_deletion.fa"
+        aseq = PrgBuilder(infile, min_match_length=1)
+        self.assertEqual(aseq.prg, "A 5 AA 7 C 8 T 7 AAAA 9 T 10 G 9 AA 6 A 5 AA")
