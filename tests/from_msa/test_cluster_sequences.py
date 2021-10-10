@@ -22,6 +22,7 @@ from make_prg.from_msa.cluster_sequences import (
     sequences_are_one_reference_like,
     cluster_further,
     extract_clusters,
+    merge_sequences,
     merge_clusters,
     kmeans_cluster_seqs_in_interval,
     ClusteringResult,
@@ -278,7 +279,7 @@ class TestClustering_SmallSequences(TestCase):
         alignment = make_alignment(sequences)
         result = kmeans_cluster_seqs_in_interval([0, 4], alignment, 4)
         self.assertTrue(result.no_clustering)
-        self.assertEqual(set(result.sequences), set(["AAT", "CCCCC"]))
+        self.assertEqual(result.sequences, ["AAT", "CCCCC"])
 
     @skip(
         "This fails, probably because kmean clustering should never run with this input"
@@ -443,6 +444,31 @@ class TestClustering_RunKmeans(TestCase):
         self.assertTrue(result.no_clustering)
 
 
+class TestMergeSequences(TestCase):
+    def setUp(self):
+        self.long_seqs = ["AATAA", "TTAAA"]
+        self.short_seqs = ["AA", "TT"]
+        self.first_seq = self.long_seqs[0]
+
+    def test_GivenFirstSeqNotInList_Fails(self):
+        with self.assertRaises(ValueError):
+            merge_sequences(self.short_seqs, self.long_seqs, first_seq="TTTTT")
+
+    def test_GivenShortFirst_FirstSeqIsFirstSeqOut(self):
+        result = merge_sequences(
+            self.short_seqs, self.long_seqs, first_seq=self.first_seq
+        )
+        expected = ["AATAA", "AA", "TT", "TTAAA"]
+        self.assertEqual(result.sequences, expected)
+
+    def test_GivenLongFirst_FirstSeqIsFirstSeqOut(self):
+        result = merge_sequences(
+            self.long_seqs, self.short_seqs, first_seq=self.first_seq
+        )
+        expected = ["AATAA", "TTAAA", "AA", "TT"]
+        self.assertEqual(result.sequences, expected)
+
+
 class TestMergeClusters(TestCase):
     clusters = [["s1", "s2"], ["s3"]]
     small_seqs = [["s4"], ["s5", "s6"]]
@@ -465,38 +491,7 @@ class TestKMeansOrdering(TestCase):
     in first position of first cluster.
     """
 
-    def test_first_sequence_placed_in_first_cluster(self):
-        """
-        Runs kmeans clustering on randomly generated multiple sequence alignments
-        """
-        seq_len = 20
-        num_seqs = 5
-        bases = list(standard_bases)
-        for used_len in [2, 10]:
-            with self.subTest(kmer_size=seq_len):
-                for _ in range(5):  # Run on a number of random alignments
-                    sequences = [
-                        "".join(random.choices(bases, k=seq_len))
-                        for _ in range(num_seqs - 1)
-                    ]
-
-                    # add in a close sequence so that there is a meaningful clustering
-                    snp_away_seq = random.choice(sequences)
-                    snp_pos = random.randint(0, seq_len - 1)
-                    base_choices = [b for b in bases if b != snp_away_seq[snp_pos]]
-                    snp_away_seq = (
-                        snp_away_seq[:snp_pos]
-                        + random.choice(base_choices)
-                        + snp_away_seq[snp_pos + 1 :]
-                    )
-                    sequences.append(snp_away_seq)
-                    alignment = make_alignment(sequences)
-                    result = kmeans_cluster_seqs_in_interval(
-                        [0, seq_len - 1], alignment, used_len
-                    )
-                    self.assertTrue(result.clustered_ids[0][0] == "s0")
-
-    def test_manipulate_alignment_ordering(self):
+    def test_first_id_in_first_cluster(self):
         alignment = make_alignment(
             [
                 "AATTAATTATATAATAAC",

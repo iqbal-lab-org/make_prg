@@ -156,6 +156,20 @@ def extract_clusters(
     return result
 
 
+def merge_sequences(*seqlists: Sequences, first_seq: str) -> ClusteringResult:
+    first_seq_found = False
+    result = list()
+    for seqlist in seqlists:
+        for sequence in seqlist:
+            if sequence == first_seq:
+                first_seq_found = True
+            else:
+                result.append(sequence)
+    if not first_seq_found:
+        raise ValueError()
+    return ClusteringResult(None, [first_seq] + result)
+
+
 def merge_clusters(clusters: List[ClusteredIDs], first_id: str) -> ClusteredIDs:
     merged_clusters = list()
     first_id_cluster = []
@@ -174,10 +188,14 @@ def kmeans_cluster_seqs_in_interval(
     alignment: MSA,
     kmer_size: int,
 ) -> ClusteredIDs:
-    """Divide sequences in interval into subgroups of similar sequences."""
+    """Divide sequences in interval into subgroups of similar sequences.
+    If no meaningful clustering is found, returns the (deduplicated, ungapped)
+    set of input sequences.
+    """
     logging.debug("Get kmeans partition of interval [%d, %d]", interval[0], interval[1])
 
     interval_alignment = alignment[:, interval[0] : interval[1] + 1]
+    first_sequence = ungap(str(interval_alignment[0].seq))
 
     # Find unique sequences for clustering, but keep each sequence's IDs
     seq_to_ids: SeqToIDs = defaultdict(list)
@@ -196,8 +214,8 @@ def kmeans_cluster_seqs_in_interval(
     num_clusters = 1
     num_sequences = len(seq_to_ids)
     if num_sequences <= 2:
-        return ClusteringResult(
-            None, list(seq_to_ids.keys()) + list(small_seq_to_ids.keys())
+        return merge_sequences(
+            seq_to_ids.keys(), small_seq_to_ids.keys(), first_seq=first_sequence
         )
 
     distinct_sequences = list(seq_to_ids)
@@ -228,8 +246,8 @@ def kmeans_cluster_seqs_in_interval(
 
     no_clustering = num_clusters == 1 or num_clusters == num_sequences
     if no_clustering:
-        return ClusteringResult(
-            None, list(seq_to_ids.keys()) + list(small_seq_to_ids.keys())
+        return merge_sequences(
+            seq_to_ids.keys(), small_seq_to_ids.keys(), first_seq=first_sequence
         )
     else:
         first_id = interval_alignment[0].id
@@ -242,5 +260,4 @@ def kmeans_cluster_seqs_in_interval(
         assert len(interval_alignment) == sum(
             [len(i) for i in clustered_ids]
         ), "Each input sequence should be in a cluster"
-        result = ClusteringResult(clustered_ids, None)
-    return result
+        return ClusteringResult(clustered_ids, None)
