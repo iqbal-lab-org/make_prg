@@ -31,8 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
       and in the `.prg` fasta header.
     - `.bin` file now stores even integer markers at site ends; this is the format used by gramtools.
     - Summary file not written by default
-- Bugfix ([#27][27]): clustering termination was not properly detected, causing spurious 
+
+### Fixed
+- Bugfix ([#27][27])- Part 1: clustering termination was not properly detected, causing spurious 
   site production
+- Bugfix ([#27][27])- Part 2: added criteria for not clustering, to reduce construction of 
+  ambiguous graphs
+  
 
 ## [0.1.1] - 2021-01-22
 ### Added
