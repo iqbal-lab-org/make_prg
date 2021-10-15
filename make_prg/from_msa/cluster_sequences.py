@@ -1,16 +1,14 @@
 import logging
 from collections import Counter, defaultdict
-from typing import List, Dict, Iterator, Union
+from typing import List, Dict, Iterator, Union, Optional
 from itertools import starmap, repeat, chain
 
 import numpy as np
 from sklearn.cluster import KMeans
 
 from make_prg.from_msa import MSA
-from make_prg.seq_utils import ungap
+from make_prg.seq_utils import ungap, Sequence, Sequences
 
-Sequence = str
-Sequences = List[str]
 IDs = List[str]
 SeqToIDs = Dict[Sequence, IDs]
 SeqToSeqs = Dict[Sequence, Sequences]
@@ -29,8 +27,8 @@ class ClusteringResult(object):
 
     def __init__(
         self,
-        clustered_ids: Union[ClusteredIDs, None],
-        sequences: Union[Sequences, None],
+        clustered_ids: Optional[ClusteredIDs],
+        sequences: Optional[Sequences],
     ):
         mutually_exclusive = (clustered_ids is None) ^ (sequences is None)
         if not mutually_exclusive:

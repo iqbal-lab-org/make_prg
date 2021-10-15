@@ -1,11 +1,14 @@
 import logging
-from typing import Generator, Sequence, Tuple
+from typing import Generator, Tuple, List
 import itertools
 
 from make_prg.from_msa import MSA
 
 NONMATCH = "*"
 GAP = "-"
+
+Sequence = str
+Sequences = List[str]
 
 
 def is_non_match(letter: str):
@@ -16,7 +19,7 @@ def is_gap(letter: str):
     return letter == GAP
 
 
-def remove_duplicates(seqs: Sequence) -> Generator:
+def remove_duplicates(seqs: Sequences) -> Generator:
     seen = set()
     for x in seqs:
         if x in seen:
@@ -58,12 +61,12 @@ def count(iterable) -> int:
     return sum(1 for elem in iterable)
 
 
-def get_alignment_seqs(alignment: MSA):
+def get_alignment_seqs(alignment: MSA) -> Generator:
     for record in alignment:
         yield str(record.seq)
 
 
-def get_expanded_sequences(alignment: MSA):
+def get_expanded_sequences(alignment: MSA) -> Sequences:
     """
     Replace - with nothing, remove seqs containing N or other non-allowed letters
     and duplicate sequences containing RYKMSW, replacing with AGCT alternatives
