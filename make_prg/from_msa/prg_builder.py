@@ -118,6 +118,12 @@ class PrgBuilder(object):
         min_match_length: int,
         alignment: MSA,
     ) -> bool:
+        """
+        Condition `alignment_has_ambiguity`: if at least one sequence has more than one
+        gapped representation, the aligner could not align the sequence unambiguously.
+        Clustering is then not performed because it can create ambiguous prgs, where
+        different paths spell the same sequence.
+        """
         max_nesting_reached = nesting_level >= max_nesting
         if max_nesting_reached:
             return True
@@ -130,12 +136,15 @@ class PrgBuilder(object):
         num_unique_nongapped = count(
             remove_duplicates(map(ungap, get_alignment_seqs(sub_alignment)))
         )
-        if num_unique_nongapped <= 2:
+        too_few_unique_sequences = num_unique_nongapped <= 2
+        if too_few_unique_sequences:
             return True
 
         num_unique_gapped = count(remove_duplicates(get_alignment_seqs(sub_alignment)))
         assert num_unique_nongapped <= num_unique_gapped
-        if num_unique_nongapped < num_unique_gapped:
+
+        alignment_has_ambiguity = num_unique_nongapped < num_unique_gapped
+        if alignment_has_ambiguity:
             return True
 
         return False

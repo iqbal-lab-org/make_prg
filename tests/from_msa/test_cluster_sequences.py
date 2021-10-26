@@ -35,9 +35,9 @@ class TestClusteringResult(TestCase):
     def test_clustering_result_mutual_exclusivity(self):
         sequences = ["AATA", "AAAA"]
         clustered_ids = [["s0"], ["s1"]]
-        with self.assertRaises(ValueError):
+        with self.assertRaises(AssertionError):
             ClusteringResult(clustered_ids, sequences)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(AssertionError):
             ClusteringResult(None, None)
         ClusteringResult(clustered_ids, None)
         ClusteringResult(None, sequences)

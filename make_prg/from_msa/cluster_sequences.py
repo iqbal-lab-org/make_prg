@@ -31,10 +31,9 @@ class ClusteringResult(object):
         sequences: Optional[Sequences],
     ):
         mutually_exclusive = (clustered_ids is None) ^ (sequences is None)
-        if not mutually_exclusive:
-            raise ValueError(
-                "Input arguments must be mutually exclusively set to 'None'"
-            )
+        assert (
+            mutually_exclusive
+        ), "Input arguments must be mutually exclusively set to 'None'"
         self.clustered_ids = clustered_ids
         self.sequences = sequences
 
@@ -164,7 +163,9 @@ def merge_sequences(*seqlists: Sequences, first_seq: str) -> ClusteringResult:
             else:
                 result.append(sequence)
     if not first_seq_found:
-        raise ValueError()
+        raise ValueError(
+            "Provided sequence argument not found in provided list of sequences"
+        )
     return ClusteringResult(None, [first_seq] + result)
 
 
@@ -211,7 +212,8 @@ def kmeans_cluster_seqs_in_interval(
 
     num_clusters = 1
     num_sequences = len(seq_to_ids)
-    if num_sequences <= 2:
+    too_few_seqs_to_cluster = num_sequences <= 2
+    if too_few_seqs_to_cluster:
         return merge_sequences(
             seq_to_ids.keys(), small_seq_to_ids.keys(), first_seq=first_sequence
         )
