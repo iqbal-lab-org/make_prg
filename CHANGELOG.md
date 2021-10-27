@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2021-10-27
+
 ### Added
 - New CLI:
     - `-S`, `--seqid` option to name the PRG sequence, which by default uses the file name.
@@ -60,9 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   source project CHANGELOG.
 
 
-[Unreleased]: https://github.com/rmcolq/make_prg/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/iqbal-lab-org/make_prg/compare/v0.2.0...HEAD
 
-[0.1.1]: https://github.com/rmcolq/make_prg/releases/v0.1.1
-[0.1.0]: https://github.com/rmcolq/make_prg/releases/v0.1.0
+[0.2.0]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.2.0
+[0.1.1]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.1.1
+[0.1.0]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.1.0
 
 [27]: https://github.com/iqbal-lab-org/make_prg/issues/27
