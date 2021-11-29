@@ -1,7 +1,7 @@
 from unittest import TestCase
 from typing import List
 
-from tests.from_msa import make_alignment, MSA
+from tests.test_helpers import make_alignment, MSA
 from make_prg.from_msa.interval_partition import (
     IntervalType,
     Interval,
@@ -165,3 +165,9 @@ class TestIntervalPartitioning(TestCase):
         match, non_match, _ = tester.get_intervals()
         self.assertEqual(match, make_typed_intervals([[7, 9]], Match))
         self.assertEqual(non_match, make_typed_intervals([[0, 6]], NonMatch))
+
+    def test___repr(self):
+        interval = Interval(IntervalType.Match, 5, 10)
+        expected = "[5, 10]"
+        actual = repr(interval)
+        self.assertEqual(expected, actual)
