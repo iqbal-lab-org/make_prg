@@ -1,13 +1,12 @@
 from collections import Counter, defaultdict
 from typing import List, Dict, Iterator, Union, Optional
 from itertools import starmap, repeat, chain
-
+from loguru import logger
 import numpy as np
 from sklearn.cluster import KMeans
-
 from make_prg.from_msa import MSA
-from make_prg.utils.seq_utils import ungap, Sequence, Sequences
 from make_prg.utils.misc import flatten_list
+from make_prg.utils.seq_utils import ungap, Sequence, Sequences, SequenceExpander
 
 IDs = List[str]
 SeqToIDs = Dict[Sequence, IDs]
@@ -127,6 +126,69 @@ def extract_clusters(
     return result
 
 
+class ClusteringResult(object):
+    """
+    Stores the result of clustering as a ClusteredIDs object.
+    If clustering was not meaningful (e.g. one sequence per cluster),
+    a set of sequences can be directly used as set of alternative
+    alleles of the variant site under construction.
+    """
+    def __init__(
+        self,
+        clustered_ids: ClusteredIDs,
+        sequences: Optional[Sequences] = None,
+    ):
+        self.clustered_ids: ClusteredIDs = clustered_ids
+        self.sequences: Optional[Sequences] = sequences
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        else:
+            return False
+
+    @property
+    def no_clustering(self):
+        return len(self.clustered_ids) == 1
+
+    @property
+    def have_precomputed_sequences(self):
+        return self.sequences is not None
+
+    def __repr__(self):
+        return f"ClusteringResult(clustered_ids={self.clustered_ids}, sequences={self.sequences})"
+
+    def __str__(self):
+        return self.__repr__()
+
+
+def merge_sequences(*seqlists: Sequences, first_seq: str) -> Sequences:
+    first_seq_found = False
+    result = list()
+    for seqlist in seqlists:
+        for sequence in seqlist:
+            if sequence == first_seq:
+                first_seq_found = True
+            else:
+                result.append(sequence)
+
+    # Note: this is an assert as is it the dev's responsibility to pass the correct first_seq argument (i.e. the user
+    # can't cause this error by erroneous input)
+    assert first_seq_found, f"Provided first sequence argument ({first_seq}) not found in provided list of sequences " \
+                            f"({seqlists})"
+
+    merged_unexpanded_sequences = [first_seq] + result
+    merged_expanded_sequences = SequenceExpander.get_expanded_sequences(merged_unexpanded_sequences)
+
+    first_merged_expanded_sequence = merged_expanded_sequences[0]
+    first_seq_has_ambiguous_char = first_seq != first_merged_expanded_sequence
+    if first_seq_has_ambiguous_char:
+        logger.warning(f"Provided first sequence argument ({first_seq}) has an ambiguous base, and thus does not match "
+                       f"expanded first sequence ({first_merged_expanded_sequence})")
+
+    return merged_expanded_sequences
+
+
 def merge_clusters(clusters: List[ClusteredIDs], first_id: str) -> ClusteredIDs:
     merged_clusters = list()
     first_id_cluster = []
@@ -143,7 +205,7 @@ def merge_clusters(clusters: List[ClusteredIDs], first_id: str) -> ClusteredIDs:
 def kmeans_cluster_seqs(
     alignment: MSA,
     kmer_size: int,
-) -> ClusteredIDs:
+) -> ClusteringResult:
     """Divide sequences into subgroups of similar sequences.
     If no meaningful clustering is found, returns the (deduplicated, ungapped)
     set of input sequences.
@@ -152,6 +214,7 @@ def kmeans_cluster_seqs(
     seq_to_ids: SeqToIDs = defaultdict(list)
     seq_to_gapped_seqs: SeqToSeqs = defaultdict(list)
     small_seq_to_ids: SeqToIDs = defaultdict(list)
+    first_sequence = ungap(str(alignment[0].seq))
 
     for record in alignment:
         seq_with_gaps = str(record.seq)
@@ -167,7 +230,10 @@ def kmeans_cluster_seqs(
     too_few_seqs_to_cluster = num_sequences <= 2
     if too_few_seqs_to_cluster:
         clustered_ids = [flatten_list(seq_to_ids.values()) + flatten_list(small_seq_to_ids.values())]
-        return clustered_ids
+        merged_sequences = merge_sequences(
+            seq_to_ids.keys(), small_seq_to_ids.keys(), first_seq=first_sequence
+        )
+        return ClusteringResult(clustered_ids, merged_sequences)
 
     distinct_sequences = list(seq_to_ids)
     distinct_kmers = count_distinct_kmers(distinct_sequences, kmer_size)
@@ -198,7 +264,10 @@ def kmeans_cluster_seqs(
     no_clustering = num_clusters == 1 or num_clusters == num_sequences
     if no_clustering:
         clustered_ids = [flatten_list(seq_to_ids.values()) + flatten_list(small_seq_to_ids.values())]
-        return clustered_ids
+        merged_sequences = merge_sequences(
+            seq_to_ids.keys(), small_seq_to_ids.keys(), first_seq=first_sequence
+        )
+        return ClusteringResult(clustered_ids, merged_sequences)
     else:
         first_id = alignment[0].id
         clustered_ids: ClusteredIDs = []
@@ -210,4 +279,4 @@ def kmeans_cluster_seqs(
         assert len(alignment) == sum(
             [len(i) for i in clustered_ids]
         ), "Each input sequence should be in a cluster"
-        return clustered_ids
+        return ClusteringResult(clustered_ids)

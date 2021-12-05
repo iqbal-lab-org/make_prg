@@ -199,7 +199,7 @@ class IntervalPartitioner:
         for i in reversed(range(len(non_match_intervals))):
             interval = non_match_intervals[i]
             interval_alignment = alignment[:, interval.start : interval.stop + 1]
-            expanded_seqs = SequenceExpander.get_expanded_sequences(interval_alignment)
+            expanded_seqs = SequenceExpander.get_expanded_sequences_from_MSA(interval_alignment)
             if len(expanded_seqs) < 2:
                 changed_interval = non_match_intervals[i]
                 match_intervals.append(
