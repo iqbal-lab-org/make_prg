@@ -5,7 +5,8 @@ from make_prg.from_msa import MSA
 import os
 import shutil
 import filecmp
-from glob import glob
+from pathlib import Path
+from zipfile import ZipFile
 
 
 def make_alignment(seqs: List[str], ids: List[str] = None) -> MSA:
@@ -47,10 +48,12 @@ def remove_dir_if_exists(directory):
 
 
 # Adapted from https://stackoverflow.com/a/6681395/5264075
-def are_dir_trees_equal(dir1, dir2, compare_zips = True):
+def are_dir_trees_equal(dir1, dir2):
     """
     Compare two directories recursively. Files in each directory are
     assumed to be equal if their names and contents are equal.
+    Zip files are "unzipped" and the contents are compared byte by byte,
+    to avoid mismatching metadata issues.
 
     @param dir1: First directory path
     @param dir2: Second directory path
@@ -64,16 +67,41 @@ def are_dir_trees_equal(dir1, dir2, compare_zips = True):
         len(dirs_cmp.funny_files)>0:
         return False
 
-    if compare_zips:
-        common_files = dirs_cmp.common_files
-    else:
-        common_files = list(filter(lambda filename: not filename.endswith(".zip"), dirs_cmp.common_files))
-    (_, mismatch, errors) =  filecmp.cmpfiles(dir1, dir2, common_files, shallow=False)
-    if len(mismatch)>0 or len(errors)>0:
+    common_files_without_zip = list(filter(lambda filename: not filename.endswith(".zip"), dirs_cmp.common_files))
+    common_files_with_zip = list(filter(lambda filename: filename.endswith(".zip"), dirs_cmp.common_files))
+    (_, mismatch, errors) = filecmp.cmpfiles(dir1, dir2, common_files_without_zip, shallow=False)
+    if len(mismatch) > 0:
+        print(f"[Dir comparison] File mismatches: {mismatch}")
         return False
+    if len(errors)>0:
+        print(f"[Dir comparison] Erros: {errors}")
+        return False
+
+    for file in common_files_with_zip:
+        zip_file_1 = os.path.join(dir1, file)
+        zip_file_2 = os.path.join(dir2, file)
+        if not are_zip_files_equal(zip_file_1, zip_file_2):
+            print(f"[Dir comparison] Zip file mismatch: {zip_file_1} and {zip_file_2}")
+            return False
+
     for common_dir in dirs_cmp.common_dirs:
         new_dir1 = os.path.join(dir1, common_dir)
         new_dir2 = os.path.join(dir2, common_dir)
         if not are_dir_trees_equal(new_dir1, new_dir2):
             return False
+
     return True
+
+
+def are_zip_files_equal(file_1: [Path, str], file_2: [Path, str]) -> bool:
+    with ZipFile(file_1) as zip_file_1, ZipFile(file_2) as zip_file_2:
+        if zip_file_1.namelist() != zip_file_2.namelist():
+            return False
+
+        for file in zip_file_1.namelist():
+            bytes_from_zip_file_1 = zip_file_1.read(file)
+            bytes_from_zip_file_2 = zip_file_2.read(file)
+            if bytes_from_zip_file_1 != bytes_from_zip_file_2:
+                return False
+
+        return True
