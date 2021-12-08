@@ -172,8 +172,6 @@ def merge_sequences(*seqlists: Sequences, first_seq: str) -> Sequences:
             else:
                 result.append(sequence)
 
-    # Note: this is an assert as is it the dev's responsibility to pass the correct first_seq argument (i.e. the user
-    # can't cause this error by erroneous input)
     assert first_seq_found, f"Provided first sequence argument ({first_seq}) not found in provided list of sequences " \
                             f"({seqlists})"
 
