@@ -1,5 +1,5 @@
 from unittest import TestCase, skip
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 from itertools import product
 from numpy import array, array_equal
 from Bio.Seq import Seq
@@ -327,7 +327,7 @@ class TestClustering_SmallSequences(TestCase):
     def test_GivenLessThanTwoLongSeqs_NoClustering(self):
         alignment = make_alignment(["A-A-T", "CCCCC", "AA--T"])
 
-        expected = ClusteringResult(clustered_ids=[['s1', 's0', 's2']], sequences=['AAT', 'CCCCC'])
+        expected = ClusteringResult(clustered_ids=[['s0', 's1', 's2']], sequences=['AAT', 'CCCCC'])
         result = kmeans_cluster_seqs(alignment, 4)
 
         self.assertEqual(expected, result)
@@ -520,15 +520,19 @@ class TestClustering_RunKmeans(TestCase):
 class TestMergeClusters(TestCase):
     clusters = [["s1", "s2"], ["s3"]]
     small_seqs = [["s4"], ["s5", "s6"]]
-    to_merge = [clusters, small_seqs]
 
     def test_GivenFirstIDNotFound_Fails(self):
         with self.assertRaises(ValueError):
-            merge_clusters(self.to_merge, "s200")
+            merge_clusters(self.clusters, self.small_seqs, first_id="s200")
 
     def test_GivenFirstIDFound_MergedAndFirstIDInFirstCluster(self):
-        actual = merge_clusters(self.to_merge, "s5")
+        actual = merge_clusters(self.clusters, self.small_seqs, first_id="s5")
         expected = [["s5", "s6"], ["s1", "s2"], ["s3"], ["s4"]]
+        self.assertEqual(actual, expected)
+
+    def test_GivenFirstIDFound_FirstIDInLastClusterAndLastPosition_MergedAndFirstIDInFirstCluster(self):
+        actual = merge_clusters(self.clusters, self.small_seqs, first_id="s6")
+        expected = [["s6", "s5"], ["s1", "s2"], ["s3"], ["s4"]]
         self.assertEqual(actual, expected)
 
 
@@ -539,7 +543,7 @@ class TestKMeansOrdering(TestCase):
     in first position of first cluster.
     """
 
-    def test_first_id_in_first_cluster(self):
+    def test_first_id_in_first_cluster___first_id_in_first_pos_of_first_cluster(self):
         alignment = make_alignment(
             [
                 "AATTAATTATATAATAAC",
@@ -548,13 +552,39 @@ class TestKMeansOrdering(TestCase):
             ],
             ["s1", "s2", "s3"],
         )
-        expected_order_1 = ClusteringResult(clustered_ids=[['s1', 's2'], ['s3']])
-        order_1 = kmeans_cluster_seqs(alignment, 5)
-        self.assertEqual(expected_order_1, order_1)
+        expected_order = ClusteringResult(clustered_ids=[['s1', 's2'], ['s3']])
+        order = kmeans_cluster_seqs(alignment, 5)
+        self.assertEqual(expected_order, order)
 
-        expected_order_2 = ClusteringResult(clustered_ids=[['s3'], ['s2', 's1']])
-        order_2 = kmeans_cluster_seqs(alignment[::-1], 5)
-        self.assertEqual(expected_order_2, order_2)
+    def test_first_id_in_last_cluster(self):
+        alignment = make_alignment(
+            [
+                "TTAATTAATTAATTAATT",
+                "AATTAAGTATATAATAAC",
+                "AATTAATTATATAATAAC",
+            ],
+            ["s3", "s2", "s1"],
+        )
+
+        expected_order = ClusteringResult(clustered_ids=[['s3'], ['s2', 's1']])
+        order = kmeans_cluster_seqs(alignment, 5)
+        self.assertEqual(expected_order, order)
+
+    def test_first_id_in_first_cluster___first_id_is_small_seq(self):
+        alignment = make_alignment(
+            [
+                "A-----------------",
+                "AATTAATTATATAATAAC",
+                "AATTAAGTATATAATAAC",
+                "TTAATTAATTAATTAATT",
+            ],
+            ["small", "s2", "s3", "s4"],
+        )
+        expected_order = ClusteringResult(clustered_ids=[['small'], ['s2', 's3'], ['s4']])
+        order = kmeans_cluster_seqs(alignment, 5)
+        self.assertEqual(expected_order, order)
+
+
 
 
 class TestMergeSequences(TestCase):

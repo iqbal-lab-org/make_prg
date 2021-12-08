@@ -189,7 +189,7 @@ def merge_sequences(*seqlists: Sequences, first_seq: str) -> Sequences:
     return merged_expanded_sequences
 
 
-def merge_clusters(clusters: List[ClusteredIDs], first_id: str) -> ClusteredIDs:
+def merge_clusters(*clusters: ClusteredIDs, first_id: str) -> ClusteredIDs:
     merged_clusters = list()
     first_id_cluster = []
     for cluster in chain.from_iterable(clusters):
@@ -199,6 +199,10 @@ def merge_clusters(clusters: List[ClusteredIDs], first_id: str) -> ClusteredIDs:
             merged_clusters.append(cluster)
     if len(first_id_cluster) == 0:
         raise ValueError(f"Could not find {first_id} in any cluster")
+
+    # place first_id in the first position of first_id_cluster
+    first_id_cluster.remove(first_id)
+    first_id_cluster.insert(0, first_id)
     return [first_id_cluster] + merged_clusters
 
 
@@ -214,6 +218,7 @@ def kmeans_cluster_seqs(
     seq_to_ids: SeqToIDs = defaultdict(list)
     seq_to_gapped_seqs: SeqToSeqs = defaultdict(list)
     small_seq_to_ids: SeqToIDs = defaultdict(list)
+    first_id = alignment[0].id
     first_sequence = ungap(str(alignment[0].seq))
 
     for record in alignment:
@@ -229,10 +234,9 @@ def kmeans_cluster_seqs(
     num_sequences = len(seq_to_ids)
     too_few_seqs_to_cluster = num_sequences <= 2
     if too_few_seqs_to_cluster:
-        clustered_ids = [flatten_list(seq_to_ids.values()) + flatten_list(small_seq_to_ids.values())]
-        merged_sequences = merge_sequences(
-            seq_to_ids.keys(), small_seq_to_ids.keys(), first_seq=first_sequence
-        )
+        single_cluster = [flatten_list(seq_to_ids.values()) + flatten_list(small_seq_to_ids.values())]
+        clustered_ids = merge_clusters(single_cluster, first_id=first_id)
+        merged_sequences = merge_sequences(seq_to_ids.keys(), small_seq_to_ids.keys(), first_seq=first_sequence)
         return ClusteringResult(clustered_ids, merged_sequences)
 
     distinct_sequences = list(seq_to_ids)
@@ -263,19 +267,15 @@ def kmeans_cluster_seqs(
 
     no_clustering = num_clusters == 1 or num_clusters == num_sequences
     if no_clustering:
-        clustered_ids = [flatten_list(seq_to_ids.values()) + flatten_list(small_seq_to_ids.values())]
-        merged_sequences = merge_sequences(
-            seq_to_ids.keys(), small_seq_to_ids.keys(), first_seq=first_sequence
-        )
+        single_cluster = [flatten_list(seq_to_ids.values()) + flatten_list(small_seq_to_ids.values())]
+        clustered_ids = merge_clusters(single_cluster, first_id=first_id)
+        merged_sequences = merge_sequences(seq_to_ids.keys(), small_seq_to_ids.keys(), first_seq=first_sequence)
         return ClusteringResult(clustered_ids, merged_sequences)
     else:
-        first_id = alignment[0].id
         clustered_ids: ClusteredIDs = []
         if num_sequences > 0:
             clustered_ids = extract_clusters(seq_to_ids, cluster_assignment)
-        clustered_ids = merge_clusters(
-            [clustered_ids, small_seq_to_ids.values()], first_id
-        )
+        clustered_ids = merge_clusters(clustered_ids, small_seq_to_ids.values(), first_id=first_id)
         assert len(alignment) == sum(
             [len(i) for i in clustered_ids]
         ), "Each input sequence should be in a cluster"
