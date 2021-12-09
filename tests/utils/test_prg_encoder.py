@@ -6,7 +6,7 @@ import random
 from hypothesis import given
 from hypothesis.strategies import characters, integers, from_regex
 
-from make_prg.prg_encoder import PrgEncoder, ConversionError, EncodeError, to_bytes
+from make_prg.utils.prg_encoder import PrgEncoder, ConversionError, EncodeError, to_bytes
 
 
 class TestDnaToInt(TestCase):
@@ -204,7 +204,7 @@ class TestWritePrgInts(TestCase):
 
         # Check call to write triggers the production of bytes
         with patch(
-            "make_prg.prg_encoder.to_bytes", return_value=b""
+            f"{to_bytes.__module__}.{to_bytes.__name__}", return_value=b""
         ) as mocked_to_bytes:
             PrgEncoder.write(prg_ints, ostream)
             expected_bytes_calls = [call(i) for i in prg_ints]
