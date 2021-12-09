@@ -7,7 +7,7 @@ from typing import List, Tuple, Optional
 
 from make_prg.from_msa import MSA
 
-from make_prg.seq_utils import get_expanded_sequences, is_non_match, has_empty_sequence
+from make_prg.utils.seq_utils import SequenceExpander, is_non_match, has_empty_sequence
 
 
 class PartitioningError(Exception):
@@ -17,6 +17,7 @@ class PartitioningError(Exception):
 class IntervalType(Enum):
     Match = auto()
     NonMatch = auto()
+    Root = auto()
 
     @classmethod
     def from_char(cls, letter: str) -> "IntervalType":
@@ -35,6 +36,7 @@ def is_type(letter: str, interval_type: IntervalType) -> bool:
 
 class Interval:
     """Stores a closed interval [a,b]"""
+    # TODO: change to an open interval for consistency with all the other intervals used in make_prg
 
     def __init__(self, it_type: IntervalType, start: int, stop: int = None):
         self.type = it_type
@@ -86,8 +88,12 @@ class IntervalPartitioner:
             it_type = IntervalType.Match
             if any(map(is_non_match, consensus_string)):
                 it_type = IntervalType.NonMatch
-            self._append(Interval(it_type, 0, len(consensus_string) - 1))
 
+            consensus_string_is_empty = (
+                len(consensus_string) == 0
+            )  # happens when the alignment is just gaps
+            if not consensus_string_is_empty:
+                self._append(Interval(it_type, 0, len(consensus_string) - 1))
         else:
             cur_interval = self._new_interval(consensus_string[0], 0)
 
@@ -193,8 +199,8 @@ class IntervalPartitioner:
         for i in reversed(range(len(non_match_intervals))):
             interval = non_match_intervals[i]
             interval_alignment = alignment[:, interval.start : interval.stop + 1]
-            interval_seqs = get_expanded_sequences(interval_alignment)
-            if len(interval_seqs) < 2:
+            expanded_seqs = SequenceExpander.get_expanded_sequences_from_MSA(interval_alignment)
+            if len(expanded_seqs) < 2:
                 changed_interval = non_match_intervals[i]
                 match_intervals.append(
                     Interval(

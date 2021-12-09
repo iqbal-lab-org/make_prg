@@ -1,13 +1,12 @@
-import logging
 from collections import Counter, defaultdict
 from typing import List, Dict, Iterator, Union, Optional
 from itertools import starmap, repeat, chain
-
+from loguru import logger
 import numpy as np
 from sklearn.cluster import KMeans
-
 from make_prg.from_msa import MSA
-from make_prg.seq_utils import ungap, Sequence, Sequences
+from make_prg.utils.misc import flatten_list
+from make_prg.utils.seq_utils import ungap, Sequence, Sequences, SequenceExpander
 
 IDs = List[str]
 SeqToIDs = Dict[Sequence, IDs]
@@ -15,32 +14,6 @@ SeqToSeqs = Dict[Sequence, Sequences]
 ClusteredIDs = List[IDs]
 ClusteredSeqs = List[Sequences]
 KmerIDs = Dict[Sequence, int]
-
-
-class ClusteringResult(object):
-    """
-    Stores the result of clustering as a ClusteredIDs object.
-    If clustering was not meaningful (e.g. one sequence per cluster),
-    returns a set of sequences instead that can be directly used as set of alternative
-    alleles of the variant site under construction.
-    """
-
-    def __init__(
-        self,
-        clustered_ids: Optional[ClusteredIDs],
-        sequences: Optional[Sequences],
-    ):
-        mutually_exclusive = (clustered_ids is None) ^ (sequences is None)
-        assert (
-            mutually_exclusive
-        ), "Input arguments must be mutually exclusively set to 'None'"
-        self.clustered_ids = clustered_ids
-        self.sequences = sequences
-
-    @property
-    def no_clustering(self):
-        return self.clustered_ids is None
-
 
 DISTANCE_THRESHOLD: float = 0.2
 LENGTH_THRESHOLD: int = 5
@@ -153,7 +126,43 @@ def extract_clusters(
     return result
 
 
-def merge_sequences(*seqlists: Sequences, first_seq: str) -> ClusteringResult:
+class ClusteringResult(object):
+    """
+    Stores the result of clustering as a ClusteredIDs object.
+    If clustering was not meaningful (e.g. one sequence per cluster),
+    a set of sequences can be directly used as set of alternative
+    alleles of the variant site under construction.
+    """
+    def __init__(
+        self,
+        clustered_ids: ClusteredIDs,
+        sequences: Optional[Sequences] = None,
+    ):
+        self.clustered_ids: ClusteredIDs = clustered_ids
+        self.sequences: Optional[Sequences] = sequences
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        else:
+            return False
+
+    @property
+    def no_clustering(self):
+        return len(self.clustered_ids) == 1
+
+    @property
+    def have_precomputed_sequences(self):
+        return self.sequences is not None
+
+    def __repr__(self):
+        return f"ClusteringResult(clustered_ids={self.clustered_ids}, sequences={self.sequences})"
+
+    def __str__(self):
+        return self.__repr__()
+
+
+def merge_sequences(*seqlists: Sequences, first_seq: str) -> Sequences:
     first_seq_found = False
     result = list()
     for seqlist in seqlists:
@@ -162,14 +171,24 @@ def merge_sequences(*seqlists: Sequences, first_seq: str) -> ClusteringResult:
                 first_seq_found = True
             else:
                 result.append(sequence)
-    if not first_seq_found:
-        raise ValueError(
-            "Provided sequence argument not found in provided list of sequences"
-        )
-    return ClusteringResult(None, [first_seq] + result)
+
+    # dev's responsibility to pass the correct first_seq argument
+    assert first_seq_found, f"Provided first sequence argument ({first_seq}) not found in provided list of sequences " \
+                            f"({seqlists})"
+
+    merged_unexpanded_sequences = [first_seq] + result
+    merged_expanded_sequences = SequenceExpander.get_expanded_sequences(merged_unexpanded_sequences)
+
+    first_merged_expanded_sequence = merged_expanded_sequences[0]
+    first_seq_has_ambiguous_char = first_seq != first_merged_expanded_sequence
+    if first_seq_has_ambiguous_char:
+        logger.warning(f"Provided first sequence argument ({first_seq}) has an ambiguous base, and thus does not match "
+                       f"expanded first sequence ({first_merged_expanded_sequence})")
+
+    return merged_expanded_sequences
 
 
-def merge_clusters(clusters: List[ClusteredIDs], first_id: str) -> ClusteredIDs:
+def merge_clusters(*clusters: ClusteredIDs, first_id: str) -> ClusteredIDs:
     merged_clusters = list()
     first_id_cluster = []
     for cluster in chain.from_iterable(clusters):
@@ -179,29 +198,29 @@ def merge_clusters(clusters: List[ClusteredIDs], first_id: str) -> ClusteredIDs:
             merged_clusters.append(cluster)
     if len(first_id_cluster) == 0:
         raise ValueError(f"Could not find {first_id} in any cluster")
+
+    # place first_id in the first position of first_id_cluster
+    first_id_cluster.remove(first_id)
+    first_id_cluster.insert(0, first_id)
     return [first_id_cluster] + merged_clusters
 
 
-def kmeans_cluster_seqs_in_interval(
-    interval: List[int],
+def kmeans_cluster_seqs(
     alignment: MSA,
     kmer_size: int,
-) -> ClusteredIDs:
-    """Divide sequences in interval into subgroups of similar sequences.
+) -> ClusteringResult:
+    """Divide sequences into subgroups of similar sequences.
     If no meaningful clustering is found, returns the (deduplicated, ungapped)
     set of input sequences.
     """
-    logging.debug("Get kmeans partition of interval [%d, %d]", interval[0], interval[1])
-
-    interval_alignment = alignment[:, interval[0] : interval[1] + 1]
-    first_sequence = ungap(str(interval_alignment[0].seq))
-
     # Find unique sequences for clustering, but keep each sequence's IDs
     seq_to_ids: SeqToIDs = defaultdict(list)
     seq_to_gapped_seqs: SeqToSeqs = defaultdict(list)
     small_seq_to_ids: SeqToIDs = defaultdict(list)
+    first_id = alignment[0].id
+    first_sequence = ungap(str(alignment[0].seq))
 
-    for record in interval_alignment:
+    for record in alignment:
         seq_with_gaps = str(record.seq)
         seq = ungap(seq_with_gaps)
         if len(seq) >= kmer_size:
@@ -214,9 +233,10 @@ def kmeans_cluster_seqs_in_interval(
     num_sequences = len(seq_to_ids)
     too_few_seqs_to_cluster = num_sequences <= 2
     if too_few_seqs_to_cluster:
-        return merge_sequences(
-            seq_to_ids.keys(), small_seq_to_ids.keys(), first_seq=first_sequence
-        )
+        single_cluster = [flatten_list(seq_to_ids.values()) + flatten_list(small_seq_to_ids.values())]
+        clustered_ids = merge_clusters(single_cluster, first_id=first_id)
+        merged_sequences = merge_sequences(seq_to_ids.keys(), small_seq_to_ids.keys(), first_seq=first_sequence)
+        return ClusteringResult(clustered_ids, merged_sequences)
 
     distinct_sequences = list(seq_to_ids)
     distinct_kmers = count_distinct_kmers(distinct_sequences, kmer_size)
@@ -246,18 +266,16 @@ def kmeans_cluster_seqs_in_interval(
 
     no_clustering = num_clusters == 1 or num_clusters == num_sequences
     if no_clustering:
-        return merge_sequences(
-            seq_to_ids.keys(), small_seq_to_ids.keys(), first_seq=first_sequence
-        )
+        single_cluster = [flatten_list(seq_to_ids.values()) + flatten_list(small_seq_to_ids.values())]
+        clustered_ids = merge_clusters(single_cluster, first_id=first_id)
+        merged_sequences = merge_sequences(seq_to_ids.keys(), small_seq_to_ids.keys(), first_seq=first_sequence)
+        return ClusteringResult(clustered_ids, merged_sequences)
     else:
-        first_id = interval_alignment[0].id
         clustered_ids: ClusteredIDs = []
         if num_sequences > 0:
             clustered_ids = extract_clusters(seq_to_ids, cluster_assignment)
-        clustered_ids = merge_clusters(
-            [clustered_ids, small_seq_to_ids.values()], first_id
-        )
-        assert len(interval_alignment) == sum(
+        clustered_ids = merge_clusters(clustered_ids, small_seq_to_ids.values(), first_id=first_id)
+        assert len(alignment) == sum(
             [len(i) for i in clustered_ids]
         ), "Each input sequence should be in a cluster"
-        return ClusteringResult(clustered_ids, None)
+        return ClusteringResult(clustered_ids)
