@@ -12,7 +12,7 @@ from pathlib import Path
 from zipfile import ZipFile
 
 
-def load_alignment_file(msa_file: [str, Path], alignment_format: str) -> MSA:
+def load_alignment_file(msa_file: Union[str, Path], alignment_format: str) -> MSA:
     msa_file = str(msa_file)
     if msa_file.endswith(".gz"):
         handle = gzip.open(msa_file, "rt")
