@@ -159,15 +159,12 @@ def align(seq1: str, seq2: str,
     )
     empty_alignment = len(alignment) == 0
     if empty_alignment:
-        #  this usually happens if ref or alt are empty, let's check
+        #  this only happens if ref or alt are empty
         ref_is_empty = len(seq1) == 0
         alt_is_empty = len(seq2) == 0
 
-        # only one should be empty
-        both_are_empty = ref_is_empty and alt_is_empty
-        assert not both_are_empty
         both_are_not_empty = (not ref_is_empty) and (not alt_is_empty)
-        assert not both_are_not_empty
+        assert not both_are_not_empty, "Alignment error: got an empty alignment from two non-empty input sequences"
 
         if ref_is_empty:
             return GAP * len(seq2), seq2

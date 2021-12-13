@@ -362,9 +362,10 @@ class TestAlign(TestCase):
 
         self.assertEqual(expected, actual)
 
-    def test___align___both_seqs_are_empty___raises_AssertionError(self):
-        with self.assertRaises(AssertionError):
-            align("", "")
+    def test___align___both_seqs_are_empty(self):
+        expected = ("", "")
+        actual = align("", "")
+        self.assertEqual(expected, actual)
 
     def test___align___several_equally_good_alignments___only_one_is_chosen(self):
         seq1 = "A"
