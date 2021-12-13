@@ -1,15 +1,15 @@
 import gzip
 import fileinput
 import shutil
-import uuid
 from Bio import AlignIO
 import os
 from loguru import logger
 from make_prg.from_msa import MSA
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple, Union
 from collections import defaultdict
 from pathlib import Path
 from zipfile import ZipFile
+import tempfile
 
 
 def load_alignment_file(msa_file: Union[str, Path], alignment_format: str) -> MSA:
@@ -65,10 +65,9 @@ def output_files_already_exist(output_prefix: str):
     )
 
 
-def create_temp_dir(output_prefix: str) -> Path:
-    temp_dir = Path(output_prefix + "_" + str(uuid.uuid4()))
-    temp_dir.mkdir(parents=True, exist_ok=False)
-    return temp_dir
+def create_temp_dir(output_dir: Path) -> Path:
+    temp_dir = tempfile.mkdtemp(dir=output_dir)
+    return Path(temp_dir)
 
 
 def get_temp_dir_for_multiprocess(root_temp_dir: Path):

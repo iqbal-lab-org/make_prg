@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-import uuid
 import shutil
 from pathlib import Path
 from typing import Set
@@ -9,11 +8,7 @@ from loguru import logger
 import os
 from Bio.AlignIO import MultipleSeqAlignment
 from Bio import SeqIO
-from make_prg.utils.io_utils import load_alignment_file
-
-
-class TempDirAlreadyExistsError(Exception):
-    pass
+from make_prg.utils.io_utils import load_alignment_file, create_temp_dir
 
 
 class NotAValidExecutableError(Exception):
@@ -87,20 +82,12 @@ class MAFFT(MSAAligner):
     def get_aligner_name(cls) -> str:
         return "MAFFT"
 
-    def _prepare_run_tmpdir(self) -> Path:
-        run_tmpdir = self._tmpdir / f"temp.MSA.{uuid.uuid4()}"
-        if run_tmpdir.exists():
-            raise TempDirAlreadyExistsError(f"{str(run_tmpdir)} already exists, cannot be created, "
-                                            f"this is very unlikely.")
-        run_tmpdir.mkdir(parents=True)
-        return run_tmpdir
-
     def _cleanup_run(self, run_tmpdir: Path):
         shutil.rmtree(run_tmpdir)
 
     def get_updated_alignment(self, current_alignment: MultipleSeqAlignment, new_sequences: Set[str]) -> MultipleSeqAlignment:
         # setup
-        run_tmpdir = self._prepare_run_tmpdir()
+        run_tmpdir = create_temp_dir(self._tmpdir)
 
         current_msa_filepath = run_tmpdir / "previous_msa.fa"
         with open(current_msa_filepath, "w") as current_msa_handler:

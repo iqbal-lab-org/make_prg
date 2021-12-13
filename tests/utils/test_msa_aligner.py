@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock, mock_open
 import os
-from make_prg.utils.msa_aligner import MAFFT, NotAValidExecutableError, ExecutionError, TempDirAlreadyExistsError
+from make_prg.utils.msa_aligner import MAFFT, NotAValidExecutableError, ExecutionError
 from pathlib import Path
 import subprocess
 import filecmp
@@ -86,29 +86,6 @@ class TestMAFFT(TestCase):
         self.assertEqual(expected, actual)
 
     @patch("shutil.which", return_value=1)
-    @patch("uuid.uuid4", return_value=1)
-    @patch.object(Path, Path.exists.__name__, return_value=False)
-    @patch.object(Path, Path.mkdir.__name__)
-    def test___prepare_run_tmpdir___tmpdir_is_created(self, mkdir_mock, *uninteresting_mocks):
-        mafft = MAFFT(self.executable, self.tmpdir)
-
-        expected = self.tmpdir / "temp.MSA.1"
-        actual = mafft._prepare_run_tmpdir()
-
-        self.assertEqual(expected, actual)
-        mkdir_mock.assert_called_with(parents=True)
-
-    @patch("shutil.which", return_value=1)
-    @patch("uuid.uuid4", return_value=1)
-    @patch.object(Path, Path.exists.__name__, return_value=True)
-    @patch.object(Path, Path.mkdir.__name__)
-    def test___prepare_run_tmpdir___tmpdir_already_exists___raises_TempDirAlreadyExistsError(self, mkdir_mock, *uninteresting_mocks):
-        mafft = MAFFT(self.executable, self.tmpdir)
-
-        with self.assertRaises(TempDirAlreadyExistsError):
-            mafft._prepare_run_tmpdir()
-
-    @patch("shutil.which", return_value=1)
     @patch.object(Path, Path.mkdir.__name__)
     @patch("shutil.rmtree")
     def test___cleanup_run(self, shutil_rmtree_mock, *uninteresting_mocks):
@@ -123,14 +100,14 @@ class TestMAFFT(TestCase):
     @patch.object(MAFFT, MAFFT._create_new_sequences_file.__name__, return_value=Path("_create_new_sequences_file"))
     @patch("os.environ", {"fake_key_1": "fake_value_1"})
     @patch.object(Path, Path.mkdir.__name__)
-    @patch.object(MAFFT, MAFFT._prepare_run_tmpdir.__name__, return_value=Path("_prepare_run_tmpdir"))
+    @patch("make_prg.utils.msa_aligner.create_temp_dir", return_value=Path("fake_tmp_dir"))
     @patch("builtins.open", new_callable=mock_open)
     @patch.object(SeqIO, SeqIO.write.__name__)
     @patch.object(MAFFT, MAFFT._run_aligner.__name__)
     @patch("make_prg.utils.msa_aligner.load_alignment_file", return_value="updated_alignment")
     @patch.object(MAFFT, MAFFT._cleanup_run.__name__)
     def test___get_updated_alignment(self, cleanup_run_mock, load_alignment_file_mock, run_aligner_mock, write_mock,
-                                     open_mock, prepare_run_tmpdir_mock, *uninteresting_mocks):
+                                     open_mock, create_temp_dir_mock, *uninteresting_mocks):
         mafft = MAFFT(self.executable, self.tmpdir)
         alignment = make_alignment([
             "AAAA",
@@ -152,8 +129,8 @@ class TestMAFFT(TestCase):
         self.assertEqual(expected_updated_alignment, actual_updated_alignment)
 
         # TODO: ensure calls are in the correct order
-        prepare_run_tmpdir_mock.assert_called_with()
-        open_mock.assert_called_once_with(Path('_prepare_run_tmpdir/previous_msa.fa'), 'w')
+        create_temp_dir_mock.assert_called_once_with(mafft._tmpdir)
+        open_mock.assert_called_once_with(Path('fake_tmp_dir/previous_msa.fa'), 'w')
 
         write_mock.assert_called_once()
         # did not manage to assert equality of arg [1] (which is the open_mock handler)
@@ -162,7 +139,7 @@ class TestMAFFT(TestCase):
         self.assertEqual("fasta", write_mock.call_args[0][2])
 
         run_aligner_mock.assert_called_once_with(
-            'fake_exec --auto --quiet --thread 1 --add _create_new_sequences_file _prepare_run_tmpdir/previous_msa.fa > _prepare_run_tmpdir/updated_msa.fa',
-            {"fake_key_1": "fake_value_1", "TMPDIR": "_prepare_run_tmpdir"})
-        load_alignment_file_mock.assert_called_once_with("_prepare_run_tmpdir/updated_msa.fa", "fasta")
-        cleanup_run_mock.assert_called_once_with(Path("_prepare_run_tmpdir"))
+            'fake_exec --auto --quiet --thread 1 --add _create_new_sequences_file fake_tmp_dir/previous_msa.fa > fake_tmp_dir/updated_msa.fa',
+            {"fake_key_1": "fake_value_1", "TMPDIR": "fake_tmp_dir"})
+        load_alignment_file_mock.assert_called_once_with("fake_tmp_dir/updated_msa.fa", "fasta")
+        cleanup_run_mock.assert_called_once_with(Path("fake_tmp_dir"))
