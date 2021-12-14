@@ -121,8 +121,8 @@ class SequenceExpander:
 
         expanded_seqs = []
         expanded_set = set()
-        deduplicated_gapless_seqs = remove_duplicates(sequences)
-        for seq in deduplicated_gapless_seqs:
+
+        for seq in remove_duplicates(sequences):
             if "N" in seq:
                 continue
 
