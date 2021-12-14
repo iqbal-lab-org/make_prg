@@ -158,7 +158,8 @@ def get_stats_on_variants(stats_files: List[Path]) -> Tuple[int, int]:
     return nb_of_variants_successfully_applied, nb_of_variants_that_failed_to_be_applied
 
 
-# this avoids circular import issues, probably has a better way through this though
+# TODO: this import is here to avoid circular import issues, but it is not ideal.
+# TODO: Find a better way to solve this
 from make_prg import prg_builder
 
 
