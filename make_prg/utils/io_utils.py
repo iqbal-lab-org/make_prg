@@ -11,6 +11,7 @@ from pathlib import Path
 from zipfile import ZipFile
 import tempfile
 from dataclasses import dataclass
+import re
 
 
 def load_alignment_file(msa_file: Union[str, Path], alignment_format: str) -> MSA:
@@ -97,12 +98,12 @@ class SetOutputFiles:
     pickle: Optional[Path] = None
     stats: Optional[Path] = None
 
+    clear_temp_extensions_pattern = re.compile(r"(\.fa|\.prg|\.pickle|\.stats|\.bin|\.gfa)$")
+
     @staticmethod
     def clear_temp_extensions(filename: str) -> str:
         while True:
-            file_should_be_cleared = filename.endswith(".fa") or filename.endswith(".prg") or \
-                                     filename.endswith(".pickle") or filename.endswith(".stats") or \
-                                     filename.endswith(".bin") or filename.endswith(".gfa")
+            file_should_be_cleared = re.search(SetOutputFiles.clear_temp_extensions_pattern, filename) is not None
             if file_should_be_cleared:
                 filename = Path(filename).with_suffix("").name
             else:
