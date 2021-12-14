@@ -154,6 +154,7 @@ def align(seq1: str, seq2: str,
           mismatch_score: float = -0.9,
           gap_open_score: float = -1.1,
           gap_extend_score: float = -1) -> Tuple[str, str]:
+    # TODO: replace alignment library from BioPython to e.g. edlib due to performance reasons?
     alignment = pairwise2.align.globalms(
         seq1, seq2, match_score, mismatch_score, gap_open_score, gap_extend_score, one_alignment_only=True
     )
