@@ -10,6 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 from zipfile import ZipFile
 import tempfile
+from dataclasses import dataclass
 
 
 def load_alignment_file(msa_file: Union[str, Path], alignment_format: str) -> MSA:
@@ -85,18 +86,16 @@ def zip_set_of_files(zip_filepath: Path, filename_to_filepath: Dict[str, Path]):
 
 
 # Note: this whole class is not unit tested
+@dataclass
 class SetOutputFiles:
     """
     Class that represents all files that were generated in processing a PRG (PRG fasta, GFA, pickles, etc)
     """
-    def __init__(self, PRG: Optional[Path] = None, binary_PRG: Optional[Path] = None,
-                 gfa: Optional[Path] = None, pickle: Optional[Path] = None,
-                 stats: Optional[Path] = None):
-        self.PRG: Optional[Path] = PRG
-        self.binary_PRG: Optional[Path] = binary_PRG
-        self.gfa: Optional[Path] = gfa
-        self.pickle: Optional[Path] = pickle
-        self.stats: Optional[Path] = stats
+    PRG: Optional[Path] = None
+    binary_PRG: Optional[Path] = None
+    gfa: Optional[Path] = None
+    pickle: Optional[Path] = None
+    stats: Optional[Path] = None
 
     @staticmethod
     def clear_temp_extensions(filename: str) -> str:

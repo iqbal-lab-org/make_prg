@@ -7,6 +7,7 @@ from sklearn.cluster import KMeans
 from make_prg.from_msa import MSA
 from make_prg.utils.misc import flatten_list
 from make_prg.utils.seq_utils import ungap, Sequence, Sequences, SequenceExpander
+from dataclasses import dataclass
 
 IDs = List[str]
 SeqToIDs = Dict[Sequence, IDs]
@@ -126,6 +127,7 @@ def extract_clusters(
     return result
 
 
+@dataclass
 class ClusteringResult(object):
     """
     Stores the result of clustering as a ClusteredIDs object.
@@ -133,19 +135,8 @@ class ClusteringResult(object):
     a set of sequences can be directly used as set of alternative
     alleles of the variant site under construction.
     """
-    def __init__(
-        self,
-        clustered_ids: ClusteredIDs,
-        sequences: Optional[Sequences] = None,
-    ):
-        self.clustered_ids: ClusteredIDs = clustered_ids
-        self.sequences: Optional[Sequences] = sequences
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            return self.__dict__ == other.__dict__
-        else:
-            return False
+    clustered_ids: ClusteredIDs
+    sequences: Optional[Sequences] = None
 
     @property
     def no_clustering(self):
@@ -154,9 +145,6 @@ class ClusteringResult(object):
     @property
     def have_precomputed_sequences(self):
         return self.sequences is not None
-
-    def __repr__(self):
-        return f"ClusteringResult(clustered_ids={self.clustered_ids}, sequences={self.sequences})"
 
     def __str__(self):
         return self.__repr__()
