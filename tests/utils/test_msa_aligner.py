@@ -52,7 +52,7 @@ class TestMAFFT(TestCase):
     @patch("subprocess.Popen")
     def test___run_aligner___fail_run(self, popen_mock, *uninteresting_mocks):
         wait_mock = Mock()
-        wait_mock.wait.return_value = 1
+        wait_mock.wait.return_value = 1  # this mocks an exit code of 1 (i.e. fail) when invoking MAFFT
         popen_mock.return_value = wait_mock
         args = "fake_arg_1 fake_arg_2 fake_arg_3"
         env = {"fake_key_1": "fake_value_1", "fake_key_2": "fake_value_2"}
