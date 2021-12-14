@@ -103,7 +103,7 @@ class SequenceExpander:
     def check_all_sequences_are_composed_of_ACGT(cls, sequences: List[str]):
         for sequence in sequences:
             sequence_is_composed_of_ACGT_only = set(sequence).issubset(cls.standard_bases)
-            assert sequence_is_composed_of_ACGT_only, f"Sequence ({sequence}) should be composed only of ACTG only."
+            assert sequence_is_composed_of_ACGT_only, f"Sequence ({sequence}) should be composed of ACTG only."
 
     @classmethod
     def get_expanded_sequences(cls, sequences: List[str]) -> Sequences:
