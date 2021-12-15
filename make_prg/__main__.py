@@ -1,8 +1,10 @@
 import argparse
-import logging
+import sys
+
+from loguru import logger
 
 from make_prg import __version__
-from make_prg.subcommands import from_msa
+from make_prg.subcommands import from_msa, update
 
 
 def main():
@@ -17,23 +19,29 @@ def main():
         title="Available subcommands", help="", metavar=""
     )
 
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        dest="verbose",
-        action="store_true",
-        help="Run with high verbosity (debug level logging)",
-    )
+    msa_parser = from_msa.register_parser(subparsers)
+    update_parser = update.register_parser(subparsers)
 
-    from_msa.register_parser(subparsers)
+    for par in [msa_parser, update_parser]:
+        par.add_argument(
+            "-v",
+            "--verbose",
+            action='count',
+            default=0,
+            help="Increase output verbosity (-v for debug, -vv for trace - trace is for developers only)",
+        )
+        par.add_argument("--log", help="Path to write log to. Default is stderr")
 
     args = parser.parse_args()
 
-    if args.verbose:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
-    logging.basicConfig(level=log_level, handlers=[])
+    if hasattr(args, "verbose") and hasattr(args, "log"):
+        log_levels = ["INFO", "DEBUG", "TRACE"]
+        log_level = log_levels[min(args.verbose, 2)]
+        log_file = args.log if args.log else sys.stderr
+        handlers = [
+            dict(sink=log_file, enqueue=True, level=log_level),
+        ]
+        logger.configure(handlers=handlers)
 
     if hasattr(args, "func"):
         args.func(args)
