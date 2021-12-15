@@ -154,24 +154,19 @@ def align(seq1: str, seq2: str,
           mismatch_score: float = -0.9,
           gap_open_score: float = -1.1,
           gap_extend_score: float = -1) -> Tuple[str, str]:
-    # TODO: replace alignment library from BioPython to e.g. edlib due to performance reasons?
-    alignment = pairwise2.align.globalms(
-        seq1, seq2, match_score, mismatch_score, gap_open_score, gap_extend_score, one_alignment_only=True
-    )
-    empty_alignment = len(alignment) == 0
-    if empty_alignment:
-        #  this only happens if ref or alt are empty
-        ref_is_empty = len(seq1) == 0
-        alt_is_empty = len(seq2) == 0
 
-        both_are_not_empty = (not ref_is_empty) and (not alt_is_empty)
-        assert not both_are_not_empty, "Alignment error: got an empty alignment from two non-empty input sequences"
+    seq1_is_empty = len(seq1) == 0
+    seq2_is_empty = len(seq2) == 0
 
-        if ref_is_empty:
-            return GAP * len(seq2), seq2
-        else:  # alt_is_empty
-            return seq1, GAP * len(seq1)
+    if seq1_is_empty:
+        return GAP * len(seq2), seq2
+    elif seq2_is_empty:
+        return seq1, GAP * len(seq1)
     else:
+        # TODO: replace alignment library from BioPython to e.g. edlib due to performance reasons?
+        alignment = pairwise2.align.globalms(
+            seq1, seq2, match_score, mismatch_score, gap_open_score, gap_extend_score, one_alignment_only=True
+        )
         alignment = alignment[0]
         return alignment.seqA, alignment.seqB
 
