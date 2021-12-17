@@ -170,7 +170,7 @@ def run(cl_options):
         update_shared_data = UpdateSharedData(denovo_variants_db, mafft_aligner)
 
         output_dir = Path(options.output_prefix).parent
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir.mkdir(exist_ok=True)
 
         # update all PRGs with denovo sequences
         logger.info(f"Using {options.threads} threads to update PRGs...")
