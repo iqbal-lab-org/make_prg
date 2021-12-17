@@ -25,23 +25,16 @@ def register_parser(subparsers):
     )
     subparser_msa.add_argument(
         "-o",
-        "--output_prefix",
+        "--output-prefix",
+        dest="output_prefix",
         action="store",
         type=str,
         required=True,
         help="Prefix for the output files",
     )
     subparser_msa.add_argument(
-        "-t",
-        "--threads",
-        action="store",
-        type=int,
-        default=1,
-        help="Number of threads Default: %(default)d",
-    )
-    subparser_msa.add_argument(
         "-f",
-        "--alignment_format",
+        "--alignment-format",
         dest="alignment_format",
         action="store",
         default="fasta",
@@ -52,31 +45,24 @@ def register_parser(subparsers):
     )
     subparser_msa.add_argument(
         "-N",
-        "--max_nesting",
+        "--max-nesting",
         dest="max_nesting",
         action="store",
         type=int,
         default=NESTING_LVL,
-        help="Maximum number of levels to use for nesting. Default: %(default)s",
+        help="Maximum number of levels to use for nesting. Default: %(default)d",
     )
     subparser_msa.add_argument(
         "-L",
-        "--min_match_length",
+        "--min-match-length",
         dest="min_match_length",
         action="store",
         type=int,
         default=MIN_MATCH_LEN,
         help=(
             "Minimum number of consecutive characters which must be identical for a "
-            "match. Default: %(default)s"
+            "match. Default: %(default)d"
         ),
-    )
-    subparser_msa.add_argument(
-        "--output-graphs",
-        dest="output_graphs",
-        action="store_true",
-        default=False,
-        help="Outputs the recursive tree graphical representation (for development use only)",
     )
 
     subparser_msa.set_defaults(func=run)

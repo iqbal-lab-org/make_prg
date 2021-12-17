@@ -25,19 +25,30 @@ def register_parser(subparsers):
         return argument
     subparser_update_prg.add_argument(
         "-u",
-        "--update_DS",
+        "--update-DS",
+        dest="update_DS",
         action="store",
         type=lambda argument: check_if_is_update_file(argument),
         required=True,
         help=(
             "Filepath to the update data structures (a *.update_DS.zip file created "
-            "from make_prg from_msa)"
+            "from make_prg from_msa or update)"
         ),
 
     )
     subparser_update_prg.add_argument(
+        "-o",
+        "--output-prefix",
+        dest="output_prefix",
+        action="store",
+        type=str,
+        required=True,
+        help="Prefix for the output files",
+    )
+    subparser_update_prg.add_argument(
         "-d",
-        "--denovo_paths",
+        "--denovo-paths",
+        dest="denovo_paths",
         action="store",
         type=str,
         required=True,
@@ -46,32 +57,10 @@ def register_parser(subparsers):
         ),
     )
     subparser_update_prg.add_argument(
-        "-o",
-        "--output_prefix",
-        action="store",
-        type=str,
-        required=True,
-        help="Prefix for the output files",
-    )
-    subparser_update_prg.add_argument(
-        "-t",
-        "--threads",
-        action="store",
-        type=int,
-        default=1,
-        help="Number of threads Default: %(default)d",
-    )
-    subparser_update_prg.add_argument(
+        "-m",
         "--mafft",
         help="Path to MAFFT executable. By default, it is assumed to be on $PATH",
         default="mafft",
-    )
-    subparser_update_prg.add_argument(
-        "--output_graphs",
-        dest="output_graphs",
-        action="store_true",
-        default=False,
-        help="Outputs the recursive tree graphical representation (for development use only)",
     )
     subparser_update_prg.set_defaults(func=run)
 
