@@ -72,7 +72,7 @@ def register_parser(subparsers):
         ),
     )
     subparser_msa.add_argument(
-        "--output_graphs",
+        "--output-graphs",
         dest="output_graphs",
         action="store_true",
         default=False,
