@@ -93,7 +93,7 @@ def get_all_input_files(input_path: str) -> List[Path]:
         all_files = [input_path]
     else:
         all_files = [
-            Path(path).absolute() for path in input_path.iterdir() if path.is_file()
+            path.resolve() for path in input_path.iterdir() if path.is_file()
         ]
     return all_files
 
