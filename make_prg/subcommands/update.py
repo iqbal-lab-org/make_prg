@@ -59,7 +59,7 @@ def register_parser(subparsers):
         action="store",
         type=int,
         default=1,
-        help="Number of threads (default 1)",
+        help="Number of threads Default: %(default)d",
     )
     subparser_update_prg.add_argument(
         "--mafft",
