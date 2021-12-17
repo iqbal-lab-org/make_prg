@@ -20,10 +20,7 @@ def register_parser(subparsers):
         type=str,
         required=True,
         help=(
-            "Input data. If it is a file, will be read as the supported alignment_format (see "
-            "parameter --alignment_format). A single PRG, GFA and update data structures will "
-            "be created for the given MSA. If it is a dir, will process all files in the dir. "
-            "Multiple PRGs, GFAs and update data structures will be created, one for each MSA"
+            "Multiple sequence alignment file or a directory containing such files"
         ),
     )
     subparser_msa.add_argument(
