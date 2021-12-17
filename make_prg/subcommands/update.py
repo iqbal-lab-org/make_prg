@@ -31,7 +31,7 @@ def register_parser(subparsers):
         required=True,
         help=(
             "Filepath to the update data structures (a *.update_DS.zip file created "
-            "by make_prg from_msa)"
+            "from make_prg from_msa)"
         ),
 
     )
