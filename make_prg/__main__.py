@@ -36,7 +36,7 @@ def main():
 
     log_levels = ["INFO", "DEBUG", "TRACE"]
     log_level = log_levels[min(args.verbose, len(log_levels) - 1)]
-    log_file = args.log if args.log else sys.stderr
+    log_file = args.log or sys.stderr
     handlers = [
         dict(sink=log_file, enqueue=True, level=log_level),
     ]
