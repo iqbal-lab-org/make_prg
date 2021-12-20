@@ -1,4 +1,3 @@
-import os
 from typing import List
 import multiprocessing
 from pathlib import Path
@@ -144,9 +143,6 @@ def run(cl_options):
     temp_dir = io_utils.create_temp_dir(output_dir)
     options.temp_dir = temp_dir
 
-    use_all_cpus = options.threads == 0
-    if use_all_cpus:
-        options.threads = os.cpu_count()
     logger.info(f"Using {options.threads} threads to generate PRGs...")
     with multiprocessing.Pool(options.threads, maxtasksperchild=1) as pool:
         pool.map(process_MSA, input_files, chunksize=1)

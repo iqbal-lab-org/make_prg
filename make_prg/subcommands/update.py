@@ -6,7 +6,6 @@ from make_prg.update.denovo_variants import DenovoVariantsDB
 from make_prg.prg_builder import PrgBuilderZipDatabase, LeafNotFoundException
 from make_prg.utils.msa_aligner import MAFFT, MSAAligner
 from dataclasses import dataclass
-import os
 
 
 def register_parser(subparsers):
@@ -170,9 +169,6 @@ def run(cl_options):
         output_dir.mkdir(exist_ok=True)
 
         # update all PRGs with denovo sequences
-        use_all_cpus = options.threads == 0
-        if use_all_cpus:
-            options.threads = os.cpu_count()
         logger.info(f"Using {options.threads} threads to update PRGs...")
         multithreaded_input = prg_builder_zip_db.get_loci_names()
         with multiprocessing.Pool(options.threads, maxtasksperchild=1) as pool:
