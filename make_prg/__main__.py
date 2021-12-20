@@ -6,10 +6,20 @@ from loguru import logger
 from make_prg import __version__
 from make_prg.subcommands import from_msa, update
 from typing import List
+from make_prg.subcommands.output_type import OutputType
 
 
 def setup_common_last_options(parsers: List[argparse.ArgumentParser]):
     for par in parsers:
+        par.add_argument(
+            "-O",
+            "--output-type",
+            default="a",
+            help="p: PRG, b: Binary, g: GFA, a: All. Combinations are allowed i.e., gb: GFA and Binary. "
+                 "Default: %(default)s",
+            type=OutputType,
+        )
+
         par.add_argument(
             "-t",
             "--threads",

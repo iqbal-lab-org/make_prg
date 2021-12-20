@@ -121,7 +121,9 @@ def update(locus_name: str):
     logger.info(f"Writing output files of locus {locus_name}")
     prg = prg_builder_for_locus.build_prg()
     prg_builder_for_locus.write_prg(str(locus_prefix), prg)
-    gfa.GFA_Output.write_gfa(str(locus_prefix), prg)
+
+    if options.output_type.gfa:
+        gfa.GFA_Output.write_gfa(str(locus_prefix), prg)
     prg_builder_for_locus.serialize(f"{locus_prefix}.pickle")
     with open(f"{locus_prefix}.stats", "w") as stats_filehandler:
         print(
@@ -169,7 +171,8 @@ def run(cl_options):
         logger.success(f"All PRGs updated!")
 
         is_a_single_MSA = prg_builder_zip_db.get_number_of_loci() == 1
-        io_utils.create_final_files(temp_dir, options.output_prefix, is_a_single_MSA=is_a_single_MSA, output_stats=True)
+        io_utils.create_final_files(temp_dir, options.output_prefix, options.output_type,
+                                    is_a_single_MSA=is_a_single_MSA, output_stats=True)
         logger.success("All done!")
     finally:
         if prg_builder_zip_db is not None:

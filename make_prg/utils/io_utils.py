@@ -12,6 +12,7 @@ from zipfile import ZipFile
 import tempfile
 from dataclasses import dataclass
 import re
+from make_prg.subcommands.output_type import OutputType
 
 
 def load_alignment_file(msa_file: Union[str, Path], alignment_format: str) -> MSA:
@@ -164,15 +165,16 @@ from make_prg import prg_builder
 
 
 # Note: not unit tested
-def create_final_files(temp_dir: Path, output_prefix: str, is_a_single_MSA: bool, output_stats: bool = False):
+def create_final_files(temp_dir: Path, output_prefix: str, output_type: OutputType, is_a_single_MSA: bool,
+                       output_stats: bool = False):
     logger.info("Concatenating files from several threads into single final files...")
-
-    logger.info("Creating FASTA file of PRGs...")
     locus_to_set_of_output_files = SetOutputFiles.get_locus_to_set_of_output_files(temp_dir / "mp_temp")
 
-    prg_files = [output_files.PRG for output_files in locus_to_set_of_output_files.values()]
-    prg_files = sorted(prg_files)  # guarantees reproducibility
-    concatenate_text_files(prg_files, output_prefix + ".prg.fa")
+    if output_type.prg:
+        logger.info("Creating FASTA file of PRGs...")
+        prg_files = [output_files.PRG for output_files in locus_to_set_of_output_files.values()]
+        prg_files = sorted(prg_files)  # guarantees reproducibility
+        concatenate_text_files(prg_files, output_prefix + ".prg.fa")
 
     # zip all PRG Builders
     logger.info("Creating update data structures...")
@@ -182,22 +184,24 @@ def create_final_files(temp_dir: Path, output_prefix: str, is_a_single_MSA: bool
     prg_builder_zip_db.save(locus_to_prg_builder_pickle_path)
 
     # zip all encoded PRGs
-    logger.info("Creating encoded PRGs...")
-    filename_to_encoded_PRG_paths = {output_files.binary_PRG.name: output_files.binary_PRG
-                                     for output_files in locus_to_set_of_output_files.values()}
-    if is_a_single_MSA:
-        shutil.copy(list(filename_to_encoded_PRG_paths.values())[0], f"{output_prefix}.prg.bin")
-    else:
-        zip_set_of_files(Path(f"{output_prefix}.prg.bin.zip"), filename_to_encoded_PRG_paths)
+    if output_type.binary:
+        logger.info("Creating binary PRGs...")
+        filename_to_encoded_PRG_paths = {output_files.binary_PRG.name: output_files.binary_PRG
+                                         for output_files in locus_to_set_of_output_files.values()}
+        if is_a_single_MSA:
+            shutil.copy(list(filename_to_encoded_PRG_paths.values())[0], f"{output_prefix}.prg.bin")
+        else:
+            zip_set_of_files(Path(f"{output_prefix}.prg.bin.zip"), filename_to_encoded_PRG_paths)
 
     # zip all GFAs
-    logger.info("Creating GFAs...")
-    filename_to_gfa_paths = {output_files.gfa.name: output_files.gfa
-                             for output_files in locus_to_set_of_output_files.values()}
-    if is_a_single_MSA:
-        shutil.copy(list(filename_to_gfa_paths.values())[0], f"{output_prefix}.prg.gfa")
-    else:
-        zip_set_of_files(Path(f"{output_prefix}.prg.gfa.zip"), filename_to_gfa_paths)
+    if output_type.gfa:
+        logger.info("Creating GFAs...")
+        filename_to_gfa_paths = {output_files.gfa.name: output_files.gfa
+                                 for output_files in locus_to_set_of_output_files.values()}
+        if is_a_single_MSA:
+            shutil.copy(list(filename_to_gfa_paths.values())[0], f"{output_prefix}.prg.gfa")
+        else:
+            zip_set_of_files(Path(f"{output_prefix}.prg.gfa.zip"), filename_to_gfa_paths)
 
     # sum up stats files and output stats
     if output_stats:

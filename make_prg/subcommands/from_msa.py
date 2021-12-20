@@ -105,7 +105,9 @@ def process_MSA(msa_filepath: Path):
         logger.info(f"Writing output files of locus {msa_name}")
         prg = builder.build_prg()
         builder.write_prg(prefix, prg)
-        gfa.GFA_Output.write_gfa(prefix, prg)
+
+        if options.output_type.gfa:
+            gfa.GFA_Output.write_gfa(prefix, prg)
         builder.serialize(f"{prefix}.pickle")
         if options.output_graphs:
             builder.output_debug_graphs(Path(options.output_prefix + "_debug_graphs"))
@@ -147,5 +149,6 @@ def run(cl_options):
         pool.map(process_MSA, input_files, chunksize=1)
     logger.success(f"All PRGs generated!")
 
-    io_utils.create_final_files(temp_dir, options.output_prefix, is_a_single_MSA=is_a_single_file)
+    io_utils.create_final_files(temp_dir, options.output_prefix, options.output_type,
+                                is_a_single_MSA=is_a_single_file)
     logger.success("All done!")
