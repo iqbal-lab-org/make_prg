@@ -1,5 +1,6 @@
 import argparse
 import sys
+import os
 
 from loguru import logger
 
@@ -79,6 +80,10 @@ def main():
     args = parser.parse_args()
 
     setup_logger(args)
+
+    use_all_cpus = args.threads == 0
+    if use_all_cpus:
+        args.threads = os.cpu_count()
 
     if hasattr(args, "func"):
         args.func(args)
