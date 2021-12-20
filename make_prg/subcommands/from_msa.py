@@ -135,12 +135,6 @@ def run(cl_options):
     if there_is_no_input_files:
         raise FileNotFoundError(f"No input files found in {options.input}")
 
-    is_a_single_file = len(input_files) == 1
-    if is_a_single_file:
-        logger.info("A single file was given as input, single outputs will be produced")
-    else:
-        logger.info("Multiple files were given as input, multiple outputs will be produced")
-
     if io_utils.output_files_already_exist(options.output_prefix):
         raise RuntimeError("One or more output files already exists, aborting run...")
 
@@ -154,6 +148,7 @@ def run(cl_options):
         pool.map(process_MSA, input_files, chunksize=1)
     logger.success(f"All PRGs generated!")
 
+    is_a_single_file = len(input_files) == 1
     io_utils.create_final_files(temp_dir, options.output_prefix, options.output_type,
                                 is_a_single_MSA=is_a_single_file)
     logger.success("All done!")
