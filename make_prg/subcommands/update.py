@@ -1,5 +1,4 @@
 import multiprocessing
-import os
 from pathlib import Path
 from loguru import logger
 from make_prg.utils import io_utils, gfa
@@ -120,18 +119,24 @@ def update(locus_name: str):
 
     logger.info(f"Writing output files of locus {locus_name}")
     prg = prg_builder_for_locus.build_prg()
-    prg_builder_for_locus.write_prg(str(locus_prefix), prg)
+
+    if options.output_type.prg or options.output_type.binary:
+        prg_builder_for_locus.write_prg(str(locus_prefix), prg)
 
     if options.output_type.gfa:
         gfa.GFA_Output.write_gfa(str(locus_prefix), prg)
-    prg_builder_for_locus.serialize(f"{locus_prefix}.pickle")
+
+    if options.output_type.prg:
+        prg_builder_for_locus.serialize(f"{locus_prefix}.pickle")
+
+    if options.output_graphs:
+        prg_builder_for_locus.output_debug_graphs(Path(options.output_prefix + "_debug_graphs"))
+
     with open(f"{locus_prefix}.stats", "w") as stats_filehandler:
         print(
             f"{locus_name} {nb_of_variants_sucessfully_updated} {nb_of_variants_with_failed_update}",
             file=stats_filehandler,
         )
-    if options.output_graphs:
-        prg_builder_for_locus.output_debug_graphs(Path(options.output_prefix + "_debug_graphs"))
 
 
 def run(cl_options):

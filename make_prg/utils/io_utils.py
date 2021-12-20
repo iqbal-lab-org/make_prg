@@ -176,12 +176,12 @@ def create_final_files(temp_dir: Path, output_prefix: str, output_type: OutputTy
         prg_files = sorted(prg_files)  # guarantees reproducibility
         concatenate_text_files(prg_files, output_prefix + ".prg.fa")
 
-    # zip all PRG Builders
-    logger.info("Creating update data structures...")
-    prg_builder_zip_db = prg_builder.PrgBuilderZipDatabase(Path(f"{output_prefix}.update_DS.zip"))
-    locus_to_prg_builder_pickle_path = {locus: output_files.pickle
-                                        for locus, output_files in locus_to_set_of_output_files.items()}
-    prg_builder_zip_db.save(locus_to_prg_builder_pickle_path)
+        # zip all PRG Builders
+        logger.info("Creating update data structures...")
+        prg_builder_zip_db = prg_builder.PrgBuilderZipDatabase(Path(f"{output_prefix}.update_DS.zip"))
+        locus_to_prg_builder_pickle_path = {locus: output_files.pickle
+                                            for locus, output_files in locus_to_set_of_output_files.items()}
+        prg_builder_zip_db.save(locus_to_prg_builder_pickle_path)
 
     # zip all encoded PRGs
     if output_type.binary:

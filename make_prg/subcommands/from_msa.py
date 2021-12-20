@@ -104,11 +104,16 @@ def process_MSA(msa_filepath: Path):
 
         logger.info(f"Writing output files of locus {msa_name}")
         prg = builder.build_prg()
-        builder.write_prg(prefix, prg)
+
+        if options.output_type.prg or options.output_type.binary:
+            builder.write_prg(prefix, prg)
 
         if options.output_type.gfa:
             gfa.GFA_Output.write_gfa(prefix, prg)
-        builder.serialize(f"{prefix}.pickle")
+
+        if options.output_type.prg:
+            builder.serialize(f"{prefix}.pickle")
+
         if options.output_graphs:
             builder.output_debug_graphs(Path(options.output_prefix + "_debug_graphs"))
 
