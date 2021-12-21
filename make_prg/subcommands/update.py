@@ -148,7 +148,7 @@ def run(cl_options):
         raise RuntimeError("One or more output files already exists, aborting run...")
 
     # read input data
-    logger.info("Checking Multiple Sequence Aligner...")
+    logger.debug("Checking Multiple Sequence Aligner...")
     output_dir = Path(options.output_prefix).parent
     output_dir.mkdir(parents=True, exist_ok=True)
     temp_dir = io_utils.create_temp_dir(output_dir)
