@@ -57,15 +57,23 @@ def remove_empty_folders(path: str, remove_root: bool = True):
 
 
 # Note: not unit tested
-def output_files_already_exist(output_prefix: str):
-    return (
-        Path(output_prefix + ".prg.fa").exists()
-        or Path(output_prefix + ".update_DS.zip").exists()
-        or Path(output_prefix + ".prg.bin").exists()
-        or Path(output_prefix + ".prg.bin.zip").exists()
-        or Path(output_prefix + ".prg.gfa").exists()
-        or Path(output_prefix + ".prg.gfa.zip").exists()
-    )
+def output_files_already_exist(force: bool, output_type: OutputType, output_prefix: str):
+    if force:
+        return False
+
+    files_to_check = []
+    if output_type.prg:
+        files_to_check.extend([Path(output_prefix + ".prg.fa"), Path(output_prefix + ".update_DS.zip")])
+    if output_type.gfa:
+        files_to_check.extend([Path(output_prefix + ".prg.gfa"), Path(output_prefix + ".prg.gfa.zip")])
+    if output_type.binary:
+        files_to_check.extend([Path(output_prefix + ".prg.bin"), Path(output_prefix + ".prg.bin.zip")])
+
+    for file_to_check in files_to_check:
+        if file_to_check.exists():
+            return True
+
+    return False
 
 
 def create_temp_dir(output_dir: Path) -> Path:

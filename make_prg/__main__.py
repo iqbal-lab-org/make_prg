@@ -22,6 +22,14 @@ def setup_common_last_options(parsers: List[argparse.ArgumentParser]):
         )
 
         par.add_argument(
+            "-F",
+            "--force",
+            action="store_true",
+            default=False,
+            help="Force overwrite previous output",
+        )
+
+        par.add_argument(
             "-t",
             "--threads",
             action="store",
