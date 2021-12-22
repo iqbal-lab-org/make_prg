@@ -57,10 +57,7 @@ def remove_empty_folders(path: str, remove_root: bool = True):
 
 
 # Note: not unit tested
-def output_files_already_exist(force: bool, output_type: OutputType, output_prefix: str):
-    if force:
-        return False
-
+def output_files_already_exist(output_type: OutputType, output_prefix: str):
     files_to_check = []
     if output_type.prg:
         files_to_check.extend([Path(output_prefix + ".prg.fa"), Path(output_prefix + ".update_DS.zip")])

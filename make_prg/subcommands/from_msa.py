@@ -135,7 +135,7 @@ def run(cl_options):
     if there_is_no_input_files:
         raise FileNotFoundError(f"No input files found in {options.input}")
 
-    if io_utils.output_files_already_exist(options.force, options.output_type, options.output_prefix):
+    if not options.force and io_utils.output_files_already_exist(options.output_type, options.output_prefix):
         raise RuntimeError("One or more output files already exists, aborting run...")
 
     output_dir = Path(options.output_prefix).parent

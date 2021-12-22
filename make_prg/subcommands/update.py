@@ -144,7 +144,7 @@ def run(cl_options):
     options = cl_options
     global update_shared_data
 
-    if io_utils.output_files_already_exist(options.force, options.output_type, options.output_prefix):
+    if not options.force and io_utils.output_files_already_exist(options.output_type, options.output_prefix):
         raise RuntimeError("One or more output files already exists, aborting run...")
 
     # read input data
