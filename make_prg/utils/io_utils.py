@@ -227,3 +227,11 @@ def create_final_files(temp_dir: Path, output_prefix: str, output_type: OutputTy
     for output_files in locus_to_set_of_output_files.values():
         output_files.delete_files()
     remove_empty_folders(str(temp_dir))
+
+
+def remove_known_input_extensions(input_filepath: Path) -> Path:
+    if input_filepath.suffix == ".gz":
+        input_filepath = input_filepath.with_suffix("")
+    if input_filepath.suffix == ".fa":
+        input_filepath = input_filepath.with_suffix("")
+    return input_filepath

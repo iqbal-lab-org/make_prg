@@ -88,10 +88,10 @@ def process_MSA(msa_filepath: Path):
     global options
     logger.info(f"Generating PRG for {msa_filepath}...")
     msa_name = msa_filepath.name
-    locus_name = msa_filepath.with_suffix("").name
+    locus_name = io_utils.remove_known_input_extensions(msa_filepath).name
 
     temp_dir = io_utils.get_temp_dir_for_multiprocess(options.temp_dir)
-    prefix = str(temp_dir / msa_name)
+    prefix = str(temp_dir / locus_name)
 
     try:
         builder = prg_builder.PrgBuilder(

@@ -62,3 +62,45 @@ class Test_zip_set_of_files(TestCase):
 
         self.assertTrue(are_zip_files_equal(workdir / "zip_set_of_files/files.zip",
                                             workdir / "zip_set_of_files/files.truth.zip"))
+
+
+class Test_remove_known_input_extensions(TestCase):
+    def test___not_a_fasta_nor_gz_file___no_removes(self):
+        filepath = Path("fake_dir/test.txt")
+
+        expected = Path("fake_dir/test.txt")
+        actual = remove_known_input_extensions(filepath)
+
+        self.assertEqual(expected, actual)
+
+    def test___fasta_file___one_remove(self):
+        filepath = Path("fake_dir/test.fa")
+
+        expected = Path("fake_dir/test")
+        actual = remove_known_input_extensions(filepath)
+
+        self.assertEqual(expected, actual)
+
+    def test___gz_file___one_remove(self):
+        filepath = Path("fake_dir/test.gz")
+
+        expected = Path("fake_dir/test")
+        actual = remove_known_input_extensions(filepath)
+
+        self.assertEqual(expected, actual)
+
+    def test___fasta_gz_file___two_removes(self):
+        filepath = Path("fake_dir/test.fa.gz")
+
+        expected = Path("fake_dir/test")
+        actual = remove_known_input_extensions(filepath)
+
+        self.assertEqual(expected, actual)
+
+    def test___fasta_gz_file_with_dot___two_removes(self):
+        filepath = Path("fake_dir/match.nonmatch.fa.gz")
+
+        expected = Path("fake_dir/match.nonmatch")
+        actual = remove_known_input_extensions(filepath)
+
+        self.assertEqual(expected, actual)
