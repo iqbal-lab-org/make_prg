@@ -35,7 +35,7 @@ def setup_common_last_options(parsers: List[argparse.ArgumentParser]):
             action="store",
             type=int,
             default=1,
-            help="Number of threads. Default: %(default)d",
+            help="Number of threads. 0 will use all available. Default: %(default)d",
         )
 
         par.add_argument(
