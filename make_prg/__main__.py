@@ -89,14 +89,14 @@ def main():
 
     setup_logger(args)
 
-    use_all_cpus = args.threads == 0
-    if use_all_cpus:
-        args.threads = os.cpu_count()
-
     if hasattr(args, "func"):
+        use_all_cpus = args.threads == 0
+        if use_all_cpus:
+            args.threads = os.cpu_count()
         args.func(args)
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()
