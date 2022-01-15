@@ -5,6 +5,8 @@ from loguru import logger
 from make_prg import prg_builder
 from make_prg.from_msa import NESTING_LVL, MIN_MATCH_LEN
 from make_prg.utils import io_utils, gfa
+from make_prg.utils.input_output_files import InputOutputFilesFromMSA
+
 
 
 def register_parser(subparsers):
@@ -84,42 +86,40 @@ def get_all_input_files(input_path: str) -> List[Path]:
     return all_files
 
 
-def process_MSA(msa_filepath: Path):
+def process_MSA(input_and_output_files: InputOutputFilesFromMSA):
     global options
-    logger.info(f"Generating PRG for {msa_filepath}...")
-    msa_name = msa_filepath.name
-    locus_name = io_utils.remove_known_input_extensions(msa_filepath).name
-
-    temp_dir = io_utils.get_temp_dir_for_multiprocess(options.temp_dir)
-    prefix = str(temp_dir / locus_name)
+    locus_name = input_and_output_files.locus_name
+    prefix = input_and_output_files.temp_prefix
+    logger.info(f"Generating PRG for {locus_name}...")
 
     try:
         builder = prg_builder.PrgBuilder(
             locus_name=locus_name,
-            msa_file=msa_filepath,
+            msa_file=input_and_output_files.input_filepath,
             alignment_format=options.alignment_format,
             max_nesting=options.max_nesting,
             min_match_length=options.min_match_length
         )
 
-        logger.info(f"Writing output files of locus {msa_name}")
+        logger.info(f"Writing output files of locus {locus_name}")
         prg = builder.build_prg()
 
-        if options.output_type.prg or options.output_type.binary:
-            builder.write_prg(prefix, prg)
+        if options.output_type.prg:
+            builder.write_prg_as_text(prefix, prg)
+            builder.serialize(f"{prefix}.pickle")
+
+        if options.output_type.binary:
+            builder.write_prg_as_binary(prefix, prg)
 
         if options.output_type.gfa:
             gfa.GFA_Output.write_gfa(prefix, prg)
-
-        if options.output_type.prg:
-            builder.serialize(f"{prefix}.pickle")
 
         if options.output_graphs:
             builder.output_debug_graphs(Path(options.output_prefix + "_debug_graphs"))
 
     except ValueError as value_error:
         if "No records found in handle" in value_error.args[0]:
-            logger.warning(f"No records found in MSA {msa_filepath}, skipping...")
+            logger.warning(f"No records found in MSA of locus {locus_name}, skipping...")
         else:
             raise value_error
 
@@ -140,15 +140,18 @@ def run(cl_options):
 
     output_dir = Path(options.output_prefix).parent
     output_dir.mkdir(parents=True, exist_ok=True)
-    temp_dir = io_utils.create_temp_dir(output_dir)
-    options.temp_dir = temp_dir
+
+    root_temp_dir = io_utils.create_temp_dir(output_dir)
+    mp_temp_dir = io_utils.get_temp_dir_for_multiprocess(root_temp_dir)
+    input_and_output_files = InputOutputFilesFromMSA.get_list_of_InputOutputFilesFromMSA(
+        input_files, options.output_type, mp_temp_dir)
 
     logger.info(f"Using {options.threads} threads to generate PRGs...")
     with multiprocessing.Pool(options.threads, maxtasksperchild=1) as pool:
-        pool.map(process_MSA, input_files, chunksize=1)
+        pool.map(process_MSA, input_and_output_files, chunksize=1)
     logger.success(f"All PRGs generated!")
 
-    is_a_single_file = len(input_files) == 1
-    io_utils.create_final_files(temp_dir, options.output_prefix, options.output_type,
-                                is_a_single_MSA=is_a_single_file)
+    InputOutputFilesFromMSA.create_final_files(input_and_output_files, options.output_prefix)
+    io_utils.remove_empty_folders(str(root_temp_dir))
+
     logger.success("All done!")

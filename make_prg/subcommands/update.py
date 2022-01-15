@@ -6,6 +6,7 @@ from make_prg.update.denovo_variants import DenovoVariantsDB
 from make_prg.prg_builder import PrgBuilderZipDatabase, LeafNotFoundException
 from make_prg.utils.msa_aligner import MAFFT, MSAAligner
 from dataclasses import dataclass
+from make_prg.utils.input_output_files import InputOutputFilesUpdate
 
 
 def register_parser(subparsers):
@@ -72,8 +73,9 @@ class UpdateSharedData:
     aligner: MSAAligner
 
 
-def update(locus_name: str):
+def update(input_and_output_files: InputOutputFilesUpdate):
     global options
+    locus_name = input_and_output_files.locus_name
     prg_builder_zip_db = PrgBuilderZipDatabase(options.update_DS)
     prg_builder_zip_db.load()
     prg_builder_for_locus = prg_builder_zip_db.get_PrgBuilder(locus_name)
@@ -114,25 +116,24 @@ def update(locus_name: str):
         logger.debug(f"{locus_name} has no new variants, no update needed")
 
     # regenerate PRG
-    temp_dir = io_utils.get_temp_dir_for_multiprocess(options.temp_dir)
-    locus_prefix = temp_dir / locus_name
-
     logger.info(f"Writing output files of locus {locus_name}")
+    temp_prefix = input_and_output_files.temp_prefix
     prg = prg_builder_for_locus.build_prg()
 
-    if options.output_type.prg or options.output_type.binary:
-        prg_builder_for_locus.write_prg(str(locus_prefix), prg)
+    if options.output_type.prg:
+        prg_builder_for_locus.write_prg_as_text(str(temp_prefix), prg)
+        prg_builder_for_locus.serialize(f"{temp_prefix}.pickle")
+
+    if options.output_type.binary:
+        prg_builder_for_locus.write_prg_as_binary(str(temp_prefix), prg)
 
     if options.output_type.gfa:
-        gfa.GFA_Output.write_gfa(str(locus_prefix), prg)
-
-    if options.output_type.prg:
-        prg_builder_for_locus.serialize(f"{locus_prefix}.pickle")
+        gfa.GFA_Output.write_gfa(str(temp_prefix), prg)
 
     if options.output_graphs:
         prg_builder_for_locus.output_debug_graphs(Path(options.output_prefix + "_debug_graphs"))
 
-    with open(f"{locus_prefix}.stats", "w") as stats_filehandler:
+    with open(f"{temp_prefix}.stats", "w") as stats_filehandler:
         print(
             f"{locus_name} {nb_of_variants_sucessfully_updated} {nb_of_variants_with_failed_update}",
             file=stats_filehandler,
@@ -151,9 +152,9 @@ def run(cl_options):
     logger.debug("Checking Multiple Sequence Aligner...")
     output_dir = Path(options.output_prefix).parent
     output_dir.mkdir(parents=True, exist_ok=True)
-    temp_dir = io_utils.create_temp_dir(output_dir)
-    options.temp_dir = temp_dir
-    msa_temp_path = temp_dir / "msa_temp"
+
+    root_temp_dir = io_utils.create_temp_dir(output_dir)
+    msa_temp_path = root_temp_dir / "msa_temp"
     mafft_aligner = MAFFT(executable=options.mafft, tmpdir=msa_temp_path)
 
     prg_builder_zip_db = None
@@ -168,16 +169,20 @@ def run(cl_options):
         output_dir = Path(options.output_prefix).parent
         output_dir.mkdir(exist_ok=True)
 
+        mp_temp_dir = io_utils.get_temp_dir_for_multiprocess(root_temp_dir)
+        loci = prg_builder_zip_db.get_loci_names()
+        input_and_output_files = InputOutputFilesUpdate.get_list_of_InputOutputFilesUpdate(
+            loci, options.output_type, mp_temp_dir)
+
         # update all PRGs with denovo sequences
         logger.info(f"Using {options.threads} threads to update PRGs...")
-        multithreaded_input = prg_builder_zip_db.get_loci_names()
+
         with multiprocessing.Pool(options.threads, maxtasksperchild=1) as pool:
-            pool.map(update, multithreaded_input, chunksize=1)
+            pool.map(update, input_and_output_files, chunksize=1)
         logger.success(f"All PRGs updated!")
 
-        is_a_single_MSA = prg_builder_zip_db.get_number_of_loci() == 1
-        io_utils.create_final_files(temp_dir, options.output_prefix, options.output_type,
-                                    is_a_single_MSA=is_a_single_MSA, output_stats=True)
+        InputOutputFilesUpdate.create_final_files(input_and_output_files, options.output_prefix)
+        io_utils.remove_empty_folders(str(root_temp_dir))
         logger.success("All done!")
     finally:
         if prg_builder_zip_db is not None:
