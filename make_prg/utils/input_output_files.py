@@ -10,7 +10,8 @@ import os
 from abc import ABC
 
 
-# Note: this whole class is not unit tested
+# Note: several methods in this class are just input/output gathering, so they are not unit tested
+# Note: but they are integration tested
 class InputOutputFiles(ABC):
     """
     Class that represents the set of input files consumed and output files created for each make_prg subcommand.
