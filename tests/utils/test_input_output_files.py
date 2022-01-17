@@ -17,41 +17,57 @@ class Test_concatenate_text_files(TestCase):
 
 class Test_remove_known_input_extensions(TestCase):
     def test___not_a_fasta_nor_gz_file___no_removes(self):
-        filepath = Path("fake_dir/test.txt")
+        filepath = "fake_dir/test.txt"
 
-        expected = Path("fake_dir/test.txt")
+        expected = "fake_dir/test.txt"
+        actual = InputOutputFilesFromMSA.remove_known_input_extensions(filepath)
+
+        self.assertEqual(expected, actual)
+
+    def test___fa_file___one_remove(self):
+        filepath = "fake_dir/test.fa"
+
+        expected = "fake_dir/test"
         actual = InputOutputFilesFromMSA.remove_known_input_extensions(filepath)
 
         self.assertEqual(expected, actual)
 
     def test___fasta_file___one_remove(self):
-        filepath = Path("fake_dir/test.fa")
+        filepath = "fake_dir/test.fasta"
 
-        expected = Path("fake_dir/test")
+        expected = "fake_dir/test"
         actual = InputOutputFilesFromMSA.remove_known_input_extensions(filepath)
 
         self.assertEqual(expected, actual)
 
-    def test___gz_file___one_remove(self):
-        filepath = Path("fake_dir/test.gz")
+    def test___gz_file_only___no_removes(self):
+        filepath = "fake_dir/test.gz"
 
-        expected = Path("fake_dir/test")
+        expected = "fake_dir/test.gz"
+        actual = InputOutputFilesFromMSA.remove_known_input_extensions(filepath)
+
+        self.assertEqual(expected, actual)
+
+    def test___fa_gz_file___two_removes(self):
+        filepath = "fake_dir/test.fa.gz"
+
+        expected = "fake_dir/test"
         actual = InputOutputFilesFromMSA.remove_known_input_extensions(filepath)
 
         self.assertEqual(expected, actual)
 
     def test___fasta_gz_file___two_removes(self):
-        filepath = Path("fake_dir/test.fa.gz")
+        filepath = "fake_dir/test.fasta.gz"
 
-        expected = Path("fake_dir/test")
+        expected = "fake_dir/test"
         actual = InputOutputFilesFromMSA.remove_known_input_extensions(filepath)
 
         self.assertEqual(expected, actual)
 
-    def test___fasta_gz_file_with_dot___two_removes(self):
-        filepath = Path("fake_dir/match.nonmatch.fa.gz")
+    def test___fa_gz_file_with_dot___two_removes(self):
+        filepath = "fake_dir/match.nonmatch.fa.gz"
 
-        expected = Path("fake_dir/match.nonmatch")
+        expected = "fake_dir/match.nonmatch"
         actual = InputOutputFilesFromMSA.remove_known_input_extensions(filepath)
 
         self.assertEqual(expected, actual)

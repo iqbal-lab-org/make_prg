@@ -8,6 +8,7 @@ import shutil
 import fileinput
 import os
 from abc import ABC
+import re
 
 
 # Note: several methods in this class are just input/output gathering, so they are not unit tested
@@ -138,7 +139,7 @@ class InputOutputFiles(ABC):
 class InputOutputFilesFromMSA(InputOutputFiles):
     def __init__(self, input_filepath: Path, output_type: OutputType, root_temp_dir: Path):
         self.input_filepath: Path = input_filepath
-        locus_name: str = InputOutputFilesFromMSA.remove_known_input_extensions(input_filepath).name
+        locus_name: str = InputOutputFilesFromMSA.remove_known_input_extensions(str(input_filepath.name))
         super().__init__(locus_name, output_type, root_temp_dir, output_stats=False)
 
     @staticmethod
@@ -147,12 +148,9 @@ class InputOutputFilesFromMSA(InputOutputFiles):
         return [InputOutputFilesFromMSA(input_file, output_type, root_temp_dir) for input_file in input_files]
 
     @staticmethod
-    def remove_known_input_extensions(input_filepath: Path) -> Path:
-        if input_filepath.suffix == ".gz":
-            input_filepath = input_filepath.with_suffix("")
-        if input_filepath.suffix == ".fa":
-            input_filepath = input_filepath.with_suffix("")
-        return input_filepath
+    def remove_known_input_extensions(input_filepath: str) -> str:
+        return re.sub(r"\.(fa|fasta)(\.gz)?$", "", input_filepath)
+
 
 
 class InputOutputFilesUpdate(InputOutputFiles):
