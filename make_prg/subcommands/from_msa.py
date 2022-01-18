@@ -8,6 +8,9 @@ from make_prg.utils import io_utils, gfa
 from make_prg.utils.input_output_files import InputOutputFilesFromMSA
 
 
+class EmptyMSAError(Exception):
+    pass
+
 
 def register_parser(subparsers):
     subparser_msa = subparsers.add_parser(
@@ -119,7 +122,7 @@ def process_MSA(input_and_output_files: InputOutputFilesFromMSA):
 
     except ValueError as value_error:
         if "No records found in handle" in value_error.args[0]:
-            logger.warning(f"No records found in MSA of locus {locus_name}, skipping...")
+            raise EmptyMSAError(f"No records found in MSA of locus {locus_name}")
         else:
             raise value_error
 
