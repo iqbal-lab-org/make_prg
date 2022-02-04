@@ -14,6 +14,70 @@ from make_prg.update.denovo_variants import UpdateData
 from make_prg.update.MLPath import MLPathError
 from abc import ABC, abstractmethod
 
+SubMSAs: List[MSA]
+
+
+class PrgNode(ABC):
+    @abstractmethod
+    def get_prg(self):
+        pass
+
+class MultiIntervalNode(PrgNode):
+    def __init__(self, vertical_clusters: SubMSAs):
+        for interval in intervals:
+            self.children.append(NodeFactory.build(sub_MSA, skip_intervals = True))
+
+    def get_prg(self):
+        site = ""
+        for child in self.children:
+            site += child.get_prg()
+        return site
+
+class MultiClusterNode(PrgNode):
+    def __init__(self, horizontal_clusters: SubMSAs):
+        for hori_cluster in horizontal_clusters:
+            self.children.append(NodeFactory.build(sub_MSA, skip_clustering = True))
+
+    def get_prg():
+        site = open_site()
+        for child in self.children:
+            # add each allele
+            site += child.get_prg()
+            site += allele_delim
+        return site
+
+class Leaf(PrgNode):
+    def __init__(self, MSA: MSA):
+        if only_one_seq(MSA):
+            self.prg = MSA[0]
+        else:
+            # make a set of alleles
+            self.prg = make_allele_set(MSA)
+    def get_prg():
+        return self.prg
+
+
+class NodeFactory:
+    @staticmethod
+    def build(MSA, skip_intervals: bool = False, skip_clustering: bool = False):
+        # Or: pass in `parent`, that is a `PrgNode`, and determine whether or not to
+        # skip interval/clustering based on parent class type. Also allows forwarding
+        # attributes like `nesting_level` to constructors
+        assert not all([skip_intervals, skip_clustering])
+        if not skip_intervals and has_intervals(MSA):
+            vertical_clusters: SubMSAs = get_intervals()
+            return MultiIntervalNode(vertical_clusters)
+        # has_clusters should check the clustering_result to see if there was a
+        # clustering
+        elif not skip_clustering and has_clusters(MSA):
+            horizontal_clusters: SubMSAs = get_clusters()
+            return MultiClusterNode(clusters)
+        else:
+            return Leaf()
+
+# In main():
+root = NodeFactory(MSA) # Creates the whole tree
+prg = root.get_prg() # Pre_order traversal producing the prg string
 
 class RecursiveTreeNode(ABC):
     def __init__(self, nesting_level: int, alignment: MSA, parent: Optional["RecursiveTreeNode"],
