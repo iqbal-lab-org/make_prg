@@ -10,7 +10,7 @@ setup(
     long_description=readme,
     long_description_content_type="text/markdown",
     packages=find_packages(),
-    url="https://github.com/rmcolq/make_prg",
+    url="https://github.com/iqbal-lab-org/make_prg",
     license="MIT",
     entry_points={"console_scripts": ["make_prg = make_prg.__main__:main"]},
     test_suite="nose.collector",
