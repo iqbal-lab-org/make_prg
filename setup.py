@@ -1,8 +1,14 @@
 from setuptools import setup, find_packages
 
+with open("./README.md") as fhandle:
+    readme = fhandle.read()
+
 setup(
     name="make_prg",
     version="0.2.0",
+    description="Build genome graphs (PRGs) from multiple sequence alignments",
+    long_description=readme,
+    long_description_content_type="text/markdown",
     packages=find_packages(),
     url="https://github.com/rmcolq/make_prg",
     license="MIT",
