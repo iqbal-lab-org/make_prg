@@ -1,7 +1,7 @@
 from unittest import TestCase
-from unittest.mock import patch, Mock, PropertyMock
-from tests.test_helpers import make_alignment, equal_msas, first_dict_contained_in_second
-from make_prg.recursion_tree import MultiClusterNode, SingleClusterNode, UpdateError, RecursiveTreeNode
+from unittest.mock import patch, Mock
+from tests.test_helpers import make_alignment, equal_msas
+from make_prg.recursion_tree import RecursiveTreeNode, MultiIntervalNode, MultiClusterNode, LeafNode, NodeFactory, UpdateError
 from make_prg.prg_builder import PrgBuilder
 from make_prg.from_msa import MSA
 from pathlib import Path
@@ -10,208 +10,192 @@ from make_prg.utils.seq_utils import SequenceExpander
 from make_prg.update.denovo_variants import UpdateData, MLPathError
 from make_prg.from_msa.cluster_sequences import ClusteringResult
 
-
+# Note we use MultiIntervalNodes here instead as RecursiveTreeNode is an abstract class
 @patch.object(PrgBuilder, PrgBuilder.get_next_node_id.__name__, return_value=0)
-@patch.object(SingleClusterNode, SingleClusterNode.__init__.__name__, return_value=None)
 @patch("make_prg.prg_builder.load_alignment_file")
 @patch.object(RecursiveTreeNode, RecursiveTreeNode.log_that_node_was_created.__name__)
-class TestMultiClusterNode(TestCase):
-    def partial_setup(self) -> None:
-        self.alignment = make_alignment(
-            ["AAAT", "C--C", "AATT", "GNGG"], ["s1", "s2", "s3", "s4"]
-        )
-        self.prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
-
+@patch("make_prg.recursion_tree.remove_columns_full_of_gaps_from_MSA",
+       return_value="remove_columns_full_of_gaps_from_MSA_mock")
+class TestRecursiveTreeNode(TestCase):
     # Note: can't apply patches to setUp(), so creating this method that is called in every test
     def setup(self) -> None:
-        self.partial_setup()
-        self.multi_cluster_node = MultiClusterNode(1, self.alignment, None, self.prg_builder, False)
+        self.alignment_mock = Mock()
+        with patch.object(NodeFactory, "build"):
+            self.prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
+        self.parent_mock = Mock(id=512)
 
-    @patch.object(MultiClusterNode, MultiClusterNode._get_children.__name__, return_value=["child_1", "child_2"])
-    @patch("make_prg.recursion_tree.remove_columns_full_of_gaps_from_MSA", return_value="remove_columns_full_of_gaps_from_MSA_mock")
-    def test___constructor(self, *uninteresting_mocks):
+    @patch.object(NodeFactory, NodeFactory.build.__name__, side_effect=["child_build_1"])
+    def test____get_children___one_child(self, node_factory_build_mock,
+                                              *uninteresting_mocks):
         self.setup()
-        parent_mock = Mock()
-        node = MultiClusterNode(1, self.alignment, parent_mock, self.prg_builder, False)
+        node = MultiIntervalNode(1, self.alignment_mock, self.parent_mock, self.prg_builder,
+                                 interval_subalignments=["algn1"])
+        self.assertEqual(["child_build_1"], node.children)
+
+
+    @patch.object(NodeFactory, NodeFactory.build.__name__, side_effect=[
+                "child_build_1", "child_build_2", "child_build_3"])
+    def test____get_children___three_children(self, node_factory_build_mock,
+                                              *uninteresting_mocks):
+        self.setup()
+        node = MultiIntervalNode(1, self.alignment_mock, self.parent_mock, self.prg_builder,
+                                 interval_subalignments=["algn1", "algn2", "algn3"])
+        self.assertEqual(["child_build_1", "child_build_2", "child_build_3"],
+                         node.children)
+
+    @patch.object(MultiIntervalNode, MultiIntervalNode._get_children.__name__, return_value=["child"])
+    def test___is_root___is_indeed_root(self, *uninteresting_mocks):
+        self.setup()
+        node = MultiIntervalNode(1, self.alignment_mock, None, self.prg_builder, [])
+        self.assertTrue(node.is_root())
+
+    @patch.object(MultiIntervalNode, MultiIntervalNode._get_children.__name__, return_value=["child"])
+    def test___is_root___is_not_root(self, *uninteresting_mocks):
+        self.setup()
+        node = MultiIntervalNode(1, self.alignment_mock, self.parent_mock, self.prg_builder, [])
+        self.assertFalse(node.is_root())
+
+    @patch.object(MultiIntervalNode, MultiIntervalNode._get_children.__name__,
+                  return_value=["child_1", "child_2", "child_3"])
+    def test___replace_child___old_child_not_present___raises_Assertion_Error(self, *uninteresting_mocks):
+        self.setup()
+        node = MultiIntervalNode(1, self.alignment_mock, self.parent_mock, self.prg_builder, [])
+
+        with self.assertRaises(AssertionError):
+            node.replace_child("inexistent_child", "new_child")
+
+    @patch.object(MultiIntervalNode, MultiIntervalNode._get_children.__name__,
+                  return_value=["child_1", "child_2", "child_3"])
+    def test___replace_child___replaces_first_child(self, *uninteresting_mocks):
+        self.setup()
+        node = MultiIntervalNode(1, self.alignment_mock, self.parent_mock, self.prg_builder, [])
+
+        node.replace_child("child_1", "new_child")
+
+        self.assertEqual(["new_child", "child_2", "child_3"], node.children)
+
+    @patch.object(MultiIntervalNode, MultiIntervalNode._get_children.__name__,
+                  return_value=["child_1", "child_2", "child_3"])
+    def test___replace_child___replaces_second_child(self, *uninteresting_mocks):
+        self.setup()
+        node = MultiIntervalNode(1, self.alignment_mock, self.parent_mock, self.prg_builder, [])
+
+        node.replace_child("child_2", "new_child")
+
+        self.assertEqual(["child_1", "new_child", "child_3"], node.children)
+
+    @patch.object(MultiIntervalNode, MultiIntervalNode._get_children.__name__,
+                  return_value=["child_1", "child_2", "child_3"])
+    def test___replace_child___replaces_third_child(self, *uninteresting_mocks):
+        self.setup()
+        node = MultiIntervalNode(1, self.alignment_mock, self.parent_mock, self.prg_builder, [])
+
+        node.replace_child("child_3", "new_child")
+
+        self.assertEqual(["child_1", "child_2", "new_child"], node.children)
+
+
+
+
+class Preorder_traversal_to_build_prg_Mock:
+    def __init__(self, child_id):
+        self.child_id = child_id
+
+    def preorder_traversal_to_build_prg(self, prg_as_list, delim_char):
+        prg_as_list.append(f"child_{self.child_id}")
+
+
+
+
+@patch.object(PrgBuilder, PrgBuilder.get_next_node_id.__name__, return_value=0)
+@patch.object(NodeFactory, NodeFactory.build.__name__)
+@patch("make_prg.prg_builder.load_alignment_file")
+@patch.object(RecursiveTreeNode, RecursiveTreeNode.log_that_node_was_created.__name__)
+class TestMultiIntervalNode(TestCase):
+    # Note: can't apply patches to setUp(), so creating this method that is called in every test
+    def setup(self) -> None:
+        self.alignment_mock = Mock()
+        self.prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
+        self.parent_mock = Mock(id=512)
+
+    @patch("make_prg.recursion_tree.remove_columns_full_of_gaps_from_MSA", return_value="remove_columns_full_of_gaps_from_MSA_mock")
+    @patch.object(MultiIntervalNode, MultiIntervalNode._get_children.__name__, return_value=["child_1", "child_2"])
+    def test___constructor(self, get_children_mock, remove_columns_full_of_gaps_from_MSA_mock, *uninteresting_mocks):
+        self.setup()
+        children_mock = Mock()
+        node = MultiIntervalNode(1, self.alignment_mock, self.parent_mock, self.prg_builder, children_mock)
 
         self.assertEqual(1, node.nesting_level)
+        remove_columns_full_of_gaps_from_MSA_mock.assert_called_once_with(self.alignment_mock)
         self.assertTrue("remove_columns_full_of_gaps_from_MSA_mock", node.alignment)
-        self.assertEqual(parent_mock, node.parent)
-        self.assertEqual(self.prg_builder, node.prg_builder)
-        self.assertFalse(node.force_no_child)
+        self.assertEqual(self.parent_mock, node.parent)
         self.assertEqual(0, node.id)
+        get_children_mock.assert_called_once_with(children_mock)
         self.assertEqual(["child_1", "child_2"], node.children)
+        self.assertEqual(self.prg_builder, node.prg_builder)
+        self.assertFalse(node.is_leaf())
+        self.assertFalse(node.is_root())
 
-    @patch.object(MultiClusterNode, MultiClusterNode._get_children.__name__, return_value=[])
+    @patch("make_prg.recursion_tree.remove_columns_full_of_gaps_from_MSA",
+           return_value="remove_columns_full_of_gaps_from_MSA_mock")
+    @patch.object(MultiIntervalNode, MultiIntervalNode._get_children.__name__, return_value=[])
     def test___constructor___no_children___raises_AssertionError(self, *uninteresting_mocks):
-        alignment = make_alignment(["A"])
-        prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
+        self.setup()
+        children_mock = Mock()
         with self.assertRaises(AssertionError):
-            MultiClusterNode(1, alignment, None, prg_builder, False)
+            MultiIntervalNode(1, self.alignment_mock, self.parent_mock, self.prg_builder, children_mock)
 
-
-
-
-    class Preorder_traversal_to_build_prg_Mock:
-        def __init__(self, child_id):
-            self.child_id = child_id
-        def preorder_traversal_to_build_prg(self, prg_as_list, delim_char):
-            prg_as_list.append(f"child_{self.child_id}")
-
+    @patch("make_prg.recursion_tree.remove_columns_full_of_gaps_from_MSA",
+           return_value="remove_columns_full_of_gaps_from_MSA_mock")
     @patch.object(PrgBuilder, PrgBuilder.get_next_site_num.__name__, return_value=32)
-    def test___preorder_traversal_to_build_prg___single_child(self, *mocks):
+    @patch.object(MultiIntervalNode, MultiIntervalNode._get_children.__name__,
+                  return_value=[Preorder_traversal_to_build_prg_Mock(1)])
+    def test___preorder_traversal_to_build_prg___single_child(self, *uninteresting_mocks):
         self.setup()
-        node = MultiClusterNode(1, self.alignment, None, self.prg_builder, False)
+        children_mock = Mock()
+        node = MultiIntervalNode(1, self.alignment_mock, self.parent_mock, self.prg_builder, children_mock)
 
-        # get the original method
-        preorder_traversal_to_build_prg = MultiClusterNode.preorder_traversal_to_build_prg
+        prg_as_list = []
+        node.preorder_traversal_to_build_prg(prg_as_list, delim_char="*")
 
-        # now patch the children
-        children = [TestMultiClusterNode.Preorder_traversal_to_build_prg_Mock(1)]
-        with patch.object(MultiClusterNode, "children", new_callable=PropertyMock, return_value=children):
-            # call the original method with the recursive calls now patched
-            prg_as_list = []
-            preorder_traversal_to_build_prg(node, prg_as_list, delim_char="*")
+        expected_prg = "child_1"
+        actual_prg = "".join(prg_as_list)
 
-            expected_prg = "*32*child_1*32*"
-            actual_prg = "".join(prg_as_list)
+        self.assertEqual(expected_prg, actual_prg)
 
-            self.assertEqual(expected_prg, actual_prg)
-
+    @patch("make_prg.recursion_tree.remove_columns_full_of_gaps_from_MSA",
+           return_value="remove_columns_full_of_gaps_from_MSA_mock")
     @patch.object(PrgBuilder, PrgBuilder.get_next_site_num.__name__, return_value=32)
-    def test___preorder_traversal_to_build_prg___multiple_children(self, *mocks):
-        self.partial_setup()
-        node = MultiClusterNode(1, self.alignment, None, self.prg_builder, False)
-
-        # get the original method
-        preorder_traversal_to_build_prg = MultiClusterNode.preorder_traversal_to_build_prg
-
-        # now patch the children
-        children = [TestMultiClusterNode.Preorder_traversal_to_build_prg_Mock(1),
-                    TestMultiClusterNode.Preorder_traversal_to_build_prg_Mock(2),
-                    TestMultiClusterNode.Preorder_traversal_to_build_prg_Mock(3)]
-        with patch.object(MultiClusterNode, "children", new_callable=PropertyMock, return_value=children):
-            # call the original method with the recursive calls now patched
-            prg_as_list = []
-            preorder_traversal_to_build_prg(node, prg_as_list, delim_char="*")
-
-            expected_prg = "*32*child_1*33*child_2*33*child_3*32*"
-            actual_prg = "".join(prg_as_list)
-
-            self.assertEqual(expected_prg, actual_prg)
-
-
-
-    @patch("make_prg.recursion_tree.kmeans_cluster_seqs", return_value=ClusteringResult(
-        [["s5", "s0", "s1", "s6"], ["s3"], ["s2", "s4"]]))
-    def test___get_subalignments_by_clustering(self, *uninteresting_mocks):
-        alignment = make_alignment(
-            ["AAAT", "C--C", "AATT", "GNGG", "CCCC", "TTTT", "AAAA"], ["s0", "s1", "s2", "s3", "s4", "s5", "s6"]
-        )
-        prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
-        node = MultiClusterNode(1, alignment, None, prg_builder, False)
-
-        expected = [
-            make_alignment(
-                ["AAAT", "C--C", "TTTT", "AAAA"], ["s0", "s1", "s5", "s6"]),
-            make_alignment(
-                ["GNGG"], ["s3"]),
-            make_alignment(
-                ["AATT", "CCCC"],
-                ["s2", "s4"]),
-        ]
-        actual = node._get_subalignments_by_clustering()
-
-        self.assertEqual(3, len(actual))
-        for i in range(3):
-            self.assertTrue(equal_msas(expected[i], actual[i]))
-
-    @patch.object(MultiClusterNode, MultiClusterNode._get_children.__name__, return_value=["child_1", "child_2"])
-    def test___get_sub_alignment_by_list_id___GivenOrderedIds_SubalignmentInSequenceOrder(self, *uninteresting_mocks):
+    @patch.object(MultiIntervalNode, MultiIntervalNode._get_children.__name__,
+                  return_value=[Preorder_traversal_to_build_prg_Mock(1),
+                     Preorder_traversal_to_build_prg_Mock(2),
+                     Preorder_traversal_to_build_prg_Mock(3)])
+    def test___preorder_traversal_to_build_prg___multiple_children(self, *uninteresting_mocks):
         self.setup()
-        expected = MSA([self.alignment[0], self.alignment[2]])
-        actual = self.multi_cluster_node._get_sub_alignment_by_list_id(["s1", "s3"])
-        self.assertTrue(equal_msas(expected, actual))
+        children_mock = Mock()
+        node = MultiIntervalNode(1, self.alignment_mock, self.parent_mock, self.prg_builder, children_mock)
 
-    @patch.object(MultiClusterNode, MultiClusterNode._get_children.__name__, return_value=["child_1", "child_2"])
-    def test___get_sub_alignment_by_list_id___GivenUnorderedIds_SubalignmentStillInSequenceOrder(self, *uninteresting_mocks):
-        """
-        Sequences given rearranged are still output in input order
-        """
-        self.setup()
-        expected = MSA([self.alignment[0], self.alignment[2]])
-        actual = self.multi_cluster_node._get_sub_alignment_by_list_id(["s3", "s1"])
-        self.assertTrue(equal_msas(expected, actual))
+        prg_as_list = []
+        node.preorder_traversal_to_build_prg(prg_as_list, delim_char="*")
 
-    @patch("make_prg.recursion_tree.SingleClusterNode")
-    @patch.object(MultiClusterNode, MultiClusterNode._get_subalignments_by_clustering.__name__)
-    def test___get_children___single_cluster(self, get_subalignments_by_clustering_mock, SingleClusterNode_mock,
-                                             *mocks):
-        single_alignment = make_alignment(["AAAT", "C--C", "AATT"])
-        subalignments = [single_alignment]
-        get_subalignments_by_clustering_mock.return_value = subalignments
-        self.setup()
+        expected_prg = "child_1child_2child_3"
+        actual_prg = "".join(prg_as_list)
 
-        expected = [SingleClusterNode_mock.return_value]
-        actual = self.multi_cluster_node.children
+        self.assertEqual(expected_prg, actual_prg)
 
-        self.assertEqual(expected, actual)
-        SingleClusterNode_mock.assert_called_once_with(
-            nesting_level=1,
-            alignment=single_alignment,
-            parent=self.multi_cluster_node,
-            prg_builder=self.prg_builder,
-            force_no_child=True
-        )
-
-    get_children___multiple_clusters___SingleClusterNode___side_effect = [Mock(), Mock(), Mock()]
-    @patch("make_prg.recursion_tree.SingleClusterNode", side_effect=get_children___multiple_clusters___SingleClusterNode___side_effect)
-    @patch.object(MultiClusterNode, MultiClusterNode._get_subalignments_by_clustering.__name__)
-    def test___get_children___multiple_clusters(self, get_subalignments_by_clustering_mock, SingleClusterNode_mock,
-                                             *mocks):
-        alignment_1 = make_alignment(["AAAT", "C--C", "AATT"])
-        alignment_2 = make_alignment(["GGGG"])
-        alignment_3 = make_alignment(["CCCC", "TTTT"])
-
-        subalignments = [alignment_1, alignment_2, alignment_3]
-        get_subalignments_by_clustering_mock.return_value = subalignments
-        self.setup()
-
-        expected = self.get_children___multiple_clusters___SingleClusterNode___side_effect
-        actual = self.multi_cluster_node.children
-
-        self.assertEqual(expected, actual)
-        self.assertEqual(3, SingleClusterNode_mock.call_count)
-        SingleClusterNode_mock.assert_any_call(
-            nesting_level=1,
-            alignment=alignment_1,
-            parent=self.multi_cluster_node,
-            prg_builder=self.prg_builder,
-            force_no_child=False
-        )
-        SingleClusterNode_mock.assert_any_call(
-            nesting_level=1,
-            alignment=alignment_2,
-            parent=self.multi_cluster_node,
-            prg_builder=self.prg_builder,
-            force_no_child=False
-        )
-        SingleClusterNode_mock.assert_any_call(
-            nesting_level=1,
-            alignment=alignment_3,
-            parent=self.multi_cluster_node,
-            prg_builder=self.prg_builder,
-            force_no_child=False
-        )
-
+    @patch.object(MultiIntervalNode, MultiIntervalNode._get_children.__name__,
+                  return_value=[Mock(id=100), Mock(id=200)])
     def test___repr_and_str(self, *uninteresting_mocks):
         self.setup()
-        self.multi_cluster_node._children = [Mock(id=100), Mock(id=200)]
-        expected = """MultiClusterNode:
+        alignment = make_alignment(
+            ["AAAT", "C--C", "AATT", "GNGG"], ["s1", "s2", "s3", "s4"]
+        )
+        node = MultiIntervalNode(1, alignment, self.parent_mock, self.prg_builder, [])
+
+        expected = """MultiIntervalNode:
 Id = 0
 Nesting level = 1
-Force no child = False
-Parent = None
+Parent = Id = 512
 Children = [Id = 100, Id = 200]
 Alignment:
 >s1
@@ -223,583 +207,228 @@ AATT
 >s4
 GNGG
 """
-        actual = repr(self.multi_cluster_node)
+        actual = repr(node)
         self.assertEqual(expected, actual)
 
-        actual = str(self.multi_cluster_node)
+        actual = str(node)
         self.assertEqual(expected, actual)
+
+
 
 
 @patch.object(PrgBuilder, PrgBuilder.get_next_node_id.__name__, return_value=0)
+@patch.object(NodeFactory, NodeFactory.build.__name__)
 @patch("make_prg.prg_builder.load_alignment_file")
 @patch.object(RecursiveTreeNode, RecursiveTreeNode.log_that_node_was_created.__name__)
-class TestSingleClusterNode(TestCase):
-    def subsetup(self):
-        self.alignment = make_alignment(
-            ["AAAT", "C--C", "AATT", "GNGG"], ["s1", "s2", "s3", "s4"]
-        )
-        with patch.object(SingleClusterNode, PrgBuilder.__init__.__name__, return_value=None):
-            self.prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
-
+class TestMultiClusterNode(TestCase):
     # Note: can't apply patches to setUp(), so creating this method that is called in every test
     def setup(self) -> None:
-        self.subsetup()
-        self.single_cluster_node = SingleClusterNode(1, self.alignment, None, self.prg_builder, False)
-        self.single_cluster_node.clustering_result = None
+        self.alignment_mock = Mock()
+        self.prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
+        self.parent_mock = Mock(id=512)
 
-    @patch.object(SingleClusterNode, SingleClusterNode._get_children.__name__, return_value=["child_1", "child_2"])
+    @patch("make_prg.recursion_tree.remove_columns_full_of_gaps_from_MSA", return_value="remove_columns_full_of_gaps_from_MSA_mock")
+    @patch.object(MultiClusterNode, MultiClusterNode._get_children.__name__, return_value=["child_1", "child_2"])
+    def test___constructor(self, get_children_mock, remove_columns_full_of_gaps_from_MSA_mock, *uninteresting_mocks):
+        self.setup()
+        children_mock = Mock()
+        node = MultiClusterNode(1, self.alignment_mock, self.parent_mock, self.prg_builder, children_mock)
+
+        self.assertEqual(1, node.nesting_level)
+        remove_columns_full_of_gaps_from_MSA_mock.assert_called_once_with(self.alignment_mock)
+        self.assertTrue("remove_columns_full_of_gaps_from_MSA_mock", node.alignment)
+        self.assertEqual(self.parent_mock, node.parent)
+        self.assertEqual(0, node.id)
+        get_children_mock.assert_called_once_with(children_mock)
+        self.assertEqual(["child_1", "child_2"], node.children)
+        self.assertEqual(self.prg_builder, node.prg_builder)
+        self.assertFalse(node.is_leaf())
+        self.assertFalse(node.is_root())
+
     @patch("make_prg.recursion_tree.remove_columns_full_of_gaps_from_MSA",
            return_value="remove_columns_full_of_gaps_from_MSA_mock")
-    @patch("make_prg.recursion_tree.kmeans_cluster_seqs", return_value="clustered_sequences")
-    @patch("make_prg.recursion_tree.get_consensus_from_MSA", return_value="consensus_from_MSA")
-    @patch("make_prg.recursion_tree.IntervalPartitioner")
-    def test___constructor(self, IntervalPartitioner_mock, get_consensus_from_MSA_mock, *uninteresting_mocks):
+    @patch.object(MultiClusterNode, MultiClusterNode._get_children.__name__, return_value=[])
+    def test___constructor___no_children___raises_AssertionError(self, *uninteresting_mocks):
+        self.setup()
+        children_mock = Mock()
+        with self.assertRaises(AssertionError):
+            MultiClusterNode(1, self.alignment_mock, self.parent_mock, self.prg_builder, children_mock)
+
+    @patch("make_prg.recursion_tree.remove_columns_full_of_gaps_from_MSA",
+           return_value="remove_columns_full_of_gaps_from_MSA_mock")
+    @patch.object(PrgBuilder, PrgBuilder.get_next_site_num.__name__, return_value=32)
+    @patch.object(MultiClusterNode, MultiClusterNode._get_children.__name__,
+                  return_value=[Preorder_traversal_to_build_prg_Mock(1)])
+    def test___preorder_traversal_to_build_prg___single_child(self, *uninteresting_mocks):
+        self.setup()
+        children_mock = Mock()
+        node = MultiClusterNode(1, self.alignment_mock, self.parent_mock, self.prg_builder, children_mock)
+
+        prg_as_list = []
+        node.preorder_traversal_to_build_prg(prg_as_list, delim_char="*")
+
+        expected_prg = "*32*child_1*32*"
+        actual_prg = "".join(prg_as_list)
+
+        self.assertEqual(expected_prg, actual_prg)
+
+    @patch("make_prg.recursion_tree.remove_columns_full_of_gaps_from_MSA",
+           return_value="remove_columns_full_of_gaps_from_MSA_mock")
+    @patch.object(PrgBuilder, PrgBuilder.get_next_site_num.__name__, return_value=32)
+    @patch.object(MultiClusterNode, MultiClusterNode._get_children.__name__,
+                  return_value=[Preorder_traversal_to_build_prg_Mock(1),
+                     Preorder_traversal_to_build_prg_Mock(2),
+                     Preorder_traversal_to_build_prg_Mock(3)])
+    def test___preorder_traversal_to_build_prg___multiple_children(self, *uninteresting_mocks):
+        self.setup()
+        children_mock = Mock()
+        node = MultiClusterNode(1, self.alignment_mock, self.parent_mock, self.prg_builder, children_mock)
+
+        prg_as_list = []
+        node.preorder_traversal_to_build_prg(prg_as_list, delim_char="*")
+
+        expected_prg = "*32*child_1*33*child_2*33*child_3*32*"
+        actual_prg = "".join(prg_as_list)
+
+        self.assertEqual(expected_prg, actual_prg)
+
+    @patch.object(MultiClusterNode, MultiClusterNode._get_children.__name__,
+                  return_value=[Mock(id=100), Mock(id=200)])
+    def test___repr_and_str(self, *uninteresting_mocks):
+        self.setup()
         alignment = make_alignment(
             ["AAAT", "C--C", "AATT", "GNGG"], ["s1", "s2", "s3", "s4"]
         )
-        with patch.object(SingleClusterNode, PrgBuilder.__init__.__name__, return_value=None):
-            prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
-        parent_mock = Mock()
-        class GetIntervalsMock:
-            def get_intervals(self):
-                return "match_intervals", "non_match_intervals", "all_intervals"
-        get_intervals_mock = GetIntervalsMock()
-        IntervalPartitioner_mock.return_value = get_intervals_mock
+        node = MultiClusterNode(1, alignment, self.parent_mock, self.prg_builder, [])
 
-        node = SingleClusterNode(1, alignment, parent_mock, prg_builder, False)
-
-        self.assertEqual(1, node.nesting_level)
-        self.assertTrue("remove_columns_full_of_gaps_from_MSA_mock", node.alignment)
-        self.assertEqual(parent_mock, node.parent)
-        self.assertEqual(prg_builder, node.prg_builder)
-        self.assertFalse(node.force_no_child)
-        self.assertEqual(0, node.id)
-        self.assertEqual(["child_1", "child_2"], node.children)
-        self.assertEqual("consensus_from_MSA", node.consensus)
-        self.assertEqual(len("consensus_from_MSA"), node.length)
-        self.assertEqual("match_intervals", node.match_intervals)
-        self.assertEqual("non_match_intervals", node.non_match_intervals)
-        self.assertEqual("all_intervals", node.all_intervals)
-        get_consensus_from_MSA_mock.assert_called_once_with("remove_columns_full_of_gaps_from_MSA_mock")
-        IntervalPartitioner_mock.assert_called_once_with("consensus_from_MSA", 7, "remove_columns_full_of_gaps_from_MSA_mock")
-        self.assertEqual(set(), node.new_sequences)
-        self.assertEqual(set(), node.indexed_PRG_intervals)
-
-    @patch("make_prg.recursion_tree.get_consensus_from_MSA", return_value="consensus_from_MSA")
-    @patch("make_prg.recursion_tree.IntervalPartitioner")
-    def test___init_pre_recursion_attributes(self, IntervalPartitioner_mock, get_consensus_from_MSA_mock, *uninteresting_mocks):
-        class GetIntervalsMock:
-            def get_intervals(self):
-                return "match_intervals", "non_match_intervals", "all_intervals"
-        get_intervals_mock = GetIntervalsMock()
-        IntervalPartitioner_mock.return_value = get_intervals_mock
-
-        single_cluster_mock = Mock()
-        single_cluster_mock.prg_builder.min_match_length = 7
-        single_cluster_mock.alignment = Mock()
-        SingleClusterNode._init_pre_recursion_attributes(single_cluster_mock)
-
-        self.assertEqual("consensus_from_MSA", single_cluster_mock.consensus)
-        self.assertEqual(len("consensus_from_MSA"), single_cluster_mock.length)
-        self.assertEqual("match_intervals", single_cluster_mock.match_intervals)
-        self.assertEqual("non_match_intervals", single_cluster_mock.non_match_intervals)
-        self.assertEqual("all_intervals", single_cluster_mock.all_intervals)
-        self.assertEqual(set(), single_cluster_mock.new_sequences)
-        self.assertEqual(set(), single_cluster_mock.indexed_PRG_intervals)
-        get_consensus_from_MSA_mock.assert_called_once_with(single_cluster_mock.alignment)
-        IntervalPartitioner_mock.assert_called_once_with("consensus_from_MSA", 7, single_cluster_mock.alignment)
-
-    @patch.object(SingleClusterNode, SingleClusterNode._get_children.__name__, return_value=[])
-    def test___is_leaf___is_indeed_leaf(self, *uninteresting_mocks):
-        self.setup()
-        node = SingleClusterNode(1, self.alignment, None, self.prg_builder, False)
-
-        self.assertTrue(node.is_leaf())
-
-    @patch.object(SingleClusterNode, SingleClusterNode._get_children.__name__, return_value=[Mock()])
-    def test___is_leaf___is_not_leaf(self, *uninteresting_mocks):
-        self.setup()
-        node = SingleClusterNode(1, self.alignment, None, self.prg_builder, False)
-
-        self.assertFalse(node.is_leaf())
-
-    @patch.object(SingleClusterNode, SingleClusterNode._get_children.__name__)
-    def test___is_root___is_indeed_root(self, *uninteresting_mocks):
-        self.setup()
-        node = SingleClusterNode(1, self.alignment, None, self.prg_builder, False)
-
-        self.assertTrue(node.is_root())
-
-    @patch.object(SingleClusterNode, SingleClusterNode._get_children.__name__)
-    def test___is_root___is_not_root(self, *uninteresting_mocks):
-        self.setup()
-        node = SingleClusterNode(1, self.alignment, Mock(), self.prg_builder, False)
-
-        self.assertFalse(node.is_root())
-
-    @patch("make_prg.recursion_tree.get_number_of_unique_ungapped_sequences", return_value=1)
-    def test___alignment_has_issues___num_unique_nongapped_seqs_1(self,
-                 get_number_of_unique_ungapped_sequences_mock, *uninteresting_mocks):
-        self.setup()
-        self.assertTrue(self.single_cluster_node._alignment_has_issues(self.single_cluster_node.alignment))
-        get_number_of_unique_ungapped_sequences_mock.assert_called_once_with(self.single_cluster_node.alignment)
-
-    @patch("make_prg.recursion_tree.get_number_of_unique_ungapped_sequences", return_value=2)
-    def test___alignment_has_issues___num_unique_nongapped_seqs_2(self,
-                 get_number_of_unique_ungapped_sequences_mock, *uninteresting_mocks):
-        self.setup()
-        self.assertTrue(self.single_cluster_node._alignment_has_issues(self.single_cluster_node.alignment))
-        get_number_of_unique_ungapped_sequences_mock.assert_called_once_with(self.single_cluster_node.alignment)
-
-    @patch("make_prg.recursion_tree.get_number_of_unique_ungapped_sequences", return_value=3)
-    @patch("make_prg.recursion_tree.get_number_of_unique_gapped_sequences", return_value=4)
-    def test___alignment_has_issues___alignment_has_ambiguity___ungapped_smaller_gapped(self,
-         get_number_of_unique_gapped_sequences_mock, get_number_of_unique_ungapped_sequences_mock, *uninteresting_mocks):
-        self.setup()
-        self.assertTrue(self.single_cluster_node._alignment_has_issues(self.single_cluster_node.alignment))
-        get_number_of_unique_gapped_sequences_mock.assert_called_once_with(self.single_cluster_node.alignment)
-        get_number_of_unique_ungapped_sequences_mock.assert_called_once_with(self.single_cluster_node.alignment)
-
-    @patch("make_prg.recursion_tree.get_number_of_unique_ungapped_sequences", return_value=4)
-    @patch("make_prg.recursion_tree.get_number_of_unique_gapped_sequences", return_value=4)
-    def test___alignment_has_issues___alignment_has_ambiguity___ungapped_equals_gapped___no_issues(self,
-        get_number_of_unique_gapped_sequences_mock, get_number_of_unique_ungapped_sequences_mock, *uninteresting_mocks):
-        self.setup()
-        self.assertFalse(self.single_cluster_node._alignment_has_issues(self.single_cluster_node.alignment))
-        get_number_of_unique_gapped_sequences_mock.assert_called_once_with(self.single_cluster_node.alignment)
-        get_number_of_unique_ungapped_sequences_mock.assert_called_once_with(self.single_cluster_node.alignment)
-
-    @patch("make_prg.recursion_tree.get_number_of_unique_ungapped_sequences", return_value=5)
-    @patch("make_prg.recursion_tree.get_number_of_unique_gapped_sequences", return_value=4)
-    def test___alignment_has_issues___alignment_has_ambiguity___ungapped_larger_gapped___raises_AssertionError(self,
-        *uninteresting_mocks):
-        self.setup()
-        with self.assertRaises(AssertionError):
-            self.single_cluster_node._alignment_has_issues(self.single_cluster_node.alignment)
-
-    def test___infer_if_this_node_should_have_no_child___force_no_child(self, *uninteresting_mocks):
-        self.setup()
-        self.single_cluster_node.force_no_child = True
-
-        self.assertTrue(self.single_cluster_node._infer_if_this_node_should_have_no_child())
-
-    def test___infer_if_this_node_should_have_no_child___single_match_interval(self, *uninteresting_mocks):
-        self.setup()
-        interval = Interval(IntervalType.Match, 3, 10)
-        self.single_cluster_node.force_no_child = False
-        self.single_cluster_node.all_intervals = [interval]
-        self.single_cluster_node.match_intervals = [interval]
-
-        self.assertTrue(self.single_cluster_node._infer_if_this_node_should_have_no_child())
-
-    def test___infer_if_this_node_should_have_no_child___max_nesting_level_reached(self, *uninteresting_mocks):
-        self.setup()
-        self.single_cluster_node.force_no_child = False
-        self.single_cluster_node.all_intervals = [Interval(IntervalType.Match, 0, 5),
-                                                  Interval(IntervalType.Match, 6, 10)]
-        self.single_cluster_node.nesting_level = 5
-
-        self.assertTrue(self.single_cluster_node._infer_if_this_node_should_have_no_child())
-
-    def test___infer_if_this_node_should_have_no_child___small_variant_site(self, *uninteresting_mocks):
-        self.setup()
-        self.single_cluster_node.force_no_child = False
-        self.single_cluster_node.all_intervals = [Interval(IntervalType.Match, 0, 5),
-                                                  Interval(IntervalType.Match, 6, 10)]
-        self.single_cluster_node.nesting_level = 1
-        self.single_cluster_node.prg_builder.min_match_length = 10
-
-        self.assertTrue(self.single_cluster_node._infer_if_this_node_should_have_no_child())
-
-    @patch.object(SingleClusterNode, SingleClusterNode._alignment_has_issues.__name__, return_value=True)
-    def test___infer_if_this_node_should_have_no_child___alignment_has_issues(self,
-            alignment_has_issues_mock, *uninteresting_mocks):
-        self.setup()
-        self.single_cluster_node.force_no_child = False
-        self.single_cluster_node.all_intervals = [Interval(IntervalType.Match, 0, 5),
-                                                  Interval(IntervalType.Match, 6, 10)]
-        self.single_cluster_node.nesting_level = 1
-        self.single_cluster_node.prg_builder.min_match_length = 1
-
-        self.assertTrue(self.single_cluster_node._infer_if_this_node_should_have_no_child())
-        alignment_has_issues_mock.assert_called_once_with(self.single_cluster_node.alignment)
-
-    @patch.object(SingleClusterNode, SingleClusterNode._alignment_has_issues.__name__, return_value=False)
-    def test___infer_if_this_node_should_have_no_child___no_issues___can_have_child(self,
-            alignment_has_issues_mock, *uninteresting_mocks):
-        self.setup()
-        self.single_cluster_node.force_no_child = False
-        self.single_cluster_node.all_intervals = [Interval(IntervalType.Match, 0, 5),
-                                                  Interval(IntervalType.Match, 6, 10)]
-        self.single_cluster_node.nesting_level = 1
-        self.single_cluster_node.prg_builder.min_match_length = 1
-
-        self.assertFalse(self.single_cluster_node._infer_if_this_node_should_have_no_child())
-        alignment_has_issues_mock.assert_called_once_with(self.single_cluster_node.alignment)
-
-    def test___infer_if_should_not_cluster___is_a_match_interval(self, *uninteresting_mocks):
-        self.setup()
-        interval = Interval(IntervalType.Match, 5, 10)
-        self.single_cluster_node.match_intervals = [Interval(IntervalType.Match, 0, 5),
-                                                    interval,
-                                                    Interval(IntervalType.Match, 20, 25)]
-
-        self.assertTrue(self.single_cluster_node._infer_if_should_not_cluster(interval, self.alignment))
-
-    @patch.object(SingleClusterNode, SingleClusterNode._alignment_has_issues.__name__, return_value=True)
-    def test___infer_if_should_not_cluster___alignment_has_issues(self,
-          alignment_has_issues_mock, *uninteresting_mocks):
-        self.setup()
-        interval = Interval(IntervalType.Match, 5, 10)
-        self.single_cluster_node.match_intervals = []
-
-        self.assertTrue(self.single_cluster_node._infer_if_should_not_cluster(interval, self.single_cluster_node.alignment))
-        alignment_has_issues_mock.assert_called_once_with(self.single_cluster_node.alignment)
-
-    @patch("make_prg.recursion_tree.kmeans_cluster_seqs", return_value=ClusteringResult(
-        [["s1", "s2", "s3", "s4"]]))
-    @patch.object(SingleClusterNode, SingleClusterNode._alignment_has_issues.__name__, return_value=False)
-    def test___infer_if_should_not_cluster___single_cluster(self,
-           alignment_has_issues_mock, kmeans_cluster_seqs_mock, *uninteresting_mocks):
-        self.setup()
-        interval = Interval(IntervalType.Match, 5, 10)
-        self.single_cluster_node.match_intervals = []
-
-        self.assertTrue(
-            self.single_cluster_node._infer_if_should_not_cluster(interval, self.single_cluster_node.alignment))
-        alignment_has_issues_mock.assert_called_once_with(self.single_cluster_node.alignment)
-        kmeans_cluster_seqs_mock.assert_called_once_with(self.single_cluster_node.alignment, self.prg_builder.min_match_length)
-
-    @patch("make_prg.recursion_tree.kmeans_cluster_seqs", return_value=ClusteringResult(
-        [["s1", "s2"], ["s3", "s4"]]))
-    @patch.object(SingleClusterNode, SingleClusterNode._alignment_has_issues.__name__, return_value=False)
-    def test___infer_if_should_not_cluster___two_clusters___no_issues_can_cluster(self,
-                                                            alignment_has_issues_mock, kmeans_cluster_seqs_mock,
-                                                            *uninteresting_mocks):
-        self.setup()
-        interval = Interval(IntervalType.Match, 5, 10)
-        self.single_cluster_node.match_intervals = []
-
-        self.assertFalse(
-            self.single_cluster_node._infer_if_should_not_cluster(interval, self.single_cluster_node.alignment))
-        alignment_has_issues_mock.assert_called_once_with(self.single_cluster_node.alignment)
-        kmeans_cluster_seqs_mock.assert_called_once_with(self.single_cluster_node.alignment,
-                                                         self.prg_builder.min_match_length)
-
-    @patch.object(SingleClusterNode, SingleClusterNode._infer_if_this_node_should_have_no_child.__name__, return_value=True)
-    def test___get_children___node_should_have_no_child(self, *uninteresting_mocks):
-        self.subsetup()
-        node = SingleClusterNode(1, self.alignment, None, self.prg_builder, False)
-
-        expected = []
-        actual = node._get_children()
-
+        expected = """MultiClusterNode:
+Id = 0
+Nesting level = 1
+Parent = Id = 512
+Children = [Id = 100, Id = 200]
+Alignment:
+>s1
+AAAT
+>s2
+C--C
+>s3
+AATT
+>s4
+GNGG
+"""
+        actual = repr(node)
         self.assertEqual(expected, actual)
 
-    @patch.object(SingleClusterNode, SingleClusterNode._infer_if_this_node_should_have_no_child.__name__, return_value=False)
-    @patch.object(SingleClusterNode, SingleClusterNode._infer_if_should_not_cluster.__name__, return_value=True)
-    def test___get_children___single_SingleClusterNode_child(self, *uninteresting_mocks):
-        self.subsetup()
+        actual = str(node)
+        self.assertEqual(expected, actual)
 
-        # we mock get_children() here so that we don't trigger the recursion tree building
-        with patch.object(SingleClusterNode, SingleClusterNode._get_children.__name__):
-            node = SingleClusterNode(1, self.alignment, None, self.prg_builder, False)
-        node.all_intervals = [Interval(IntervalType.Match, 0, 0)]
 
-        # now we mock SingleClusterNode so that we don't trigger the recursion tree building
-        child_mock = Mock()
-        with patch("make_prg.recursion_tree.SingleClusterNode", return_value=child_mock) as SingleClusterNode_mock:
-            expected = [child_mock]
-            actual = node._get_children()
-            self.assertEqual(expected, actual)
-            SingleClusterNode_mock.assert_called_once()
 
-            # assert_called_once_with() does not work because can't check if MSAs are equal
-            kwargs = SingleClusterNode_mock.call_args_list[0].kwargs
-            self.assertTrue(first_dict_contained_in_second({
-                    "nesting_level": node.nesting_level+1,
-                    "parent": node,
-                    "prg_builder": self.prg_builder,
-                    "force_no_child": True
-                }, kwargs))
-            self.assertTrue(equal_msas(self.alignment[:,0:1], kwargs["alignment"]))
+@patch.object(PrgBuilder, PrgBuilder.get_next_node_id.__name__, return_value=0)
+@patch.object(NodeFactory, NodeFactory.build.__name__)
+@patch("make_prg.prg_builder.load_alignment_file")
+@patch.object(RecursiveTreeNode, RecursiveTreeNode.log_that_node_was_created.__name__)
+class TestLeafNode(TestCase):
+    # Note: can't apply patches to setUp(), so creating this method that is called in every test
+    def setup(self) -> None:
+        self.alignment = make_alignment(
+            ["AAAT", "C--C", "AATT", "GNGG"], ["s1", "s2", "s3", "s4"]
+        )
+        self.prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
+        self.parent_mock = Mock(id=512)
+        self.node = LeafNode(1, self.alignment, self.parent_mock, self.prg_builder)
 
-    @patch.object(SingleClusterNode, SingleClusterNode._infer_if_this_node_should_have_no_child.__name__, return_value=False)
-    @patch.object(SingleClusterNode, SingleClusterNode._infer_if_should_not_cluster.__name__, return_value=False)
-    def test___get_children___single_MultiClusterNode_child(self, *uninteresting_mocks):
-        self.subsetup()
+    def test___constructor(self, *uninteresting_mocks):
+        self.setup()
 
-        # we mock get_children() here so that we don't trigger the recursion tree building
-        with patch.object(SingleClusterNode, SingleClusterNode._get_children.__name__):
-            node = SingleClusterNode(1, self.alignment, None, self.prg_builder, False)
-        node.all_intervals = [Interval(IntervalType.Match, 0, 0)]
+        self.assertEqual(1, self.node.nesting_level)
+        self.assertTrue(self.alignment, self.node.alignment)
+        self.assertEqual(self.parent_mock, self.node.parent)
+        self.assertEqual(0, self.node.id)
+        self.assertEqual([], self.node.children)
+        self.assertEqual(self.prg_builder, self.node.prg_builder)
+        self.assertEqual(set(), self.node.new_sequences)
+        self.assertTrue(self.node.is_leaf())
+        self.assertFalse(self.node.is_root())
 
-        # now we mock MultiClusterNode so that we don't trigger the recursion tree building
-        child_mock = Mock()
-        with patch("make_prg.recursion_tree.MultiClusterNode", return_value=child_mock) as MultiClusterNode_mock:
-            expected = [child_mock]
-            actual = node._get_children()
-            self.assertEqual(expected, actual)
-            MultiClusterNode_mock.assert_called_once()
-
-            # assert_called_once_with() does not work because can't check if MSAs are equal
-            kwargs = MultiClusterNode_mock.call_args_list[0].kwargs
-            self.assertTrue(first_dict_contained_in_second({
-                    "nesting_level": node.nesting_level+1,
-                    "parent": node,
-                    "prg_builder": self.prg_builder,
-                    "force_no_child": False
-                }, kwargs))
-            self.assertTrue(equal_msas(self.alignment[:,0:1], kwargs["alignment"]))
-
-    @patch.object(SingleClusterNode, SingleClusterNode._infer_if_this_node_should_have_no_child.__name__, return_value=False)
-    @patch.object(SingleClusterNode, SingleClusterNode._infer_if_should_not_cluster.__name__, side_effect=[True, False, True, False])
-    def test___get_children___multiple_children(self, *uninteresting_mocks):
-        self.subsetup()
-
-        # we mock get_children() here so that we don't trigger the recursion tree building
-        with patch.object(SingleClusterNode, SingleClusterNode._get_children.__name__):
-            node = SingleClusterNode(1, self.alignment, None, self.prg_builder, False)
-        node.all_intervals = [Interval(IntervalType.Match, 0, 0),
-                              Interval(IntervalType.NonMatch, 1, 1),
-                              Interval(IntervalType.Match, 2, 2),
-                              Interval(IntervalType.NonMatch, 3, 3)]
-
-        # now we mock SingleClusterNode and MultiClusterNode so that we don't trigger the recursion tree building
-        single_cluster_node_mock_1 = Mock()
-        single_cluster_node_mock_2 = Mock()
-        multi_cluster_node_mock_1 = Mock()
-        multi_cluster_node_mock_2 = Mock()
-        with patch("make_prg.recursion_tree.MultiClusterNode", side_effect=[multi_cluster_node_mock_1, multi_cluster_node_mock_2]), \
-            patch("make_prg.recursion_tree.SingleClusterNode", side_effect=[single_cluster_node_mock_1, single_cluster_node_mock_2]):
-            expected = [single_cluster_node_mock_1, multi_cluster_node_mock_1, single_cluster_node_mock_2, multi_cluster_node_mock_2]
-            actual = node._get_children()
-            self.assertEqual(expected, actual)
 
     @patch.object(SequenceExpander, SequenceExpander.get_expanded_sequences_from_MSA.__name__, return_value = ["ACGT"])
     @patch.object(PrgBuilder, PrgBuilder.update_PRG_index.__name__)
-    def test___get_prg___single_interval_and_single_seq(self, update_prg_index_mock, *uninteresting_mocks):
+    def test___preorder_traversal_to_build_prg___single_seq(self, update_prg_index_mock, *uninteresting_mocks):
         self.setup()
-        self.single_cluster_node.all_intervals = [Interval(IntervalType.Match, 0, 0)]
 
         expected_prg_as_list = list("ACGT")
         actual_prg_as_list = []
-        self.single_cluster_node._get_prg(actual_prg_as_list, delim_char="*")
+        self.node.preorder_traversal_to_build_prg(actual_prg_as_list, delim_char="*")
 
         self.assertEqual(expected_prg_as_list, actual_prg_as_list)
-        update_prg_index_mock.assert_called_once_with(0, 4, node=self.single_cluster_node)
+        update_prg_index_mock.assert_called_once_with(0, 4, node=self.node)
 
-    @patch.object(SingleClusterNode, SingleClusterNode.is_root.__name__, return_value=False)
-    @patch("make_prg.recursion_tree.kmeans_cluster_seqs", return_value=Mock(have_precomputed_sequences=False))
-    @patch.object(SequenceExpander, SequenceExpander.get_expanded_sequences_from_MSA.__name__, return_value = ["ACGT"])
+    @patch.object(SequenceExpander, SequenceExpander.get_expanded_sequences_from_MSA.__name__, return_value=["ACGT"])
     @patch.object(PrgBuilder, PrgBuilder.update_PRG_index.__name__)
-    def test___get_prg___single_interval_and_single_seq___not_root_and_have_no_precomputed_sequences(self, update_prg_index_mock, *uninteresting_mocks):
+    def test___preorder_traversal_to_build_prg___single_seq___no_indexing(self, update_prg_index_mock, *uninteresting_mocks):
         self.setup()
-        self.single_cluster_node.all_intervals = [Interval(IntervalType.Match, 0, 0)]
 
         expected_prg_as_list = list("ACGT")
         actual_prg_as_list = []
-        self.single_cluster_node._get_prg(actual_prg_as_list, delim_char="*")
+        self.node.preorder_traversal_to_build_prg(actual_prg_as_list, delim_char="*", do_indexing=False)
 
         self.assertEqual(expected_prg_as_list, actual_prg_as_list)
-        update_prg_index_mock.assert_called_once_with(0, 4, node=self.single_cluster_node)
-
-    @patch.object(SingleClusterNode, SingleClusterNode.is_root.__name__, return_value=False)
-    @patch("make_prg.recursion_tree.kmeans_cluster_seqs", return_value=Mock(have_precomputed_sequences=True,
-                                                                            sequences=["TGCA"]))
-    @patch.object(PrgBuilder, PrgBuilder.update_PRG_index.__name__)
-    def test___get_prg___single_interval_and_single_seq___not_root_and_have_precomputed_sequences(self,
-                                                                                                     update_prg_index_mock,
-                                                                                                     *uninteresting_mocks):
-        self.setup()
-        self.single_cluster_node.all_intervals = [Interval(IntervalType.Match, 0, 0)]
-
-        expected_prg_as_list = list("TGCA")
-        actual_prg_as_list = []
-        self.single_cluster_node._get_prg(actual_prg_as_list, delim_char="*")
-
-        self.assertEqual(expected_prg_as_list, actual_prg_as_list)
-        update_prg_index_mock.assert_called_once_with(0, 4, node=self.single_cluster_node)
+        update_prg_index_mock.assert_not_called()
 
     @patch.object(SequenceExpander, SequenceExpander.get_expanded_sequences_from_MSA.__name__, return_value=[
         "AA", "C", "GGGG"])
     @patch.object(PrgBuilder, PrgBuilder.get_next_site_num.__name__, return_value=42)
     @patch.object(PrgBuilder, PrgBuilder.update_PRG_index.__name__)
-    def test___get_prg___single_interval_and_several_seqs(self, update_prg_index_mock, *uninteresting_mocks):
+    def test___preorder_traversal_to_build_prg___several_seqs(self, update_prg_index_mock, *uninteresting_mocks):
         self.setup()
-        self.single_cluster_node.all_intervals = [Interval(IntervalType.Match, 0, 0)]
 
         expected_prg_as_list = list("*42*AA*43*C*43*GGGG*42*")
         actual_prg_as_list = []
-        self.single_cluster_node._get_prg(actual_prg_as_list, delim_char="*")
+        self.node.preorder_traversal_to_build_prg(actual_prg_as_list, delim_char="*")
 
         self.assertEqual(expected_prg_as_list, actual_prg_as_list)
         self.assertEqual(3, update_prg_index_mock.call_count)
-        update_prg_index_mock.assert_any_call(4, 6, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(10, 11, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(15, 19, node=self.single_cluster_node)
+        update_prg_index_mock.assert_any_call(4, 6, node=self.node)
+        update_prg_index_mock.assert_any_call(10, 11, node=self.node)
+        update_prg_index_mock.assert_any_call(15, 19, node=self.node)
 
-    @patch.object(SequenceExpander, SequenceExpander.get_expanded_sequences_from_MSA.__name__, side_effect=[
-        ["ACGT"],
-        ["AA", "C", "GGGG"],
-        ["TTTT"],
-        ["G", "T"]
-    ])
-    @patch.object(SingleClusterNode, SingleClusterNode._init_pre_recursion_attributes.__name__)
-    @patch.object(SingleClusterNode, SingleClusterNode._get_children.__name__)
+    @patch.object(SequenceExpander, SequenceExpander.get_expanded_sequences_from_MSA.__name__, return_value=[
+        "AA", "C", "GGGG"])
+    @patch.object(PrgBuilder, PrgBuilder.get_next_site_num.__name__, return_value=42)
     @patch.object(PrgBuilder, PrgBuilder.update_PRG_index.__name__)
-    def test___get_prg___several_intervals___single_and_multiple_seqs_intertwinned(self, update_prg_index_mock, *uninteresting_mocks):
+    def test___preorder_traversal_to_build_prg___several_seqs___no_indexing(self, update_prg_index_mock, *uninteresting_mocks):
         self.setup()
-        self.single_cluster_node.all_intervals = [
-            Interval(IntervalType.Match, 0, 0),
-            Interval(IntervalType.Match, 1, 1),
-            Interval(IntervalType.Match, 2, 2),
-            Interval(IntervalType.Match, 3, 3),
-        ]
-        self.single_cluster_node.prg_builder.site_num = 42
 
-        expected_prg_as_list = list("ACGT*42*AA*43*C*43*GGGG*42*TTTT*44*G*45*T*44*")
+        expected_prg_as_list = list("*42*AA*43*C*43*GGGG*42*")
         actual_prg_as_list = []
-        self.single_cluster_node._get_prg(actual_prg_as_list, delim_char="*")
+        self.node.preorder_traversal_to_build_prg(actual_prg_as_list, delim_char="*", do_indexing=False)
 
         self.assertEqual(expected_prg_as_list, actual_prg_as_list)
-        self.assertEqual(7, update_prg_index_mock.call_count)
-        update_prg_index_mock.assert_any_call(0, 4, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(8, 10, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(14, 15, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(19, 23, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(27, 31, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(35, 36, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(40, 41, node=self.single_cluster_node)
+        update_prg_index_mock.assert_not_called()
 
-
-    @patch.object(SequenceExpander, SequenceExpander.get_expanded_sequences_from_MSA.__name__, side_effect=[
-        ["AA"],
-        ["CCCC"],
-        ["G"]
-    ])
-    @patch.object(SingleClusterNode, SingleClusterNode._init_pre_recursion_attributes.__name__)
-    @patch.object(SingleClusterNode, SingleClusterNode._get_children.__name__)
-    @patch.object(PrgBuilder, PrgBuilder.update_PRG_index.__name__)
-    def test___get_prg___several_intervals___all_single_seqs(self, update_prg_index_mock, *uninteresting_mocks):
-        self.setup()
-        self.single_cluster_node.all_intervals = [
-            Interval(IntervalType.Match, 0, 0),
-            Interval(IntervalType.Match, 1, 1),
-            Interval(IntervalType.Match, 2, 2),
-        ]
-        self.single_cluster_node.prg_builder.site_num = 42
-
-        expected_prg_as_list = list("AACCCCG")
-        actual_prg_as_list = []
-        self.single_cluster_node._get_prg(actual_prg_as_list, delim_char="*")
-
-        self.assertEqual(expected_prg_as_list, actual_prg_as_list)
-        self.assertEqual(3, update_prg_index_mock.call_count)
-
-        # TODO: updates are very likely made much better if we can join all these intervals together
-        update_prg_index_mock.assert_any_call(0, 2, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(2, 6, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(6, 7, node=self.single_cluster_node)
-
-    @patch.object(SequenceExpander, SequenceExpander.get_expanded_sequences_from_MSA.__name__, side_effect=[
-        ["AA", "C", "GGGG"],
-        ["G", "T"],
-        ["A", "C"],
-    ])
-    @patch.object(SingleClusterNode, SingleClusterNode._init_pre_recursion_attributes.__name__)
-    @patch.object(SingleClusterNode, SingleClusterNode._get_children.__name__)
-    @patch.object(PrgBuilder, PrgBuilder.update_PRG_index.__name__)
-    def test___get_prg___several_intervals___all_several_seqs(self, update_prg_index_mock, *uninteresting_mocks):
-        self.setup()
-        self.single_cluster_node.all_intervals = [
-            Interval(IntervalType.Match, 0, 0),
-            Interval(IntervalType.Match, 1, 1),
-            Interval(IntervalType.Match, 2, 2),
-        ]
-        self.single_cluster_node.prg_builder.site_num = 42
-
-        expected_prg_as_list = list("*42*AA*43*C*43*GGGG*42**44*G*45*T*44**46*A*47*C*46*")
-        actual_prg_as_list = []
-        self.single_cluster_node._get_prg(actual_prg_as_list, delim_char="*")
-
-        self.assertEqual(expected_prg_as_list, actual_prg_as_list)
-        self.assertEqual(7, update_prg_index_mock.call_count)
-
-        update_prg_index_mock.assert_any_call(4, 6, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(10, 11, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(15, 19, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(27, 28, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(32, 33, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(41, 42, node=self.single_cluster_node)
-        update_prg_index_mock.assert_any_call(46, 47, node=self.single_cluster_node)
-
-
-
-    @patch.object(SingleClusterNode, SingleClusterNode._get_prg.__name__)
-    def test___preorder_traversal_to_build_prg___no_children___compute_PRG(self, get_prg_mock, *uninteresting_mocks):
-        self.setup()
-        self.single_cluster_node._children = []
-        prg_as_list = []
-
-        self.single_cluster_node.preorder_traversal_to_build_prg(prg_as_list, delim_char="*")
-
-        get_prg_mock.assert_called_once_with(prg_as_list, "*")
-
-    @patch.object(SingleClusterNode, SingleClusterNode._get_prg.__name__)
-    def test___preorder_traversal_to_build_prg___one_child___recursion_happens(self, get_prg_mock, *uninteresting_mocks):
-        self.setup()
-        preorder_traversal_to_build_prg_mock = Mock()
-        child = Mock(preorder_traversal_to_build_prg=preorder_traversal_to_build_prg_mock)
-        self.single_cluster_node._children = [child]
-        prg_as_list = []
-
-        self.single_cluster_node.preorder_traversal_to_build_prg(prg_as_list, delim_char="*")
-
-        get_prg_mock.assert_not_called()
-        preorder_traversal_to_build_prg_mock.assert_called_once_with(prg_as_list, "*")
-
-    @patch.object(SingleClusterNode, SingleClusterNode._get_prg.__name__)
-    def test___preorder_traversal_to_build_prg___several_children___recursion_happens(self, get_prg_mock,
-                                                                               *uninteresting_mocks):
-        self.setup()
-        preorder_traversal_to_build_prg_mock_1 = Mock()
-        child_1 = Mock(preorder_traversal_to_build_prg=preorder_traversal_to_build_prg_mock_1)
-        preorder_traversal_to_build_prg_mock_2 = Mock()
-        child_2 = Mock(preorder_traversal_to_build_prg=preorder_traversal_to_build_prg_mock_2)
-        preorder_traversal_to_build_prg_mock_3 = Mock()
-        child_3 = Mock(preorder_traversal_to_build_prg=preorder_traversal_to_build_prg_mock_3)
-        self.single_cluster_node._children = [child_1, child_2, child_3]
-        prg_as_list = []
-
-        self.single_cluster_node.preorder_traversal_to_build_prg(prg_as_list, delim_char="*")
-
-        get_prg_mock.assert_not_called()
-        preorder_traversal_to_build_prg_mock_1.assert_called_once_with(prg_as_list, "*")
-        preorder_traversal_to_build_prg_mock_2.assert_called_once_with(prg_as_list, "*")
-        preorder_traversal_to_build_prg_mock_3.assert_called_once_with(prg_as_list, "*")
 
     def test___add_data_to_batch_update___interval_not_indexed___raises_UpdateError(self, *uninteresting_mocks):
         self.setup()
         ml_path_mock = Mock()
         update_data = UpdateData((0, 4), ml_path_mock, "ACGT")
-        self.single_cluster_node.indexed_PRG_intervals = {}
-        self.assertEqual(set(), self.single_cluster_node.new_sequences)
+        self.node.indexed_PRG_intervals = {}
+        self.assertEqual(set(), self.node.new_sequences)
 
         with self.assertRaises(UpdateError):
-            self.single_cluster_node.add_data_to_batch_update(update_data)
+            self.node.add_data_to_batch_update(update_data)
 
     def test___add_data_to_batch_update___single_interval(self, *uninteresting_mocks):
         self.setup()
         ml_path_mock = Mock()
         update_data = UpdateData((0, 4), ml_path_mock, "ACGT")
-        self.single_cluster_node.indexed_PRG_intervals = {(0, 4)}
-        self.assertEqual(set(), self.single_cluster_node.new_sequences)
+        self.node.indexed_PRG_intervals = {(0, 4)}
+        self.assertEqual(set(), self.node.new_sequences)
 
-        self.single_cluster_node.add_data_to_batch_update(update_data)
+        self.node.add_data_to_batch_update(update_data)
 
         expected = {"ACGT"}
-        self.assertEqual(expected, self.single_cluster_node.new_sequences)
+        self.assertEqual(expected, self.node.new_sequences)
 
     def test___add_data_to_batch_update___update_data_interval_flanked(self, *uninteresting_mocks):
         self.setup()
@@ -815,13 +444,13 @@ class TestSingleClusterNode(TestCase):
         get_node_given_interval_in_PRG_space_mock = Mock(side_effect=get_node_given_interval_in_PRG_space_mock_fun)
         ml_path_node_mock = Mock(get_node_given_interval_in_PRG_space = get_node_given_interval_in_PRG_space_mock)
         update_data = UpdateData((5, 10), ml_path_node_mock, "ACGT")
-        self.single_cluster_node.indexed_PRG_intervals = {(5, 10), (20, 30), (0, 4)}
-        self.assertEqual(set(), self.single_cluster_node.new_sequences)
+        self.node.indexed_PRG_intervals = {(5, 10), (20, 30), (0, 4)}
+        self.assertEqual(set(), self.node.new_sequences)
 
-        self.single_cluster_node.add_data_to_batch_update(update_data)
+        self.node.add_data_to_batch_update(update_data)
 
         expected = {"left_flankACGTright_flank"}
-        self.assertEqual(expected, self.single_cluster_node.new_sequences)
+        self.assertEqual(expected, self.node.new_sequences)
         get_node_given_interval_in_PRG_space_mock.assert_any_call((0, 4))
         get_node_given_interval_in_PRG_space_mock.assert_any_call((20, 30))
 
@@ -839,13 +468,13 @@ class TestSingleClusterNode(TestCase):
         get_node_given_interval_in_PRG_space_mock = Mock(side_effect=get_node_given_interval_in_PRG_space_mock_fun)
         ml_path_node_mock = Mock(get_node_given_interval_in_PRG_space = get_node_given_interval_in_PRG_space_mock)
         update_data = UpdateData((0, 4), ml_path_node_mock, "ACGT")
-        self.single_cluster_node.indexed_PRG_intervals = {(5, 10), (20, 30), (0, 4)}
-        self.assertEqual(set(), self.single_cluster_node.new_sequences)
+        self.node.indexed_PRG_intervals = {(5, 10), (20, 30), (0, 4)}
+        self.assertEqual(set(), self.node.new_sequences)
 
-        self.single_cluster_node.add_data_to_batch_update(update_data)
+        self.node.add_data_to_batch_update(update_data)
 
         expected = {"ACGTmiddle_flankright_flank"}
-        self.assertEqual(expected, self.single_cluster_node.new_sequences)
+        self.assertEqual(expected, self.node.new_sequences)
         get_node_given_interval_in_PRG_space_mock.assert_any_call((5, 10))
         get_node_given_interval_in_PRG_space_mock.assert_any_call((20, 30))
 
@@ -863,13 +492,13 @@ class TestSingleClusterNode(TestCase):
         get_node_given_interval_in_PRG_space_mock = Mock(side_effect=get_node_given_interval_in_PRG_space_mock_fun)
         ml_path_node_mock = Mock(get_node_given_interval_in_PRG_space = get_node_given_interval_in_PRG_space_mock)
         update_data = UpdateData((20, 30), ml_path_node_mock, "ACGT")
-        self.single_cluster_node.indexed_PRG_intervals = {(5, 10), (20, 30), (0, 4)}
-        self.assertEqual(set(), self.single_cluster_node.new_sequences)
+        self.node.indexed_PRG_intervals = {(5, 10), (20, 30), (0, 4)}
+        self.assertEqual(set(), self.node.new_sequences)
 
-        self.single_cluster_node.add_data_to_batch_update(update_data)
+        self.node.add_data_to_batch_update(update_data)
 
         expected = {"left_flankmiddle_flankACGT"}
-        self.assertEqual(expected, self.single_cluster_node.new_sequences)
+        self.assertEqual(expected, self.node.new_sequences)
         get_node_given_interval_in_PRG_space_mock.assert_any_call((0, 4))
         get_node_given_interval_in_PRG_space_mock.assert_any_call((5, 10))
 
@@ -885,13 +514,13 @@ class TestSingleClusterNode(TestCase):
         get_node_given_interval_in_PRG_space_mock = Mock(side_effect=get_node_given_interval_in_PRG_space_mock_fun)
         ml_path_node_mock = Mock(get_node_given_interval_in_PRG_space = get_node_given_interval_in_PRG_space_mock)
         update_data = UpdateData((5, 10), ml_path_node_mock, "ACGT")
-        self.single_cluster_node.indexed_PRG_intervals = {(5, 10), (20, 30), (0, 4)}
-        self.assertEqual(set(), self.single_cluster_node.new_sequences)
+        self.node.indexed_PRG_intervals = {(5, 10), (20, 30), (0, 4)}
+        self.assertEqual(set(), self.node.new_sequences)
 
-        self.single_cluster_node.add_data_to_batch_update(update_data)
+        self.node.add_data_to_batch_update(update_data)
 
         expected = {"ACGTright_flank"}
-        self.assertEqual(expected, self.single_cluster_node.new_sequences)
+        self.assertEqual(expected, self.node.new_sequences)
         get_node_given_interval_in_PRG_space_mock.assert_any_call((0, 4))
         get_node_given_interval_in_PRG_space_mock.assert_any_call((20, 30))
 
@@ -907,74 +536,87 @@ class TestSingleClusterNode(TestCase):
         get_node_given_interval_in_PRG_space_mock = Mock(side_effect=get_node_given_interval_in_PRG_space_mock_fun)
         ml_path_node_mock = Mock(get_node_given_interval_in_PRG_space = get_node_given_interval_in_PRG_space_mock)
         update_data = UpdateData((5, 10), ml_path_node_mock, "ACGT")
-        self.single_cluster_node.indexed_PRG_intervals = {(5, 10), (20, 30), (0, 4)}
-        self.assertEqual(set(), self.single_cluster_node.new_sequences)
+        self.node.indexed_PRG_intervals = {(5, 10), (20, 30), (0, 4)}
+        self.assertEqual(set(), self.node.new_sequences)
 
-        self.single_cluster_node.add_data_to_batch_update(update_data)
+        self.node.add_data_to_batch_update(update_data)
 
         expected = {"left_flankACGT"}
-        self.assertEqual(expected, self.single_cluster_node.new_sequences)
+        self.assertEqual(expected, self.node.new_sequences)
         get_node_given_interval_in_PRG_space_mock.assert_any_call((0, 4))
         get_node_given_interval_in_PRG_space_mock.assert_any_call((20, 30))
 
     def test___add_indexed_PRG_interval___single_interval(self, *uninteresting_mocks):
         self.setup()
 
-        self.assertEqual(set(), self.single_cluster_node.indexed_PRG_intervals)
-        self.single_cluster_node.add_indexed_PRG_interval((0, 4))
-        self.assertEqual({(0, 4)}, self.single_cluster_node.indexed_PRG_intervals)
+        self.assertEqual(set(), self.node.indexed_PRG_intervals)
+        self.node.add_indexed_PRG_interval((0, 4))
+        self.assertEqual({(0, 4)}, self.node.indexed_PRG_intervals)
 
     def test___add_indexed_PRG_interval___multiple_intervals(self, *uninteresting_mocks):
         self.setup()
 
-        self.assertEqual(set(), self.single_cluster_node.indexed_PRG_intervals)
-        self.single_cluster_node.add_indexed_PRG_interval((0, 4))
-        self.single_cluster_node.add_indexed_PRG_interval((25, 30))
-        self.single_cluster_node.add_indexed_PRG_interval((0, 4))
-        self.single_cluster_node.add_indexed_PRG_interval((0, 4))
-        self.single_cluster_node.add_indexed_PRG_interval((25, 30))
-        self.single_cluster_node.add_indexed_PRG_interval((10, 15))
-        self.single_cluster_node.add_indexed_PRG_interval((25, 30))
-        self.single_cluster_node.add_indexed_PRG_interval((0, 4))
-        self.single_cluster_node.add_indexed_PRG_interval((17, 19))
+        self.assertEqual(set(), self.node.indexed_PRG_intervals)
+        self.node.add_indexed_PRG_interval((0, 4))
+        self.node.add_indexed_PRG_interval((25, 30))
+        self.node.add_indexed_PRG_interval((0, 4))
+        self.node.add_indexed_PRG_interval((0, 4))
+        self.node.add_indexed_PRG_interval((25, 30))
+        self.node.add_indexed_PRG_interval((10, 15))
+        self.node.add_indexed_PRG_interval((25, 30))
+        self.node.add_indexed_PRG_interval((0, 4))
+        self.node.add_indexed_PRG_interval((17, 19))
         self.assertEqual({(0, 4), (10, 15), (17, 19), (25, 30)},
-                         self.single_cluster_node.indexed_PRG_intervals)
+                         self.node.indexed_PRG_intervals)
 
-    @patch.object(SingleClusterNode, SingleClusterNode._update_leaf.__name__)
+    @patch.object(LeafNode, LeafNode._update_leaf.__name__)
     def test___batch_update___no_new_sequences___no_update_to_be_done(self, update_leaf_mock, *uninteresting_mocks):
         self.setup()
-        self.single_cluster_node.batch_update()
+        self.node.batch_update()
         update_leaf_mock.assert_not_called()
 
-    @patch.object(SingleClusterNode, SingleClusterNode._update_leaf.__name__)
+    @patch.object(LeafNode, LeafNode._update_leaf.__name__)
     def test___batch_update___one_new_sequence___update_is_called(self, update_leaf_mock, *uninteresting_mocks):
         self.setup()
-        self.single_cluster_node.new_sequences.add("ACGT")
-        self.single_cluster_node.batch_update()
+        self.node.new_sequences.add("ACGT")
+        self.node.batch_update()
         update_leaf_mock.assert_called_once_with()
 
     def test___update_leaf___no_aligner_was_given___raises_AssertionError(self, *uninteresting_mocks):
         self.setup()
-        self.single_cluster_node.new_sequences.add("ACGT")
+        self.node.new_sequences.add("ACGT")
         with self.assertRaises(AssertionError):
-            self.single_cluster_node._update_leaf()
+            self.node._update_leaf()
 
-    def test___update_leaf(self, init_pre_recursion_attributes_mock, *uninteresting_mocks):
+    def test___update_leaf___is_not_root(self, *uninteresting_mocks):
         self.setup()
 
-        update_alignment = Mock()
-        get_updated_alignment_mock = Mock(return_value=update_alignment)
+        # prepare aligner mock
+        updated_alignment = Mock()
+        get_updated_alignment_mock = Mock(return_value=updated_alignment)
         aligner_mock = Mock()
         aligner_mock.get_updated_alignment = get_updated_alignment_mock
         self.prg_builder.aligner = aligner_mock
 
-        self.single_cluster_node.new_sequences.add("AAAA")
-        self.single_cluster_node.new_sequences.add("CC")
+        # prepare replace_child mock
+        replace_child_mock = Mock()
+        self.parent_mock.replace_child = replace_child_mock
 
-        # we repatch some stuff to check the calls on the _update_leaf() only
-        with patch.object(SingleClusterNode, SingleClusterNode._get_children.__name__, return_value=["updated_child_1", "updated_child_2"]) as get_children_mock, \
-             patch.object(SingleClusterNode, SingleClusterNode._init_pre_recursion_attributes.__name__) as init_pre_recursion_attributes_mock:
-            self.single_cluster_node._update_leaf()
+        # prepare replace_root mock
+        replace_root_mock = Mock()
+        self.prg_builder.replace_root = replace_root_mock
+
+        # prepare clear_PRG_index mock
+        clear_PRG_index_mock = Mock()
+        self.prg_builder.clear_PRG_index = clear_PRG_index_mock
+
+        self.node.new_sequences.add("AAAA")
+        self.node.new_sequences.add("CC")
+
+        # we repatch some methods
+        updated_child = Mock()
+        with patch.object(NodeFactory, "build", return_value=updated_child) as node_factory_build_mock:
+            self.node._update_leaf()
 
             # assert_called_once_with() does not work because can't check if MSAs are equal
             get_updated_alignment_mock.assert_called_once()
@@ -982,42 +624,422 @@ class TestSingleClusterNode(TestCase):
             self.assertTrue(equal_msas(self.alignment, kwargs["current_alignment"]))
             self.assertEqual({"AAAA", "CC"}, kwargs["new_sequences"])
 
-            init_pre_recursion_attributes_mock.assert_called_once_with()
-            get_children_mock.assert_called_once_with()
+            node_factory_build_mock.assert_called_once_with(
+                updated_alignment, self.prg_builder, self.parent_mock
+            )
 
-            # lets check all attributes anyway, except the ones initialised by init_pre_recursion_attributes()
-            self.assertEqual(1, self.single_cluster_node.nesting_level)
-            self.assertTrue(update_alignment, self.single_cluster_node.alignment)
-            self.assertIsNone(self.single_cluster_node.parent)
-            self.assertEqual(self.prg_builder, self.single_cluster_node.prg_builder)
-            self.assertFalse(self.single_cluster_node.force_no_child)
-            self.assertEqual(0, self.single_cluster_node.id)
-            self.assertEqual(["updated_child_1", "updated_child_2"], self.single_cluster_node.children)
+            # this is not a root, child is replaced
+            replace_child_mock.assert_called_once_with(self.node, updated_child)
+            replace_root_mock.assert_not_called()
 
-    def test___repr_and_str(self, *uninteresting_mocks):
+            clear_PRG_index_mock.assert_called_once_with()
+
+    def test___update_leaf___is_root(self, *uninteresting_mocks):
         self.setup()
-        self.single_cluster_node._children = [Mock(id=100), Mock(id=200)]
-        expected = """SingleClusterNode:
-Id = 0
-Nesting level = 1
-Force no child = False
-Parent = None
-Children = [Id = 100, Id = 200]
-Alignment:
->s1
-AAAT
->s2
-C--C
->s3
-AATT
->s4
-GNGG
-Consensus: ****
-Match intervals: []
-Non-match intervals: [[0, 3]]
-"""
-        actual = repr(self.single_cluster_node)
+        self.node = LeafNode(1, self.alignment, None, self.prg_builder)
+
+        # prepare aligner mock
+        updated_alignment = Mock()
+        get_updated_alignment_mock = Mock(return_value=updated_alignment)
+        aligner_mock = Mock()
+        aligner_mock.get_updated_alignment = get_updated_alignment_mock
+        self.prg_builder.aligner = aligner_mock
+
+        # prepare replace_child mock
+        replace_child_mock = Mock()
+        self.parent_mock.replace_child = replace_child_mock
+
+        # prepare replace_root mock
+        replace_root_mock = Mock()
+        self.prg_builder.replace_root = replace_root_mock
+
+        # prepare clear_PRG_index mock
+        clear_PRG_index_mock = Mock()
+        self.prg_builder.clear_PRG_index = clear_PRG_index_mock
+
+        self.node.new_sequences.add("AAAA")
+        self.node.new_sequences.add("CC")
+
+        # we repatch some methods
+        updated_child = Mock()
+        with patch.object(NodeFactory, "build", return_value=updated_child) as node_factory_build_mock:
+            self.node._update_leaf()
+
+            # assert_called_once_with() does not work because can't check if MSAs are equal
+            get_updated_alignment_mock.assert_called_once()
+            kwargs = get_updated_alignment_mock.call_args_list[0].kwargs
+            self.assertTrue(equal_msas(self.alignment, kwargs["current_alignment"]))
+            self.assertEqual({"AAAA", "CC"}, kwargs["new_sequences"])
+
+            node_factory_build_mock.assert_called_once_with(
+                updated_alignment, self.prg_builder, None
+            )
+
+            # this is a root, it is replaced
+            replace_child_mock.assert_not_called()
+            replace_root_mock.assert_called_once_with(updated_child)
+
+            clear_PRG_index_mock.assert_called_once_with()
+
+    def test___clear_PRG_interval_index(self, *uninteresting_mocks):
+        self.setup()
+        self.node.indexed_PRG_intervals.add((0, 1))
+        self.node.indexed_PRG_intervals.add((10, 20))
+        self.node.indexed_PRG_intervals.add((30, 100))
+        self.assertEqual(3, len(self.node.indexed_PRG_intervals))
+
+        self.node.clear_PRG_interval_index()
+        self.assertEqual(0, len(self.node.indexed_PRG_intervals))
+
+
+@patch.object(PrgBuilder, PrgBuilder.get_next_node_id.__name__, return_value=0)
+@patch("make_prg.prg_builder.load_alignment_file")
+@patch.object(RecursiveTreeNode, RecursiveTreeNode.log_that_node_was_created.__name__)
+class TestNodeFactory(TestCase):
+    def setup(self) -> None:
+        self.alignment = make_alignment(["AAAT", "C--C", "AATT", "GNGG"], ["s1", "s2", "s3", "s4"])
+        with patch.object(NodeFactory, NodeFactory.build.__name__):
+            self.prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
+        self.parent_mock = Mock(id=512)
+
+    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=False)
+    @patch.object(NodeFactory, NodeFactory._partition_alignment_into_interval_subalignments.__name__,
+                  return_value = "interval_subalignments_mock")
+    def test___build___root___multi_interval(self, *uninteresting_mocks):
+        self.setup()
+
+        # mock MultiIntervalNode.__init__
+        def __init__(node_self, nesting_level, alignment, parent, prg_builder, interval_subalignments):
+            self.assertEqual(0, nesting_level)
+            self.assertEqual(self.alignment, alignment)
+            self.assertEqual(None, parent)
+            self.assertEqual(self.prg_builder, prg_builder)
+            self.assertEqual("interval_subalignments_mock", interval_subalignments)
+
+        with patch.object(MultiIntervalNode, '__init__', __init__):
+            node = NodeFactory.build(self.alignment, self.prg_builder, None)
+            self.assertTrue(isinstance(node, MultiIntervalNode))
+
+    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
+    @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
+    @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=True)
+    @patch.object(NodeFactory, NodeFactory._get_subalignments_by_clustering.__name__, return_value="get_subalignments_by_clustering_mock")
+    def test___build___root___multi_cluster(self, *uninteresting_mocks):
+        self.setup()
+
+        # mock MultiClusterNode.__init__
+        def __init__(node_self, nesting_level, alignment, parent, prg_builder, interval_subalignments):
+            self.assertEqual(0, nesting_level)
+            self.assertEqual(self.alignment, alignment)
+            self.assertEqual(None, parent)
+            self.assertEqual(self.prg_builder, prg_builder)
+            self.assertEqual("get_subalignments_by_clustering_mock", interval_subalignments)
+
+        with patch.object(MultiClusterNode, '__init__', __init__):
+            node = NodeFactory.build(self.alignment, self.prg_builder, None)
+            self.assertTrue(isinstance(node, MultiClusterNode))
+
+    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
+    @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
+    @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=False)
+    def test___build___root___leaf(self, *uninteresting_mocks):
+        self.setup()
+
+        # mock Leaf.__init__
+        def __init__(node_self, nesting_level, alignment, parent, prg_builder):
+            self.assertEqual(0, nesting_level)
+            self.assertEqual(self.alignment, alignment)
+            self.assertEqual(None, parent)
+            self.assertEqual(self.prg_builder, prg_builder)
+
+        with patch.object(LeafNode, '__init__', __init__):
+            node = NodeFactory.build(self.alignment, self.prg_builder, None)
+            self.assertTrue(isinstance(node, LeafNode))
+
+    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=False)
+    @patch.object(NodeFactory, NodeFactory._partition_alignment_into_interval_subalignments.__name__,
+                  return_value="interval_subalignments_mock")
+    def test___build___non_root___parent_is_multi_cluster_creates_multi_interval(self, *uninteresting_mocks):
+        self.setup()
+
+        # mock MultiClusterNode.__init__
+        def __MultiClusterNode_init__(node_self, nesting_level):
+            node_self.nesting_level = nesting_level
+        with patch.object(MultiClusterNode, '__init__', __MultiClusterNode_init__):
+            outer_parent = MultiClusterNode(4)
+
+        # mock MultiIntervalNode.__init__
+        def __MultiIntervalNode_init__(node_self, nesting_level, alignment, parent, prg_builder, interval_subalignments):
+            self.assertEqual(5, nesting_level)
+            self.assertEqual(self.alignment, alignment)
+            self.assertEqual(outer_parent, parent)
+            self.assertEqual(self.prg_builder, prg_builder)
+            self.assertEqual("interval_subalignments_mock", interval_subalignments)
+
+        with patch.object(MultiIntervalNode, '__init__', __MultiIntervalNode_init__):
+            node = NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
+            self.assertTrue(isinstance(node, MultiIntervalNode))
+
+    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
+    @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
+    @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=False)
+    def test___build___non_root___parent_is_multi_cluster_creates_leaf(self, *uninteresting_mocks):
+        self.setup()
+
+        # mock MultiClusterNode.__init__
+        def __MultiClusterNode_init__(node_self, nesting_level):
+            node_self.nesting_level = nesting_level
+        with patch.object(MultiClusterNode, '__init__', __MultiClusterNode_init__):
+            outer_parent = MultiClusterNode(4)
+
+        # mock Leaf.__init__
+        def __Leaf_init__(node_self, nesting_level, alignment, parent, prg_builder):
+            self.assertEqual(5, nesting_level)
+            self.assertEqual(self.alignment, alignment)
+            self.assertEqual(outer_parent, parent)
+            self.assertEqual(self.prg_builder, prg_builder)
+        with patch.object(LeafNode, '__init__', __Leaf_init__):
+            node = NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
+            self.assertTrue(isinstance(node, LeafNode))
+
+    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
+    @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
+    @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=True)
+    @patch.object(NodeFactory, NodeFactory._get_subalignments_by_clustering.__name__,
+                  return_value="get_subalignments_by_clustering_mock")
+    def test___build___non_root___parent_is_multi_interval_creates_multi_cluster(self, *uninteresting_mocks):
+        self.setup()
+
+        # mock MultiIntervalNode.__init__
+        def __MultiIntervalNode_init__(node_self, nesting_level):
+            node_self.nesting_level = nesting_level
+        with patch.object(MultiIntervalNode, '__init__', __MultiIntervalNode_init__):
+            outer_parent = MultiIntervalNode(4)
+
+        # mock MultiClusterNode.__init__
+        def __MultiClusterNode_init__(node_self, nesting_level, alignment, parent, prg_builder,
+                                       cluster_subalignments):
+            self.assertEqual(4, nesting_level)
+            self.assertEqual(self.alignment, alignment)
+            self.assertEqual(outer_parent, parent)
+            self.assertEqual(self.prg_builder, prg_builder)
+            self.assertEqual("get_subalignments_by_clustering_mock", cluster_subalignments)
+
+        with patch.object(MultiClusterNode, '__init__', __MultiClusterNode_init__):
+            node = NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
+            self.assertTrue(isinstance(node, MultiClusterNode))
+
+    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
+    @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
+    @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=False)
+    def test___build___non_root___parent_is_multi_interval_creates_leaf(self, *uninteresting_mocks):
+        self.setup()
+
+        # mock MultiIntervalNode.__init__
+        def __MultiIntervalNode_init__(node_self, nesting_level):
+            node_self.nesting_level = nesting_level
+        with patch.object(MultiIntervalNode, '__init__', __MultiIntervalNode_init__):
+            outer_parent = MultiIntervalNode(4)
+
+        # mock LeafNode.__init__
+        def __LeafNode_init__(node_self, nesting_level, alignment, parent, prg_builder):
+            self.assertEqual(4, nesting_level)
+            self.assertEqual(self.alignment, alignment)
+            self.assertEqual(outer_parent, parent)
+            self.assertEqual(self.prg_builder, prg_builder)
+
+        with patch.object(LeafNode, '__init__', __LeafNode_init__):
+            node = NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
+            self.assertTrue(isinstance(node, LeafNode))
+
+    def test___build___non_root___parent_is_leaf_AssertionError_is_raised(self, *uninteresting_mocks):
+        self.setup()
+
+        # mock LeafNode.__init__
+        with patch.object(LeafNode, '__init__', return_value=None):
+            outer_parent = LeafNode()
+
+        with self.assertRaises(AssertionError):
+            NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
+
+
+    @patch("make_prg.recursion_tree.get_number_of_unique_ungapped_sequences", return_value=1)
+    def test___alignment_has_issues___too_few_unique_sequences_1(self,
+                 get_number_of_unique_ungapped_sequences_mock, *uninteresting_mocks):
+        self.setup()
+        self.assertTrue(NodeFactory._alignment_has_issues(self.alignment))
+        get_number_of_unique_ungapped_sequences_mock.assert_called_once_with(self.alignment)
+
+    @patch("make_prg.recursion_tree.get_number_of_unique_ungapped_sequences", return_value=2)
+    def test___alignment_has_issues___too_few_unique_sequences_2(self,
+                 get_number_of_unique_ungapped_sequences_mock, *uninteresting_mocks):
+        self.setup()
+        self.assertTrue(NodeFactory._alignment_has_issues(self.alignment))
+        get_number_of_unique_ungapped_sequences_mock.assert_called_once_with(self.alignment)
+
+    @patch("make_prg.recursion_tree.get_number_of_unique_ungapped_sequences", return_value=3)
+    @patch("make_prg.recursion_tree.get_number_of_unique_gapped_sequences", return_value=4)
+    def test___alignment_has_issues___alignment_has_ambiguity___ungapped_smaller_gapped(self,
+         get_number_of_unique_gapped_sequences_mock, get_number_of_unique_ungapped_sequences_mock, *uninteresting_mocks):
+        self.setup()
+        self.assertTrue(NodeFactory._alignment_has_issues(self.alignment))
+        get_number_of_unique_gapped_sequences_mock.assert_called_once_with(self.alignment)
+        get_number_of_unique_ungapped_sequences_mock.assert_called_once_with(self.alignment)
+
+    @patch("make_prg.recursion_tree.get_number_of_unique_ungapped_sequences", return_value=4)
+    @patch("make_prg.recursion_tree.get_number_of_unique_gapped_sequences", return_value=4)
+    def test___alignment_has_issues___alignment_has_ambiguity___ungapped_equals_gapped___no_issues(self,
+        get_number_of_unique_gapped_sequences_mock, get_number_of_unique_ungapped_sequences_mock, *uninteresting_mocks):
+        self.setup()
+        self.assertFalse(NodeFactory._alignment_has_issues(self.alignment))
+        get_number_of_unique_gapped_sequences_mock.assert_called_once_with(self.alignment)
+        get_number_of_unique_ungapped_sequences_mock.assert_called_once_with(self.alignment)
+
+    @patch("make_prg.recursion_tree.get_number_of_unique_ungapped_sequences", return_value=5)
+    @patch("make_prg.recursion_tree.get_number_of_unique_gapped_sequences", return_value=4)
+    def test___alignment_has_issues___alignment_has_ambiguity___ungapped_larger_gapped___raises_AssertionError(self,
+        *uninteresting_mocks):
+        self.setup()
+        with self.assertRaises(AssertionError):
+            NodeFactory._alignment_has_issues(self.alignment)
+
+    def test___get_nesting_level___no_parent(self, *uninteresting_mocks):
+        self.setup()
+        expected = 0
+        actual = NodeFactory._get_nesting_level(None)
+
         self.assertEqual(expected, actual)
 
-        actual = str(self.single_cluster_node)
+    @patch.object(MultiClusterNode, MultiClusterNode.is_leaf.__name__, return_value=False)
+    def test___get_nesting_level___parent_is_MultiClusterNode(self, *uninteresting_mocks):
+        self.setup()
+        parent = MultiClusterNode(3, self.alignment, self.parent_mock, self.prg_builder, [])
+
+        expected = 4
+        actual = NodeFactory._get_nesting_level(parent)
+
         self.assertEqual(expected, actual)
+
+    @patch.object(MultiIntervalNode, MultiIntervalNode.is_leaf.__name__, return_value=False)
+    def test___get_nesting_level___parent_is_MultiIntervalNode(self, *uninteresting_mocks):
+        self.setup()
+        parent = MultiIntervalNode(3, self.alignment, self.parent_mock, self.prg_builder, [])
+
+        expected = 3
+        actual = NodeFactory._get_nesting_level(parent)
+
+        self.assertEqual(expected, actual)
+
+    def test___infer_if_has_single_interval___single_match_interval(self, *uninteresting_mocks):
+        interval = Interval(IntervalType.Match, 3, 10)
+        all_intervals = [interval]
+        match_intervals = [interval]
+        self.assertTrue(NodeFactory._infer_if_has_single_interval(
+            all_intervals, match_intervals, 1, 5, None, 7
+        ))
+
+    def test___infer_if_has_single_interval___max_nesting_level_reached(self, *uninteresting_mocks):
+        self.assertTrue(NodeFactory._infer_if_has_single_interval([], [], 5, 5, None, 7))
+
+    def test___infer_if_has_single_interval___small_variant_site(self, *uninteresting_mocks):
+        alignment_mock = Mock()
+        alignment_mock.get_alignment_length = Mock(return_value=6)
+        self.assertTrue(NodeFactory._infer_if_has_single_interval([], [], 4, 5, alignment_mock, 7))
+        alignment_mock.get_alignment_length.assert_called_once_with()
+
+    def test___infer_if_has_single_interval___has_multiple_intervals(self,
+            alignment_has_issues_mock, *uninteresting_mocks):
+        alignment_mock = Mock()
+        alignment_mock.get_alignment_length = Mock(return_value=7)
+        self.assertFalse(NodeFactory._infer_if_has_single_interval([], [], 4, 5, alignment_mock, 7))
+
+    def test___get_all_and_match_intervals(self, *uninteresting_mocks):
+        msa = make_alignment(["AAAAATTTTTGGGGG", "AAAAACCCCCGGGGG"])
+
+        all_intervals, match_intervals = NodeFactory._get_all_and_match_intervals(msa, 3)
+
+        first_interval = Interval(IntervalType.Match, 0, 4)
+        second_interval = Interval(IntervalType.NonMatch, 5, 9)
+        third_interval = Interval(IntervalType.Match, 10, 14)
+        expected_all_intervals = [first_interval, second_interval, third_interval]
+        expected_match_intervals = [first_interval, third_interval]
+        self.assertEqual(expected_all_intervals, all_intervals)
+        self.assertEqual(expected_match_intervals, match_intervals)
+
+    def test___partition_alignment_into_interval_subalignments(self, *uninteresting_mocks):
+        msa = make_alignment(["AAAAATTTTTGGGGG", "AAAAACCCCCGGGGG"])
+        first_interval = Interval(IntervalType.Match, 0, 4)
+        second_interval = Interval(IntervalType.NonMatch, 5, 9)
+        third_interval = Interval(IntervalType.Match, 10, 14)
+        all_intervals = [first_interval, second_interval, third_interval]
+
+        interval_subalignments = NodeFactory._partition_alignment_into_interval_subalignments(msa, all_intervals)
+
+        expected_interval_subalignments = [
+            make_alignment(["AAAAA", "AAAAA"]),
+            make_alignment(["TTTTT", "CCCCC"]),
+            make_alignment(["GGGGG", "GGGGG"])
+        ]
+        self.assertEqual(len(expected_interval_subalignments), len(interval_subalignments))
+        self.assertTrue(all(map(equal_msas, expected_interval_subalignments, interval_subalignments)))
+
+    def test___infer_if_we_should_cluster_further___no_clustering(self, *uninteresting_mocks):
+        clustering_result_mock = Mock(no_clustering=True)
+        self.assertFalse(NodeFactory._infer_if_we_should_cluster_further(Mock(), clustering_result_mock))
+
+    @patch.object(NodeFactory, NodeFactory._alignment_has_issues.__name__, return_value=True)
+    def test___infer_if_we_should_cluster_further___alignment_has_issues(self,
+         alignment_has_issues_mock, *uninteresting_mocks):
+        clustering_result_mock = Mock(no_clustering=False)
+        alignment_mock = Mock()
+        self.assertFalse(NodeFactory._infer_if_we_should_cluster_further(alignment_mock, clustering_result_mock))
+        alignment_has_issues_mock.assert_called_once_with(alignment_mock)
+
+    @patch.object(NodeFactory, NodeFactory._alignment_has_issues.__name__, return_value=False)
+    def test___infer_if_we_should_cluster_further___no_issues___ok_to_cluster_further(self, *uninteresting_mocks):
+        clustering_result_mock = Mock(no_clustering=False)
+        alignment_mock = Mock()
+        self.assertTrue(NodeFactory._infer_if_we_should_cluster_further(alignment_mock, clustering_result_mock))
+
+    def test___get_subalignments_by_clustering(self, *uninteresting_mocks):
+        alignment = make_alignment(
+            ["AAAT", "C--C", "AATT", "GNGG", "CCCC", "TTTT", "AAAA"], ["s0", "s1", "s2", "s3", "s4", "s5", "s6"]
+        )
+        clustering_result = ClusteringResult([["s5", "s0", "s1", "s6"], ["s3"], ["s2", "s4"]])
+
+        expected = [
+            make_alignment(
+                ["AAAT", "C--C", "TTTT", "AAAA"], ["s0", "s1", "s5", "s6"]),
+            make_alignment(
+                ["GNGG"], ["s3"]),
+            make_alignment(
+                ["AATT", "CCCC"],
+                ["s2", "s4"]),
+        ]
+        actual = NodeFactory._get_subalignments_by_clustering(alignment, clustering_result)
+
+        self.assertEqual(3, len(actual))
+        for i in range(3):
+            self.assertTrue(equal_msas(expected[i], actual[i]))
+
+    def test___get_sub_alignment_by_list_id___GivenOrderedIds_SubalignmentInSequenceOrder(self, *uninteresting_mocks):
+        self.setup()
+        expected = MSA([self.alignment[0], self.alignment[2]])
+        actual = NodeFactory._get_sub_alignment_by_list_id(self.alignment, ["s1", "s3"])
+        self.assertTrue(equal_msas(expected, actual))
+
+    def test___get_sub_alignment_by_list_id___GivenUnorderedIds_SubalignmentStillInSequenceOrder(self, *uninteresting_mocks):
+        """
+        Sequences given rearranged are still output in input order
+        """
+        self.setup()
+        expected = MSA([self.alignment[0], self.alignment[2]])
+        actual = NodeFactory._get_sub_alignment_by_list_id(self.alignment, ["s3", "s1"])
+        self.assertTrue(equal_msas(expected, actual))

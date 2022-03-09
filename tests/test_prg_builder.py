@@ -1,6 +1,7 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock, mock_open
 from make_prg.prg_builder import PrgBuilder, LeafNotFoundException, PrgBuilderZipDatabase
+from make_prg.recursion_tree import NodeFactory
 from pathlib import Path
 from tests.test_helpers import sample_prg, are_zip_files_equal
 import filecmp
@@ -20,8 +21,8 @@ class TestPrgBuilder(TestCase):
                                       self.max_nesting, self.min_match_length, self.aligner)
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
-    @patch("make_prg.prg_builder.SingleClusterNode", return_value="SingleClusterNode")
-    def test___constructor(self, SingleClusterNode_mock, load_alignment_file_mock):
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___constructor(self, build_mock, load_alignment_file_mock):
         self.setup_prg_builder()
         self.assertEqual(self.locus, self.prg_builder.locus_name)
         self.assertEqual(self.max_nesting, self.prg_builder.max_nesting)
@@ -30,17 +31,23 @@ class TestPrgBuilder(TestCase):
         self.assertEqual(0, self.prg_builder.next_node_id)
         self.assertEqual(5, self.prg_builder.site_num)
         self.assertEqual({}, self.prg_builder.prg_index)
-        self.assertEqual("SingleClusterNode", self.prg_builder.root)
+        self.assertEqual("root_node", self.prg_builder.root)
         load_alignment_file_mock.assert_called_once_with("msa_file", "fasta")
-        SingleClusterNode_mock.assert_called_once_with(
-            nesting_level=0,
-            alignment="MSA",
-            parent=None,
-            prg_builder=self.prg_builder
-        )
+        build_mock.assert_called_once_with("MSA", self.prg_builder, None)
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
-    @patch("make_prg.prg_builder.SingleClusterNode")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___replace_root(self, *uninteresting_mocks):
+        self.setup_prg_builder()
+        self.assertEqual("root_node", self.prg_builder.root)
+
+        new_root = Mock()
+        self.prg_builder.replace_root(new_root)
+
+        self.assertEqual(new_root, self.prg_builder.root)
+
+    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
+    @patch.object(NodeFactory, NodeFactory.build.__name__)
     def test___build_prg(self, *uninteresting_mocks):
         self.setup_prg_builder()
 
@@ -56,7 +63,7 @@ class TestPrgBuilder(TestCase):
         preorder_traversal_to_build_prg_mock.assert_called_once()
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
-    @patch("make_prg.prg_builder.SingleClusterNode", return_value="SingleClusterNode")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
     def test___get_next_site_num(self, *uninteresting_mocks):
         self.setup_prg_builder()
         self.assertEqual(5, self.prg_builder.get_next_site_num())
@@ -64,7 +71,7 @@ class TestPrgBuilder(TestCase):
         self.assertEqual(9, self.prg_builder.get_next_site_num())
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
-    @patch("make_prg.prg_builder.SingleClusterNode", return_value="SingleClusterNode")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
     def test___get_next_node_id(self, *uninteresting_mocks):
         self.setup_prg_builder()
         self.assertEqual(0, self.prg_builder.get_next_node_id())
@@ -72,7 +79,7 @@ class TestPrgBuilder(TestCase):
         self.assertEqual(2, self.prg_builder.get_next_node_id())
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
-    @patch("make_prg.prg_builder.SingleClusterNode", return_value="SingleClusterNode")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
     def test___update_prg_index___single_update(self, *uninteresting_mocks):
         self.setup_prg_builder()
         add_indexed_PRG_interval_mock = Mock()
@@ -86,7 +93,7 @@ class TestPrgBuilder(TestCase):
         add_indexed_PRG_interval_mock.assert_called_once_with((2, 5))
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
-    @patch("make_prg.prg_builder.SingleClusterNode", return_value="SingleClusterNode")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
     def test___update_prg_index___multiple_updates(self, *uninteresting_mocks):
         self.setup_prg_builder()
         node_mock_1 = Mock()
@@ -107,9 +114,26 @@ class TestPrgBuilder(TestCase):
 
         self.assertEqual(expected, actual)
 
+    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___clear_PRG_index(self, *uninteresting_mocks):
+        self.setup_prg_builder()
+
+        clear_PRG_interval_index_mock_1 = Mock()
+        node_mock_1 = Mock(clear_PRG_interval_index=clear_PRG_interval_index_mock_1)
+        clear_PRG_interval_index_mock_2 = Mock()
+        node_mock_2 = Mock(clear_PRG_interval_index=clear_PRG_interval_index_mock_2)
+        self.prg_builder.update_PRG_index(2, 5, node_mock_1)
+        self.prg_builder.update_PRG_index(0, 10, node_mock_2)
+
+        self.prg_builder.clear_PRG_index()
+
+        clear_PRG_interval_index_mock_1.assert_called_once_with()
+        clear_PRG_interval_index_mock_2.assert_called_once_with()
+        self.assertEqual({}, self.prg_builder.prg_index)
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
-    @patch("make_prg.prg_builder.SingleClusterNode", return_value="SingleClusterNode")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
     def test___get_node_given_interval(self, *uninteresting_mocks):
         self.setup_prg_builder()
         node_mock_1 = Mock()
@@ -130,7 +154,7 @@ class TestPrgBuilder(TestCase):
                         self.prg_builder.get_node_given_interval(interval)
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
-    @patch("make_prg.prg_builder.SingleClusterNode", return_value="SingleClusterNode")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
     @patch("builtins.open", new_callable=mock_open)
     @patch("pickle.dump")
     def test___serialize(self, dump_mock, open_mock, *uninteresting_mocks):
@@ -158,7 +182,7 @@ class TestPrgBuilder(TestCase):
         self.assertTrue(filecmp.cmp(workdir / "sample.bin", workdir / "sample.truth.bin"))
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
-    @patch("make_prg.prg_builder.SingleClusterNode", return_value="SingleClusterNode")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
     @patch("os.makedirs")
     def test___output_debug_graphs(self, makedirs_mock, *uninteresting_mocks):
         self.setup_prg_builder()
@@ -174,7 +198,7 @@ class TestPrgBuilder(TestCase):
             output_graph_mock.assert_called_with(debug_graphs_dir / "locus.recursion_tree.png")
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
-    @patch("make_prg.prg_builder.SingleClusterNode", return_value="SingleClusterNode")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
     def test___get_state___aligner_is_not_pickled(self, *uninteresting_mocks):
         self.setup_prg_builder()
 

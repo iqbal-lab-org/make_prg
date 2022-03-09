@@ -3,7 +3,7 @@ from make_prg.utils.io_utils import load_alignment_file, zip_set_of_files
 import pickle
 from pathlib import Path
 from zipfile import ZipFile
-from make_prg.recursion_tree import SingleClusterNode, RecursiveTreeNode
+from make_prg.recursion_tree import RecursiveTreeNode, LeafNode, NodeFactory
 from make_prg.utils.recursive_tree_drawer import RecursiveTreeDrawer
 from make_prg.utils.prg_encoder import PrgEncoder, PRG_Ints
 import os
@@ -32,15 +32,10 @@ class PrgBuilder(object):
         self.aligner: Optional["MSAAligner"] = aligner
         self.next_node_id: int = 0
         self.site_num: int = 5
-        self.prg_index: Dict[Tuple[int, int], SingleClusterNode] = {}
+        self.prg_index: Dict[Tuple[int, int], LeafNode] = {}
 
         alignment = load_alignment_file(str(msa_file), alignment_format)
-        self.root: RecursiveTreeNode = SingleClusterNode(
-            nesting_level=0,
-            alignment=alignment,
-            parent=None,
-            prg_builder=self
-        )
+        self.root: RecursiveTreeNode = NodeFactory.build(alignment, self, None)
 
     def __getstate__(self):
         """
@@ -51,6 +46,9 @@ class PrgBuilder(object):
         state = self.__dict__.copy()
         state['aligner'] = None  # force aligner to None
         return state
+
+    def replace_root(self, new_root: RecursiveTreeNode):
+        self.root = new_root
 
     def build_prg(self) -> str:
         self.site_num = 5
@@ -68,12 +66,19 @@ class PrgBuilder(object):
         self.next_node_id += 1
         return self.next_node_id - 1
 
-    def update_PRG_index(self, start_index: int, end_index: int, node: SingleClusterNode):
+    def update_PRG_index(self, start_index: int, end_index: int, node: LeafNode):
         interval = (start_index, end_index)
         self.prg_index[interval] = node
         node.add_indexed_PRG_interval(interval)
 
-    def get_node_given_interval(self, interval: Tuple[int, int]) -> SingleClusterNode:
+    def clear_PRG_index(self):
+        # first clear the index of all nodes
+        for node in self.prg_index.values():
+            node.clear_PRG_interval_index()
+
+        self.prg_index.clear()
+
+    def get_node_given_interval(self, interval: Tuple[int, int]) -> LeafNode:
         # TODO: move this back to assert once is solved
         # TODO: should it really be an assert?
         # TODO: in the pandora paper data, out of 486k update operations, 12 failed with this error
