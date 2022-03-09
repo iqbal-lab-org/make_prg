@@ -92,6 +92,9 @@ class MultiIntervalNode(RecursiveTreeNode):
         assert not self.is_leaf(), "MultiIntervalNodes should never be leaves"
 
     def preorder_traversal_to_build_prg(self, prg_as_list: List[str], delim_char: str = " "):
+        """
+        Builds the PRG in prg_as_list. The PRG of a MultiIntervalNode is a concatenation of the PRG of its children
+        """
         for child in self.children:
             child.preorder_traversal_to_build_prg(prg_as_list, delim_char)
 
@@ -106,6 +109,10 @@ class MultiClusterNode(RecursiveTreeNode):
         assert not self.is_leaf(), "MultiClusterNodes should never be leaves"
 
     def preorder_traversal_to_build_prg(self, prg_as_list: List[str], delim_char: str = " "):
+        """
+        Builds the PRG in prg_as_list. The PRG of a MultiClusterNode consists of opening a site,
+        putting each child as an allele and closing the site
+        """
         site_num = self.prg_builder.get_next_site_num()
         prg_as_list.extend(f"{delim_char}{site_num}{delim_char}")
 
@@ -132,11 +139,15 @@ class LeafNode(RecursiveTreeNode):
                  prg_builder: "PrgBuilder"):
         super().__init__(nesting_level, alignment, parent, prg_builder, [])
         assert self.is_leaf(), f"Leaf node ({self}) is not a leaf"
+
+        # update-related attributes
         self.new_sequences: Set[str] = set()
         self.indexed_PRG_intervals: Set[Tuple[int, int]] = set()
 
     def preorder_traversal_to_build_prg(self, prg_as_list: List[str], delim_char: str = " ", do_indexing=True):
-        # Note: here we could have several intervals, not anymore
+        """
+        Builds the PRG in prg_as_list. The PRG of a leaf node is the sequences themselves it represents
+        """
         expanded_sequences = SequenceExpander.get_expanded_sequences_from_MSA(self.alignment)
 
         single_seq = len(expanded_sequences) == 1
@@ -168,6 +179,9 @@ class LeafNode(RecursiveTreeNode):
     ##################################################################################
     # update methods
     def add_data_to_batch_update(self, update_data: UpdateData):
+        """
+        Process the given update data and add a new sequence to self.new_sequences
+        """
         update_data_PRG_interval = update_data.ml_path_node_key
         update_data_PRG_interval_is_indexed = update_data_PRG_interval in self.indexed_PRG_intervals
         if not update_data_PRG_interval_is_indexed:
@@ -204,6 +218,12 @@ class LeafNode(RecursiveTreeNode):
         self._update_leaf()
 
     def _update_leaf(self):
+        """
+        Update this leaf, replacing it by an updated node, which can be of a different subclass.
+        Side effects include:
+            - Changing the PRG builder root or one of the parent's child;
+            - Invalidating the PRG builder index;
+        """
         logger.trace(f"Updating subMSA for {self.prg_builder.locus_name}")
         logger.trace(f"Node: {str(self)}")
         logger.trace(f"Sequences added to update: {self.new_sequences}")
@@ -243,7 +263,7 @@ class NodeFactory:
     @staticmethod
     def build(alignment: MSA, prg_builder: "PrgBuilder", parent_node: Optional[RecursiveTreeNode] = None) -> RecursiveTreeNode:
         """
-        Method that builds the correct node given the alignment and other parameters.
+        Builds the correct node given the alignment and other parameters.
         Note that the root has a None parent. For the root also, we need to first try to build a MultiIntervalNode and
         then a MulticlusterNode,as we first want to split its intervals, and then cluster.
         """
@@ -280,7 +300,7 @@ class NodeFactory:
                 return MultiClusterNode(nesting_level, alignment, parent_node, prg_builder,
                                         cluster_subalignments)
 
-        # here the node is a leaf
+        # here, the node is a leaf
         return LeafNode(nesting_level, alignment, parent_node, prg_builder)
 
     #####################################################################################################

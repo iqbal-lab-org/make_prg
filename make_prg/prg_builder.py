@@ -79,17 +79,17 @@ class PrgBuilder(object):
         self.prg_index.clear()
 
     def get_node_given_interval(self, interval: Tuple[int, int]) -> LeafNode:
+        interval_is_indexed = interval in self.prg_index
+
         # TODO: move this back to assert once is solved
         # TODO: should it really be an assert?
         # TODO: in the pandora paper data, out of 486k update operations, 12 failed with this error
         # TODO: so, there is an edge-case bug here to be solved in next minor versions
-        interval_is_indexed = interval in self.prg_index
         if not interval_is_indexed:
             raise LeafNotFoundException(
                 f"Queried PRG interval {interval} does not exist in PRG index for locus {self.locus_name}.\n"
                 f"Indexed PRG intervals: {self.prg_index.keys()}"
             )
-
         # assert interval in self.prg_index, \
         #     f"Fatal error: Queried interval {interval} does not exist in leaves index for locus {self.locus_name}"
 
