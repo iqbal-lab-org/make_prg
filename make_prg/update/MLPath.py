@@ -1,3 +1,7 @@
+"""
+This module contains classes to represent and operate on maximum likelihood paths described in denovo_paths.txt files
+"""
+
 from typing import Optional, List, Tuple, Dict
 from intervaltree.intervaltree import IntervalTree
 

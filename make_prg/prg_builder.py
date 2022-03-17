@@ -1,3 +1,7 @@
+"""
+This module contains classes to build PRGs from MSAs and manage sets of PRGs
+"""
+
 from typing import Tuple, Dict, Optional, List
 from make_prg.utils.io_utils import load_alignment_file, zip_set_of_files
 import pickle

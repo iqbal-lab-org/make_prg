@@ -1,3 +1,7 @@
+"""
+This module contains classes used to parse and represent denovo variants info contained in a denovo_paths.txt file
+"""
+
 from typing import List, Deque, TextIO, Dict, Tuple, Optional
 from collections import defaultdict, deque
 import re

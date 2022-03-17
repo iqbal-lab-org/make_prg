@@ -1,5 +1,5 @@
 """
-This module contains the classes to explicitly represent the make_prg process recursion tree
+This module contains classes to explicitly represent the make_prg process recursion tree
 """
 
 from typing import List, Set, Optional, Tuple
