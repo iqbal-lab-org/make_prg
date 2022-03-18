@@ -19,6 +19,9 @@ class DenovoError(Exception):
 
 
 class DenovoVariant:
+    """
+    Represents a denovo variant in a denovo_paths.txt file, e.g.: "44	C	T"
+    """
     def __init__(self, start_index_in_linear_path: int, ref: str, alt: str,
                  ml_path_nodes_it_goes_through: Optional[List[MLPathNode]] = None):
         DenovoVariant._param_checking(start_index_in_linear_path, ref, alt)
@@ -186,6 +189,10 @@ class DenovoVariant:
 
 @dataclass
 class UpdateData:
+    """
+    Represents a trivial minimal class to hold update data when multiprocessing
+    """
+
     ml_path_node_key: Tuple[int, int]
     ml_path: MLPath
     new_node_sequence: str
@@ -193,6 +200,23 @@ class UpdateData:
 
 @dataclass
 class DenovoLocusInfo:
+    """
+    Represents a locus  in a denovo_paths.txt file, e.g.:
+    GC00010897
+    9 nodes
+    (0 [0, 110) ATGCAGATACGTGAACAGGGCCGCAAAATTCAGTGCATCCGCACCGTGTACGACAAGGCCATTGGCCGGGGTCGGCAGACGGTCATTGCCACACTGGCCCGCTATACGAC)
+    (2 [117, 118) G)
+    (3 [121, 171) GAAATGCCCACGACCGGGCTGGATGAGCTGACAGAGGCCGAACGCGAGAC)
+    (5 [178, 179) G)
+    (6 [182, 301) CTGGCCGAATGGCTGGCCAAGCGCCGGGAAGCCTCGCAGAAGTCGCAGGAGGCCTACACGGCCATGTCTGCGGATCGGTGGCTGGTCACGCTGGCCAAGGCCATCAGGGAAGGGCAGGA)
+    (8 [312, 316) ACTG)
+    (9 [319, 360) CGCCCCGAACAGGCGGCCGCGATCTGGCACGGCATGGGGGA)
+    (11 [369, 370) G)
+    (12 [374, 491) GTCGGCAAGGCCTTGCGCAAGGCTGGTCACGCGAAGCCCAAGGCGGTCAGAAAGGGCAAGCCGGTCGATCCGGCTGATCCCAAGGATCAAGGGGAGGGGGCACCAAAGGGGAAATGA)
+    2 denovo variants for this locus
+    44	C	T
+    422	A	T
+    """
     sample: str
     locus: str
     ml_path: MLPath
@@ -250,6 +274,10 @@ class DenovoLocusInfo:
 
 
 class DenovoVariantsDB:
+    """
+    Represents the whole denovo_paths.txt file. Most important member is the attribute self.locus_name_to_update_data,
+    where users can get the update data given a locus.
+    """
     @staticmethod
     def _read_nb_of_samples(filehandler: TextIO) -> int:
         line = filehandler.readline().strip()

@@ -22,14 +22,14 @@ SubMSAs = List[MSA]
 
 
 class RecursiveTreeNode(ABC):
+    """
+    Abstract base class for the nodes of the recursion tree, abstracting its common attributes and methods
+    """
     def __init__(self, nesting_level: int, alignment: MSA,
                  parent: Optional["RecursiveTreeNode"], prg_builder: "PrgBuilder",
                  children_subalignments: SubMSAs):
         """
-        Builds a new recursive tree node.
-        Notes:
-            1. To build a node you need to know in advance how it is going to cluster (horizontally or vertically).
-                This is given in the children_subalignments param. NodeFactory.build() takes care of this (see below).
+        Builds a new tree node, and its children, recursively
         """
         self.nesting_level: int = nesting_level
         self.alignment: MSA = remove_columns_full_of_gaps_from_MSA(alignment)
@@ -84,7 +84,7 @@ class RecursiveTreeNode(ABC):
 
 class MultiIntervalNode(RecursiveTreeNode):
     """
-    Represent nodes that are clustered vertically, i.e. in intervals
+    Represents a vertical partition of an MSA
     """
     def __init__(self, nesting_level: int, alignment: MSA, parent: Optional["RecursiveTreeNode"],
                  prg_builder: "PrgBuilder", interval_subalignments: SubMSAs):
@@ -101,7 +101,7 @@ class MultiIntervalNode(RecursiveTreeNode):
 
 class MultiClusterNode(RecursiveTreeNode):
     """
-    Represent nodes that are clustered horizontally, i.e. in sequence clusters
+    Represents a horizontal partition of an MSA, i.e. sequence clusters
     """
     def __init__(self, nesting_level: int, alignment: MSA, parent: Optional["RecursiveTreeNode"],
                  prg_builder: "PrgBuilder", cluster_subalignments: SubMSAs):
@@ -132,7 +132,7 @@ class UpdateError(Exception):
 
 class LeafNode(RecursiveTreeNode):
     """
-    Represent nodes that are never clustered in either direction.
+    Represents MSAs that are never partitioned.
     These nodes are the only ones that can get updated and indexed.
     """
     def __init__(self, nesting_level: int, alignment: MSA, parent: Optional["RecursiveTreeNode"],

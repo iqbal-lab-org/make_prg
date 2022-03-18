@@ -15,6 +15,10 @@ class EmptyMLPathSequence(Exception):
 
 
 class MLPathNode:
+    """
+    Represents a maximum likelihood path node described in denovo_paths.txt files, e.g.:
+    (2 [117, 118) G)
+    """
     def __init__(self, key: Tuple[int, int], sequence: str):
         self.key: Tuple[int, int] = key
         self._set_sequence(sequence)
@@ -57,6 +61,19 @@ class MLPathNode:
 
 
 class MLPath:
+    """
+    Represents a maximum likelihood path described in denovo_paths.txt files, e.g.:
+    9 nodes
+    (0 [0, 110) ATGCAGATACGTGAACAGGGCCGCAAAATTCAGTGCATCCGCACCGTGTACGACAAGGCCATTGGCCGGGGTCGGCAGACGGTCATTGCCACACTGGCCCGCTATACGAC)
+    (2 [117, 118) G)
+    (3 [121, 171) GAAATGCCCACGACCGGGCTGGATGAGCTGACAGAGGCCGAACGCGAGAC)
+    (5 [178, 179) G)
+    (6 [182, 301) CTGGCCGAATGGCTGGCCAAGCGCCGGGAAGCCTCGCAGAAGTCGCAGGAGGCCTACACGGCCATGTCTGCGGATCGGTGGCTGGTCACGCTGGCCAAGGCCATCAGGGAAGGGCAGGA)
+    (8 [312, 316) ACTG)
+    (9 [319, 360) CGCCCCGAACAGGCGGCCGCGATCTGGCACGGCATGGGGGA)
+    (11 [369, 370) G)
+    (12 [374, 491) GTCGGCAAGGCCTTGCGCAAGGCTGGTCACGCGAAGCCCAAGGCGGTCAGAAAGGGCAAGCCGGTCGATCCGGCTGATCCCAAGGATCAAGGGGAGGGGGCACCAAAGGGGAAATGA)
+    """
     def __init__(self, ml_path_nodes: List[MLPathNode]):
         if len(ml_path_nodes) == 0:
             raise MLPathError("ML paths cannot be empty")
