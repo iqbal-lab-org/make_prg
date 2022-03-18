@@ -702,7 +702,7 @@ class TestNodeFactory(TestCase):
             self.prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
         self.parent_mock = Mock(id=512)
 
-    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
     @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=False)
     @patch.object(NodeFactory, NodeFactory._partition_alignment_into_interval_subalignments.__name__,
                   return_value = "interval_subalignments_mock")
@@ -721,7 +721,7 @@ class TestNodeFactory(TestCase):
             node = NodeFactory.build(self.alignment, self.prg_builder, None)
             self.assertTrue(isinstance(node, MultiIntervalNode))
 
-    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
     @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
     @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
     @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=True)
@@ -741,7 +741,7 @@ class TestNodeFactory(TestCase):
             node = NodeFactory.build(self.alignment, self.prg_builder, None)
             self.assertTrue(isinstance(node, MultiClusterNode))
 
-    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
     @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
     @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
     @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=False)
@@ -759,7 +759,7 @@ class TestNodeFactory(TestCase):
             node = NodeFactory.build(self.alignment, self.prg_builder, None)
             self.assertTrue(isinstance(node, LeafNode))
 
-    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
     @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=False)
     @patch.object(NodeFactory, NodeFactory._partition_alignment_into_interval_subalignments.__name__,
                   return_value="interval_subalignments_mock")
@@ -784,7 +784,7 @@ class TestNodeFactory(TestCase):
             node = NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
             self.assertTrue(isinstance(node, MultiIntervalNode))
 
-    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
     @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
     @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
     @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=False)
@@ -807,7 +807,7 @@ class TestNodeFactory(TestCase):
             node = NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
             self.assertTrue(isinstance(node, LeafNode))
 
-    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
     @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
     @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
     @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=True)
@@ -835,7 +835,7 @@ class TestNodeFactory(TestCase):
             node = NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
             self.assertTrue(isinstance(node, MultiClusterNode))
 
-    @patch.object(NodeFactory, NodeFactory._get_all_and_match_intervals.__name__, return_value=(Mock(), Mock()))
+    @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
     @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
     @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
     @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=False)
@@ -960,10 +960,10 @@ class TestNodeFactory(TestCase):
         alignment_mock.get_alignment_length = Mock(return_value=7)
         self.assertFalse(NodeFactory._infer_if_has_single_interval([], [], 4, 5, alignment_mock, 7))
 
-    def test___get_all_and_match_intervals(self, *uninteresting_mocks):
+    def test___get_vertical_partition(self, *uninteresting_mocks):
         msa = make_alignment(["AAAAATTTTTGGGGG", "AAAAACCCCCGGGGG"])
 
-        all_intervals, match_intervals = NodeFactory._get_all_and_match_intervals(msa, 3)
+        all_intervals, match_intervals = NodeFactory._get_vertical_partition(msa, 3)
 
         first_interval = Interval(IntervalType.Match, 0, 4)
         second_interval = Interval(IntervalType.NonMatch, 5, 9)

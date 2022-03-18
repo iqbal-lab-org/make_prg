@@ -276,7 +276,7 @@ class NodeFactory:
         # if parent is multi interval, children should not be
         skip_building_multi_interval_node = isinstance(parent_node, MultiIntervalNode)
         if not skip_building_multi_interval_node:
-            all_intervals, match_intervals = NodeFactory._get_all_and_match_intervals(alignment, min_match_length)
+            all_intervals, match_intervals = NodeFactory._get_vertical_partition(alignment, min_match_length)
 
             has_a_single_interval = NodeFactory._infer_if_has_single_interval(all_intervals=all_intervals, match_intervals=match_intervals,
                                                                 nesting_level=nesting_level,
@@ -361,7 +361,7 @@ class NodeFactory:
         return False
 
     @staticmethod
-    def _get_all_and_match_intervals(alignment: MSA, min_match_length: int) -> Tuple[Intervals, Intervals]:
+    def _get_vertical_partition(alignment: MSA, min_match_length: int) -> Tuple[Intervals, Intervals]:
         consensus = get_consensus_from_MSA(alignment)
         interval_partitioner = IntervalPartitioner(consensus, min_match_length, alignment)
         (
