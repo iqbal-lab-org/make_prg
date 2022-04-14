@@ -703,7 +703,7 @@ class TestNodeFactory(TestCase):
         self.parent_mock = Mock(id=512)
 
     @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
-    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=False)
+    @patch.object(NodeFactory, NodeFactory._is_single_match_interval.__name__, return_value=False)
     @patch.object(NodeFactory, NodeFactory._partition_alignment_into_interval_subalignments.__name__,
                   return_value = "interval_subalignments_mock")
     def test___build___root___multi_interval(self, *uninteresting_mocks):
@@ -722,29 +722,7 @@ class TestNodeFactory(TestCase):
             self.assertTrue(isinstance(node, MultiIntervalNode))
 
     @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
-    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
-    @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
-    @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=True)
-    @patch.object(NodeFactory, NodeFactory._get_subalignments_by_clustering.__name__, return_value="get_subalignments_by_clustering_mock")
-    def test___build___root___multi_cluster(self, *uninteresting_mocks):
-        self.setup()
-
-        # mock MultiClusterNode.__init__
-        def __init__(node_self, nesting_level, alignment, parent, prg_builder, interval_subalignments):
-            self.assertEqual(0, nesting_level)
-            self.assertEqual(self.alignment, alignment)
-            self.assertEqual(None, parent)
-            self.assertEqual(self.prg_builder, prg_builder)
-            self.assertEqual("get_subalignments_by_clustering_mock", interval_subalignments)
-
-        with patch.object(MultiClusterNode, '__init__', __init__):
-            node = NodeFactory.build(self.alignment, self.prg_builder, None)
-            self.assertTrue(isinstance(node, MultiClusterNode))
-
-    @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
-    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
-    @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
-    @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=False)
+    @patch.object(NodeFactory, NodeFactory._is_single_match_interval.__name__, return_value=True)
     def test___build___root___leaf(self, *uninteresting_mocks):
         self.setup()
 
@@ -760,7 +738,7 @@ class TestNodeFactory(TestCase):
             self.assertTrue(isinstance(node, LeafNode))
 
     @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
-    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=False)
+    @patch.object(NodeFactory, NodeFactory._is_single_match_interval.__name__, return_value=False)
     @patch.object(NodeFactory, NodeFactory._partition_alignment_into_interval_subalignments.__name__,
                   return_value="interval_subalignments_mock")
     def test___build___non_root___parent_is_multi_cluster_creates_multi_interval(self, *uninteresting_mocks):
@@ -774,7 +752,7 @@ class TestNodeFactory(TestCase):
 
         # mock MultiIntervalNode.__init__
         def __MultiIntervalNode_init__(node_self, nesting_level, alignment, parent, prg_builder, interval_subalignments):
-            self.assertEqual(5, nesting_level)
+            self.assertEqual(4, nesting_level)
             self.assertEqual(self.alignment, alignment)
             self.assertEqual(outer_parent, parent)
             self.assertEqual(self.prg_builder, prg_builder)
@@ -785,9 +763,7 @@ class TestNodeFactory(TestCase):
             self.assertTrue(isinstance(node, MultiIntervalNode))
 
     @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
-    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
-    @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
-    @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=False)
+    @patch.object(NodeFactory, NodeFactory._is_single_match_interval.__name__, return_value=True)
     def test___build___non_root___parent_is_multi_cluster_creates_leaf(self, *uninteresting_mocks):
         self.setup()
 
@@ -799,7 +775,7 @@ class TestNodeFactory(TestCase):
 
         # mock Leaf.__init__
         def __Leaf_init__(node_self, nesting_level, alignment, parent, prg_builder):
-            self.assertEqual(5, nesting_level)
+            self.assertEqual(4, nesting_level)
             self.assertEqual(self.alignment, alignment)
             self.assertEqual(outer_parent, parent)
             self.assertEqual(self.prg_builder, prg_builder)
@@ -807,8 +783,6 @@ class TestNodeFactory(TestCase):
             node = NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
             self.assertTrue(isinstance(node, LeafNode))
 
-    @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
-    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
     @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
     @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=True)
     @patch.object(NodeFactory, NodeFactory._get_subalignments_by_clustering.__name__,
@@ -825,7 +799,7 @@ class TestNodeFactory(TestCase):
         # mock MultiClusterNode.__init__
         def __MultiClusterNode_init__(node_self, nesting_level, alignment, parent, prg_builder,
                                        cluster_subalignments):
-            self.assertEqual(4, nesting_level)
+            self.assertEqual(5, nesting_level)
             self.assertEqual(self.alignment, alignment)
             self.assertEqual(outer_parent, parent)
             self.assertEqual(self.prg_builder, prg_builder)
@@ -835,8 +809,6 @@ class TestNodeFactory(TestCase):
             node = NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
             self.assertTrue(isinstance(node, MultiClusterNode))
 
-    @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
-    @patch.object(NodeFactory, NodeFactory._infer_if_has_single_interval.__name__, return_value=True)
     @patch("make_prg.recursion_tree.kmeans_cluster_seqs")
     @patch.object(NodeFactory, NodeFactory._infer_if_we_should_cluster_further.__name__, return_value=False)
     def test___build___non_root___parent_is_multi_interval_creates_leaf(self, *uninteresting_mocks):
@@ -859,16 +831,17 @@ class TestNodeFactory(TestCase):
             node = NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
             self.assertTrue(isinstance(node, LeafNode))
 
-    def test___build___non_root___parent_is_leaf_AssertionError_is_raised(self, *uninteresting_mocks):
+    def test___build___non_root___parent_is_leaf_ValueError_is_raised(self, *uninteresting_mocks):
         self.setup()
 
         # mock LeafNode.__init__
-        with patch.object(LeafNode, '__init__', return_value=None):
-            outer_parent = LeafNode()
+        def __LeafNode_init__(node_self, nesting_level):
+            node_self.nesting_level = nesting_level
+        with patch.object(LeafNode, '__init__', __LeafNode_init__):
+            outer_parent = LeafNode(4)
 
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
-
 
     @patch("make_prg.recursion_tree.get_number_of_unique_ungapped_sequences", return_value=1)
     def test___alignment_has_issues___too_few_unique_sequences_1(self,
@@ -910,56 +883,6 @@ class TestNodeFactory(TestCase):
         with self.assertRaises(AssertionError):
             NodeFactory._alignment_has_issues(self.alignment)
 
-    def test___get_nesting_level___no_parent(self, *uninteresting_mocks):
-        self.setup()
-        expected = 0
-        actual = NodeFactory._get_nesting_level(None)
-
-        self.assertEqual(expected, actual)
-
-    @patch.object(MultiClusterNode, MultiClusterNode.is_leaf.__name__, return_value=False)
-    def test___get_nesting_level___parent_is_MultiClusterNode(self, *uninteresting_mocks):
-        self.setup()
-        parent = MultiClusterNode(3, self.alignment, self.parent_mock, self.prg_builder, [])
-
-        expected = 4
-        actual = NodeFactory._get_nesting_level(parent)
-
-        self.assertEqual(expected, actual)
-
-    @patch.object(MultiIntervalNode, MultiIntervalNode.is_leaf.__name__, return_value=False)
-    def test___get_nesting_level___parent_is_MultiIntervalNode(self, *uninteresting_mocks):
-        self.setup()
-        parent = MultiIntervalNode(3, self.alignment, self.parent_mock, self.prg_builder, [])
-
-        expected = 3
-        actual = NodeFactory._get_nesting_level(parent)
-
-        self.assertEqual(expected, actual)
-
-    def test___infer_if_has_single_interval___single_match_interval(self, *uninteresting_mocks):
-        interval = Interval(IntervalType.Match, 3, 10)
-        all_intervals = [interval]
-        match_intervals = [interval]
-        self.assertTrue(NodeFactory._infer_if_has_single_interval(
-            all_intervals, match_intervals, 1, 5, None, 7
-        ))
-
-    def test___infer_if_has_single_interval___max_nesting_level_reached(self, *uninteresting_mocks):
-        self.assertTrue(NodeFactory._infer_if_has_single_interval([], [], 5, 5, None, 7))
-
-    def test___infer_if_has_single_interval___small_variant_site(self, *uninteresting_mocks):
-        alignment_mock = Mock()
-        alignment_mock.get_alignment_length = Mock(return_value=6)
-        self.assertTrue(NodeFactory._infer_if_has_single_interval([], [], 4, 5, alignment_mock, 7))
-        alignment_mock.get_alignment_length.assert_called_once_with()
-
-    def test___infer_if_has_single_interval___has_multiple_intervals(self,
-            alignment_has_issues_mock, *uninteresting_mocks):
-        alignment_mock = Mock()
-        alignment_mock.get_alignment_length = Mock(return_value=7)
-        self.assertFalse(NodeFactory._infer_if_has_single_interval([], [], 4, 5, alignment_mock, 7))
-
     def test___get_vertical_partition(self, *uninteresting_mocks):
         msa = make_alignment(["AAAAATTTTTGGGGG", "AAAAACCCCCGGGGG"])
 
@@ -972,6 +895,43 @@ class TestNodeFactory(TestCase):
         expected_match_intervals = [first_interval, third_interval]
         self.assertEqual(expected_all_intervals, all_intervals)
         self.assertEqual(expected_match_intervals, match_intervals)
+
+    def test___is_single_match_interval___single_match_interval(self, *uninteresting_mocks):
+        interval = Interval(IntervalType.Match, 3, 10)
+        all_intervals = [interval]
+        match_intervals = [interval]
+        self.assertTrue(NodeFactory._is_single_match_interval(all_intervals, match_intervals))
+
+    def test___is_single_match_interval___no_intervals(self, *uninteresting_mocks):
+        self.assertFalse(NodeFactory._is_single_match_interval([], []))
+
+    def test___is_single_match_interval___two_match_intervals(self, *uninteresting_mocks):
+        interval_1 = Interval(IntervalType.Match, 3, 10)
+        interval_2 = Interval(IntervalType.Match, 30, 100)
+        all_intervals = [interval_1, interval_2]
+        match_intervals = [interval_1, interval_2]
+        self.assertFalse(NodeFactory._is_single_match_interval(all_intervals, match_intervals))
+
+    def test___is_single_match_interval___single_mismatch_interval(self, *uninteresting_mocks):
+        interval_1 = Interval(IntervalType.NonMatch, 3, 10)
+        all_intervals = [interval_1]
+        match_intervals = []
+        self.assertFalse(NodeFactory._is_single_match_interval(all_intervals, match_intervals))
+
+    def test___is_single_match_interval___two_mismatch_intervals(self, *uninteresting_mocks):
+        interval_1 = Interval(IntervalType.NonMatch, 3, 10)
+        interval_2 = Interval(IntervalType.NonMatch, 30, 100)
+        all_intervals = [interval_1, interval_2]
+        match_intervals = []
+        self.assertFalse(NodeFactory._is_single_match_interval(all_intervals, match_intervals))
+
+    def test___is_single_match_interval___single_match_interval_but_two_intervals(self, *uninteresting_mocks):
+        interval_1 = Interval(IntervalType.Match, 3, 10)
+        interval_2 = Interval(IntervalType.NonMatch, 30, 100)
+        all_intervals = [interval_1, interval_2]
+        match_intervals = [interval_1]
+        self.assertFalse(NodeFactory._is_single_match_interval(all_intervals, match_intervals))
+
 
     def test___partition_alignment_into_interval_subalignments(self, *uninteresting_mocks):
         msa = make_alignment(["AAAAATTTTTGGGGG", "AAAAACCCCCGGGGG"])
@@ -992,21 +952,36 @@ class TestNodeFactory(TestCase):
 
     def test___infer_if_we_should_cluster_further___no_clustering(self, *uninteresting_mocks):
         clustering_result_mock = Mock(no_clustering=True)
-        self.assertFalse(NodeFactory._infer_if_we_should_cluster_further(Mock(), clustering_result_mock))
+        self.assertFalse(NodeFactory._infer_if_we_should_cluster_further(Mock(), clustering_result_mock, 3, 5))
+
+    def test___infer_if_we_should_cluster_further___max_nesting_reached___smaller(self, *uninteresting_mocks):
+        clustering_result_mock = Mock(no_clustering=False)
+        self.assertFalse(NodeFactory._infer_if_we_should_cluster_further(Mock(), clustering_result_mock, 4, 5))
+
+    def test___infer_if_we_should_cluster_further___max_nesting_reached___equal(self, *uninteresting_mocks):
+        clustering_result_mock = Mock(no_clustering=False)
+        self.assertFalse(NodeFactory._infer_if_we_should_cluster_further(Mock(), clustering_result_mock, 5, 5))
+
+    def test___infer_if_we_should_cluster_further___max_nesting_reached___larger(self, *uninteresting_mocks):
+        clustering_result_mock = Mock(no_clustering=False)
+        self.assertFalse(NodeFactory._infer_if_we_should_cluster_further(Mock(), clustering_result_mock, 6, 5))
 
     @patch.object(NodeFactory, NodeFactory._alignment_has_issues.__name__, return_value=True)
     def test___infer_if_we_should_cluster_further___alignment_has_issues(self,
          alignment_has_issues_mock, *uninteresting_mocks):
         clustering_result_mock = Mock(no_clustering=False)
         alignment_mock = Mock()
-        self.assertFalse(NodeFactory._infer_if_we_should_cluster_further(alignment_mock, clustering_result_mock))
+        self.assertFalse(NodeFactory._infer_if_we_should_cluster_further(alignment_mock, clustering_result_mock, 3, 5))
         alignment_has_issues_mock.assert_called_once_with(alignment_mock)
 
     @patch.object(NodeFactory, NodeFactory._alignment_has_issues.__name__, return_value=False)
-    def test___infer_if_we_should_cluster_further___no_issues___ok_to_cluster_further(self, *uninteresting_mocks):
+    def test___infer_if_we_should_cluster_further___no_issues___ok_to_cluster(self,
+                                                                              alignment_has_issues_mock,
+                                                                              *uninteresting_mocks):
         clustering_result_mock = Mock(no_clustering=False)
         alignment_mock = Mock()
-        self.assertTrue(NodeFactory._infer_if_we_should_cluster_further(alignment_mock, clustering_result_mock))
+        self.assertTrue(NodeFactory._infer_if_we_should_cluster_further(alignment_mock, clustering_result_mock, 3, 5))
+        alignment_has_issues_mock.assert_called_once_with(alignment_mock)
 
     def test___get_subalignments_by_clustering(self, *uninteresting_mocks):
         alignment = make_alignment(

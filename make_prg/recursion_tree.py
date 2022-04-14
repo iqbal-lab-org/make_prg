@@ -264,44 +264,35 @@ class NodeFactory:
     def build(alignment: MSA, prg_builder: "PrgBuilder", parent_node: Optional[RecursiveTreeNode] = None) -> RecursiveTreeNode:
         """
         Builds the correct node given the alignment and other parameters.
-        Note that the root has a None parent. For the root also, we need to first try to build a MultiIntervalNode and
-        then a MulticlusterNode,as we first want to split its intervals, and then cluster.
         """
-        parent_node_is_leaf = isinstance(parent_node, LeafNode)
-        assert not parent_node_is_leaf, "Error on building a Recursive Tree node: parent node should never be a leaf"
-
+        building_the_root = parent_node is None
+        building_multi_interval_node = isinstance(parent_node, MultiClusterNode)
+        building_multi_cluster_node = isinstance(parent_node, MultiIntervalNode)
         min_match_length = prg_builder.min_match_length
-        nesting_level = NodeFactory._get_nesting_level(parent_node)
+        nesting_level = 0 if building_the_root else parent_node.nesting_level
 
-        # if parent is multi interval, children should not be
-        skip_building_multi_interval_node = isinstance(parent_node, MultiIntervalNode)
-        if not skip_building_multi_interval_node:
+        # Note: root is either a multi interval node or a leaf
+        if building_the_root or building_multi_interval_node:
             all_intervals, match_intervals = NodeFactory._get_vertical_partition(alignment, min_match_length)
-
-            has_a_single_interval = NodeFactory._infer_if_has_single_interval(all_intervals=all_intervals, match_intervals=match_intervals,
-                                                                nesting_level=nesting_level,
-                                                                max_nesting=prg_builder.max_nesting,
-                                                                alignment=alignment,
-                                                                min_match_length=min_match_length)
-
-            if not has_a_single_interval:
+            if NodeFactory._is_single_match_interval(all_intervals, match_intervals):
+                return LeafNode(nesting_level, alignment, parent_node, prg_builder)
+            else:
                 interval_subalignments = NodeFactory._partition_alignment_into_interval_subalignments(alignment,
                                                                                                       all_intervals)
                 return MultiIntervalNode(nesting_level, alignment, parent_node, prg_builder, interval_subalignments)
-
-        # if parent is multi cluster, children should not be
-        skip_building_multi_cluster_node = isinstance(parent_node, MultiClusterNode)
-        if not skip_building_multi_cluster_node:
+        elif building_multi_cluster_node:
             clustering_result = kmeans_cluster_seqs(alignment, min_match_length)
-            cluster_further = NodeFactory._infer_if_we_should_cluster_further(alignment, clustering_result)
-
+            cluster_further = NodeFactory._infer_if_we_should_cluster_further(alignment, clustering_result,
+                                                                              nesting_level, prg_builder.max_nesting)
             if cluster_further:
+                # when building a Multi Cluster node, we open a site, so we go down one nesting level
+                nesting_level += 1
                 cluster_subalignments = NodeFactory._get_subalignments_by_clustering(alignment, clustering_result)
-                return MultiClusterNode(nesting_level, alignment, parent_node, prg_builder,
-                                        cluster_subalignments)
-
-        # here, the node is a leaf
-        return LeafNode(nesting_level, alignment, parent_node, prg_builder)
+                return MultiClusterNode(nesting_level, alignment, parent_node, prg_builder, cluster_subalignments)
+            else:
+                return LeafNode(nesting_level, alignment, parent_node, prg_builder)
+        else:
+            raise ValueError(f"Unsupported parent type for building: {parent_node.__class__}")
 
     #####################################################################################################
     #  helper methods
@@ -325,41 +316,10 @@ class NodeFactory:
             return True
 
         return False
-
-    @staticmethod
-    def _get_nesting_level(parent_node: Optional[RecursiveTreeNode]) -> int:
-        is_root = parent_node is None
-        if is_root:
-            nesting_level = 0
-        else:
-            need_to_go_down_one_level = isinstance(parent_node, MultiClusterNode)
-            if need_to_go_down_one_level:
-                nesting_level = parent_node.nesting_level + 1
-            else:
-                nesting_level = parent_node.nesting_level
-        return nesting_level
     #####################################################################################################
 
     #####################################################################################################
     #  interval methods
-    @staticmethod
-    def _infer_if_has_single_interval(all_intervals: Intervals, match_intervals: Intervals,
-                                      nesting_level: int, max_nesting: int,
-                                      alignment: MSA, min_match_length: int) -> bool:
-        single_match_interval = (len(all_intervals) == 1) and (all_intervals[0] in match_intervals)
-        if single_match_interval:
-            return True
-
-        max_nesting_level_reached = nesting_level == max_nesting
-        if max_nesting_level_reached:
-            return True
-
-        small_variant_site = alignment.get_alignment_length() < min_match_length
-        if small_variant_site:
-            return True
-
-        return False
-
     @staticmethod
     def _get_vertical_partition(alignment: MSA, min_match_length: int) -> Tuple[Intervals, Intervals]:
         consensus = get_consensus_from_MSA(alignment)
@@ -372,6 +332,10 @@ class NodeFactory:
         return all_intervals, match_intervals
 
     @staticmethod
+    def _is_single_match_interval(all_intervals: Intervals, match_intervals: Intervals) -> bool:
+        return (len(all_intervals) == 1) and (all_intervals[0] in match_intervals)
+
+    @staticmethod
     def _partition_alignment_into_interval_subalignments(alignment: MSA, all_intervals: Intervals) -> List[MSA]:
         return [alignment[:, interval.start: interval.stop + 1] for interval in all_intervals]
     #####################################################################################################
@@ -379,8 +343,13 @@ class NodeFactory:
     #####################################################################################################
     #  clustering methods
     @staticmethod
-    def _infer_if_we_should_cluster_further(alignment: MSA, clustering_result: ClusteringResult) -> bool:
+    def _infer_if_we_should_cluster_further(alignment: MSA, clustering_result: ClusteringResult,
+                                            nesting_level: int, max_nesting: int) -> bool:
         if clustering_result.no_clustering:
+            return False
+
+        max_nesting_reached = nesting_level + 1 >= max_nesting
+        if max_nesting_reached:
             return False
 
         alignment_has_issues = NodeFactory._alignment_has_issues(alignment)
