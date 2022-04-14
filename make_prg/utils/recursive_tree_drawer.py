@@ -1,4 +1,4 @@
-from make_prg.recursion_tree import RecursiveTreeNode, SingleClusterNode
+from make_prg.recursion_tree import RecursiveTreeNode, MultiIntervalNode, MultiClusterNode, LeafNode
 import networkx as nx
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -23,21 +23,30 @@ class RecursiveTreeDrawer:
     @staticmethod
     def _visit(node: RecursiveTreeNode, graph: nx.DiGraph):
         node_attributes = {}
-        node_is_SingleClusterNode = isinstance(node, SingleClusterNode)
 
         if node.is_leaf():
-            assert node_is_SingleClusterNode, "Error, a leaf is not a SingleClusterNode"
             prg_as_list = []
-            node._get_prg(prg_as_list)
+            node.preorder_traversal_to_build_prg(prg_as_list, do_indexing=False)
             node_attributes["label"] = "".join(prg_as_list)
         else:
             node_attributes["label"] = str(node.id)
 
-        node_attributes["color"] = "blue" if node_is_SingleClusterNode else "red"
+        node_attributes["color"] = RecursiveTreeDrawer._get_node_colour(node)
         graph.add_node(node, **node_attributes)
 
         if node.parent is not None:
             graph.add_edge(node.parent, node)
+
+    @staticmethod
+    def _get_node_colour(node: RecursiveTreeNode) -> str:
+        if isinstance(node, MultiClusterNode):
+            return "red"
+        elif isinstance(node, MultiIntervalNode):
+            return "blue"
+        elif isinstance(node, LeafNode):
+            return "green"
+        else:
+            assert False, f"Unknown node class when drawing: {node.__class__}"
 
     def output_graph(self, filename: Path):
         plt.figure(figsize=(20, 10))
