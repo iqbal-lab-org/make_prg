@@ -29,6 +29,17 @@ def register_parser(subparsers):
         ),
     )
     subparser_msa.add_argument(
+        "-s",
+        "--suffix",
+        action="store",
+        type=str,
+        default="",
+        help=(
+            "If the input parameter (-i, --input) is a directory, then filter for files with this suffix. "
+            "If this parameter is not given, all files in the input directory is considered."
+        ),
+    )
+    subparser_msa.add_argument(
         "-o",
         "--output-prefix",
         dest="output_prefix",
@@ -75,7 +86,7 @@ def register_parser(subparsers):
     return subparser_msa
 
 
-def get_all_input_files(input_path: str) -> List[Path]:
+def get_all_input_files(input_path: str, suffix: str) -> List[Path]:
     input_path = Path(input_path)
     if not input_path.exists():
         raise FileNotFoundError(f"{input_path} does not exist")
@@ -84,7 +95,7 @@ def get_all_input_files(input_path: str) -> List[Path]:
         all_files = [input_path]
     else:
         all_files = [
-            path.resolve() for path in input_path.iterdir() if path.is_file()
+            path.resolve() for path in input_path.iterdir() if path.is_file() and path.name.endswith(suffix)
         ]
     return all_files
 
@@ -132,7 +143,7 @@ def run(cl_options):
     options = cl_options
 
     logger.info("Getting input files...")
-    input_files = get_all_input_files(options.input)
+    input_files = get_all_input_files(options.input, options.suffix)
 
     there_is_no_input_files = len(input_files) == 0
     if there_is_no_input_files:
