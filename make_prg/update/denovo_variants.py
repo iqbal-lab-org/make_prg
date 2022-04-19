@@ -161,9 +161,9 @@ class DenovoVariant:
                     ml_path_nodes_the_split_variant_goes_through = [ml_path_node] * len(sub_ref_seq)
                     split_variant.set_ml_path_nodes_it_goes_through(ml_path_nodes_the_split_variant_goes_through)
                     split_variants.append(split_variant)
-                    logger.info(f"Split variant to be applied: {split_variant}")
+                    logger.debug(f"Split variant to be applied: {split_variant}")
                 except TooLongDeletion as error:
-                    logger.info(f"Ignoring split variant: {error}")
+                    logger.debug(f"Ignoring split variant: {error}")
 
         return split_variants
 
@@ -378,7 +378,7 @@ class DenovoVariantsDB:
                 long_deletion_threshold=long_deletion_threshold
         )
 
-        logger.info(f"Read variant: {denovo_variant}")
+        logger.debug(f"Read variant: {denovo_variant}")
         return denovo_variant
 
     @classmethod
@@ -390,7 +390,7 @@ class DenovoVariantsDB:
                 denovo_variant = cls._read_DenovoVariant(filehandler, long_deletion_threshold)
                 variants.append(denovo_variant)
             except TooLongDeletion as error:
-                logger.info(f"Ignoring variant: {error}")
+                logger.debug(f"Ignoring variant: {error}")
         return variants
 
     def _get_locus_name_to_denovo_loci_core(self, filehandler: TextIO) -> Dict[str, List[DenovoLocusInfo]]:
