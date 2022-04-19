@@ -18,6 +18,12 @@ Multiple Sequence Alignment.
 
 ## Install
 
+### PyPI
+
+```sh
+pip install make_prg
+```
+
 ### Conda
 
 [![Conda (channel only)](https://img.shields.io/conda/vn/bioconda/make_prg)](https://anaconda.org/bioconda/make_prg)
