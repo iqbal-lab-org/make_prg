@@ -57,7 +57,8 @@ def register_parser(subparsers):
         ),
     )
     subparser_update_prg.add_argument(
-        "--long-deletion-threshold",
+        "-D",
+        "--deletion-threshold",
         dest="long_deletion_threshold",
         action="store",
         type=int,
