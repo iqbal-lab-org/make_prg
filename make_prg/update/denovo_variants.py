@@ -163,7 +163,7 @@ class DenovoVariant:
                     split_variants.append(split_variant)
                     logger.debug(f"Split variant to be applied: {split_variant}")
                 except TooLongDeletion as error:
-                    logger.debug(f"Ignoring split variant: {error}")
+                    logger.warning(f"Ignoring split variant: {error}")
 
         return split_variants
 
@@ -390,7 +390,7 @@ class DenovoVariantsDB:
                 denovo_variant = cls._read_DenovoVariant(filehandler, long_deletion_threshold)
                 variants.append(denovo_variant)
             except TooLongDeletion as error:
-                logger.debug(f"Ignoring variant: {error}")
+                logger.warning(f"Ignoring variant: {error}")
         return variants
 
     def _get_locus_name_to_denovo_loci_core(self, filehandler: TextIO) -> Dict[str, List[DenovoLocusInfo]]:
