@@ -6,6 +6,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2021-26-11
+
+### Added
+- `make_prg update` command, that updates PRGs without requiring to rebuild MSAs and the PRG itself from scratch;
+- Trace (`-vv`) logging level, to track make_prg behaviour (intended for developers only);
+- Multithreading support (`-t` parameter);
+- `--output_graphs` parameter, that outputs the recursive tree graphical representation (intended for developers only);
+- A sample example;
+- 260 new tests (from 116 to 376 total tests), with test coverage of around 99% in non-argument parsing code;
+
+### Changed
+- `make_prg from_msa`: input can now be a single file or a directory. If it is a single file,
+a `<prefix>.prg.bin`, a `<prefix>.prg.fa`, a `<prefix>.prg.gfa` and a `<prefix>.update_DS.zip`
+files are created. If it is a directory, all files in the directory are scanned and the same
+execution for a single file is done for each input file found. The output files are a collection of the single-input
+execution: a `<prefix>.prg.bin.zip` file will contain a collection of `.prg.bin` files, similar to
+`<prefix>.prg.gfa.zip` and `<prefix>.update_DS.zip`; `<prefix>.prg.fa` will be a multi fasta;
+- The recursive clustering and collapse algorithm is now explicitly represented as a tree with internal data
+structures that remember the multiple sequence subalignment at any point of the recursion, as well as several other
+internal data, allowing the serialization and deserialization of the recursion tree at any point. Thus updates can
+be done avoiding any recomputation by firstly saving the state of the recursion tree to disk, and then loading this
+recursion tree, adding denovo sequences to some specific nodes, and triggering recomputation of the modified nodes.
+Any preorder traversal of the recursion tree yields the same order of recursive calls of the previous algorithm,
+thus allowing us to translate the algorithms in the previous version as preorder traversals with custom visit
+operations.
+
+### Fixed
+- Several minor bugs;
+- Heavy refactoring of almost the whole codebase;
+
 ## [0.2.0] - 2021-10-27
 
 ### Added
@@ -62,8 +92,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   source project CHANGELOG.
 
 
-[Unreleased]: https://github.com/iqbal-lab-org/make_prg/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/iqbal-lab-org/make_prg/compare/v0.1.0...HEAD
 
+[1.0.0]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.1.0
 [0.2.0]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.2.0
 [0.1.1]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.1.1
 [0.1.0]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.1.0
