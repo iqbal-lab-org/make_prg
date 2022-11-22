@@ -1,0 +1,32 @@
+H	VN:Z:1.0	bn:Z:--linear --singlearr
+S	0	*	RC:i:0
+L	0	+	1	+	0M
+S	1	A	RC:i:0
+L	0	+	2	+	0M
+S	2	CCCC	RC:i:0
+L	0	+	3	+	0M
+S	3	TTTT	RC:i:0
+S	4	CGTGTTTTGTAACTGTGC	RC:i:0
+L	1	+	4	+	0M
+L	2	+	4	+	0M
+L	3	+	4	+	0M
+L	4	+	5	+	0M
+S	5	C	RC:i:0
+L	4	+	6	+	0M
+S	6	A	RC:i:0
+L	4	+	7	+	0M
+S	7	G	RC:i:0
+L	4	+	8	+	0M
+S	8	T	RC:i:0
+S	9	ACACTCT	RC:i:0
+L	5	+	9	+	0M
+L	6	+	9	+	0M
+L	7	+	9	+	0M
+L	8	+	9	+	0M
+L	9	+	10	+	0M
+S	10	CGAG	RC:i:0
+L	9	+	11	+	0M
+S	11	C	RC:i:0
+S	12	ACTGCATATGTGTC	RC:i:0
+L	10	+	12	+	0M
+L	11	+	12	+	0M

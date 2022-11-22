@@ -48,7 +48,7 @@ def remove_dir_if_exists(directory):
 
 
 # Adapted from https://stackoverflow.com/a/6681395/5264075
-def are_dir_trees_equal(dir1, dir2):
+def are_dir_trees_equal(dir1, dir2, ignore_zips=False):
     """
     Compare two directories recursively. Files in each directory are
     assumed to be equal if their names and contents are equal.
@@ -77,12 +77,13 @@ def are_dir_trees_equal(dir1, dir2):
         print(f"[Dir comparison] Erros: {errors}")
         return False
 
-    for file in common_files_with_zip:
-        zip_file_1 = os.path.join(dir1, file)
-        zip_file_2 = os.path.join(dir2, file)
-        if not are_zip_files_equal(zip_file_1, zip_file_2):
-            print(f"[Dir comparison] Zip file mismatch: {zip_file_1} and {zip_file_2}")
-            return False
+    if not ignore_zips:
+        for file in common_files_with_zip:
+            zip_file_1 = os.path.join(dir1, file)
+            zip_file_2 = os.path.join(dir2, file)
+            if not are_zip_files_equal(zip_file_1, zip_file_2):
+                print(f"[Dir comparison] Zip file mismatch: {zip_file_1} and {zip_file_2}")
+                return False
 
     for common_dir in dirs_cmp.common_dirs:
         new_dir1 = os.path.join(dir1, common_dir)
