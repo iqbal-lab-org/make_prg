@@ -1,0 +1,11 @@
+1 samples
+Sample toy_sample_1
+1 loci with denovo variants
+match
+1 nodes
+(0 [0, 45) ACGTGTTTTGTAACTGTGCCACACTCTCGAGACTGCATATGTGTC)
+3 denovo variants for this locus
+2	CGTGTTTTGTAA	A
+20	C	G
+35	GCATATGTGT	
+
