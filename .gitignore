@@ -108,9 +108,9 @@ ENV/
 .idea
 
 # sample examples
-/sample_example/msas_output/
-/sample_example/msas_updated/
-/sample_example/make_prg_*
+sample_example/msas_output/
+sample_example/msas_updated/
+sample_example/make_prg*
 
 # tests
 tests/data/utils/create_new_sequences_file/new_sequences.fa
