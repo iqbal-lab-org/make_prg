@@ -12,7 +12,7 @@ with Path('requirements.txt').open() as requirements_txt:
 # TODO: fix tests incorrectly running when installing with setup.py
 setup(
     name="make_prg",
-    version="1.0.0",
+    version="0.4.0",
     packages=find_packages(),
     url="https://github.com/rmcolq/make_prg",
     license="MIT",
