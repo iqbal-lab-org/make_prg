@@ -145,8 +145,8 @@ class InputOutputFiles(ABC):
 
     @staticmethod
     def _delete_file(filepath: Optional[Path]):
-        if filepath is not None:
-            filepath.unlink(missing_ok=True)
+        if filepath is not None and filepath.exists():
+            filepath.unlink()
 
     def delete_files(self):
         self._delete_file(self.prg)

@@ -620,7 +620,7 @@ class TestLeafNode(TestCase):
 
             # assert_called_once_with() does not work because can't check if MSAs are equal
             get_updated_alignment_mock.assert_called_once()
-            kwargs = get_updated_alignment_mock.call_args_list[0].kwargs
+            kwargs = get_updated_alignment_mock.call_args_list[0][1]
             self.assertTrue(equal_msas(self.alignment, kwargs["current_alignment"]))
             self.assertEqual({"AAAA", "CC"}, kwargs["new_sequences"])
 
@@ -667,7 +667,7 @@ class TestLeafNode(TestCase):
 
             # assert_called_once_with() does not work because can't check if MSAs are equal
             get_updated_alignment_mock.assert_called_once()
-            kwargs = get_updated_alignment_mock.call_args_list[0].kwargs
+            kwargs = get_updated_alignment_mock.call_args_list[0][1]
             self.assertTrue(equal_msas(self.alignment, kwargs["current_alignment"]))
             self.assertEqual({"AAAA", "CC"}, kwargs["new_sequences"])
 
