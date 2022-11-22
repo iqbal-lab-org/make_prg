@@ -4,7 +4,7 @@ from pathlib import Path
 from loguru import logger
 from make_prg import prg_builder
 from make_prg.from_msa import NESTING_LVL, MIN_MATCH_LEN
-from make_prg.utils import io_utils, gfa
+from make_prg.utils import io_utils, gfa, seq_utils
 from make_prg.utils.input_output_files import InputOutputFilesFromMSA
 
 
@@ -136,6 +136,8 @@ def process_MSA(input_and_output_files: InputOutputFilesFromMSA):
             raise EmptyMSAError(f"No records found in MSA of locus {locus_name}")
         else:
             raise value_error
+    except seq_utils.SequenceCurationError as sequence_curation_error:
+        logger.warning(f"Skipping building PRG for {locus_name}. Error: {str(sequence_curation_error)}")
 
 
 def run(cl_options):
@@ -165,7 +167,12 @@ def run(cl_options):
         pool.map(process_MSA, input_and_output_files, chunksize=1)
     logger.success(f"All PRGs generated!")
 
-    InputOutputFilesFromMSA.create_final_files(input_and_output_files, options.output_prefix)
-    io_utils.remove_empty_folders(str(root_temp_dir))
+    successful_input_and_output_files = InputOutputFilesFromMSA.get_successfull_runs(input_and_output_files)
+    all_runs_failed = len(successful_input_and_output_files) == 0
+    if all_runs_failed:
+        logger.error("No PRGs were built, please check errors")
+    else:
+        InputOutputFilesFromMSA.create_final_files(successful_input_and_output_files, options.output_prefix)
 
+    io_utils.remove_empty_folders(str(root_temp_dir))
     logger.success("All done!")

@@ -33,6 +33,27 @@ class InputOutputFiles(ABC):
     def _set_output_file(self, condition, extension, post_extension=""):
         self.__dict__[extension] = Path(f"{self.temp_prefix}.{extension}{post_extension}") if condition else None
 
+    def run_was_successful(self) -> bool:
+        if self.output_type.prg:
+            return self.prg.exists()
+        if self.output_type.gfa:
+            return self.gfa.exists()
+        if self.output_type.binary:
+            return self.bin.exists()
+        return False
+
+    @staticmethod
+    def get_successfull_runs(list_of_InputOutputFiles: List["InputOutputFiles"]) -> List["InputOutputFiles"]:
+        list_of_InputOutputFiles_that_succeeded = []
+
+        for input_output_files in list_of_InputOutputFiles:
+            if input_output_files.run_was_successful():
+                list_of_InputOutputFiles_that_succeeded.append(input_output_files)
+            else:
+                input_output_files.delete_files()
+
+        return list_of_InputOutputFiles_that_succeeded
+
     @staticmethod
     def create_final_files(list_of_InputOutputFiles: List["InputOutputFiles"], output_prefix: str):
         logger.info("Concatenating files from several threads into single final files...")

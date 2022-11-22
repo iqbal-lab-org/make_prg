@@ -86,6 +86,8 @@ class UpdateSharedData:
 
 
 def update(input_and_output_files: InputOutputFilesUpdate):
+    # TODO: handle failed runs here?
+
     global options
     locus_name = input_and_output_files.locus_name
     prg_builder_zip_db = PrgBuilderZipDatabase(options.update_DS)
