@@ -57,6 +57,18 @@ def register_parser(subparsers):
         ),
     )
     subparser_update_prg.add_argument(
+        "-D",
+        "--deletion-threshold",
+        dest="long_deletion_threshold",
+        action="store",
+        type=int,
+        default=10,
+        help=(
+            "Ignores long deletions of the given size or longer. If long deletions should not be ignored, "
+            "put a large value. Default: %(default)d"
+        ),
+    )
+    subparser_update_prg.add_argument(
         "-m",
         "--mafft",
         help="Path to MAFFT executable. By default, it is assumed to be on $PATH",
@@ -163,7 +175,7 @@ def run(cl_options):
         prg_builder_zip_db = PrgBuilderZipDatabase(options.update_DS)
         prg_builder_zip_db.load()
         logger.info(f"Reading {options.denovo_paths}...")
-        denovo_variants_db = DenovoVariantsDB(options.denovo_paths)
+        denovo_variants_db = DenovoVariantsDB(options.denovo_paths, options.long_deletion_threshold)
         update_shared_data = UpdateSharedData(denovo_variants_db, mafft_aligner)
 
         output_dir = Path(options.output_prefix).parent
