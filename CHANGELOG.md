@@ -6,15 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - 2021-26-11
+## [0.4.0] - 2022-22-11
 
 ### Added
 - `make_prg update` command, that updates PRGs without requiring to rebuild MSAs and the PRG itself from scratch;
 - Trace (`-vv`) logging level, to track make_prg behaviour (intended for developers only);
 - Multithreading support (`-t` parameter);
-- `--output_graphs` parameter, that outputs the recursive tree graphical representation (intended for developers only);
 - A sample example;
-- 260 new tests (from 116 to 376 total tests), with test coverage of around 99% in non-argument parsing code;
+- 325 new tests (from 116 to 441 total tests), with test coverage >99% in non-argument parsing code;
+- Precompiled binary;
 
 ### Changed
 - `make_prg from_msa`: input can now be a single file or a directory. If it is a single file,
@@ -23,6 +23,12 @@ files are created. If it is a directory, all files in the directory are scanned 
 execution for a single file is done for each input file found. The output files are a collection of the single-input
 execution: a `<prefix>.prg.bin.zip` file will contain a collection of `.prg.bin` files, similar to
 `<prefix>.prg.gfa.zip` and `<prefix>.update_DS.zip`; `<prefix>.prg.fa` will be a multi fasta;
+
+- Other `make_prg from_msa` CLI changes (please run `make_prg from_msa -h` for a full description of the new parameters):
+  - Parameters removed: `--prg_name`, `--seqid`, `--no_overwrite`;
+  - Parameters added: `-s, --suffix`, `-F, --force`, `-t, --threads`, `-g, --output-graphs`;
+  - Parameters changed: Replaced `--outdir` by `--output_prefix`;
+
 - The recursive clustering and collapse algorithm is now explicitly represented as a tree with internal data
 structures that remember the multiple sequence subalignment at any point of the recursion, as well as several other
 internal data, allowing the serialization and deserialization of the recursion tree at any point. Thus updates can
@@ -92,9 +98,9 @@ operations.
   source project CHANGELOG.
 
 
-[Unreleased]: https://github.com/iqbal-lab-org/make_prg/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/iqbal-lab-org/make_prg/compare/v0.4.0...HEAD
 
-[1.0.0]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.1.0
+[0.4.0]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.4.0
 [0.2.0]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.2.0
 [0.1.1]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.1.1
 [0.1.0]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.1.0
