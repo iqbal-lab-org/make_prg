@@ -1,6 +1,6 @@
 # make_prg
 
-A tool to create and update PRGs for input to [Pandora][pandora] from a set of 
+A tool to create and update PRGs for input to [Pandora][pandora] and [Gramtools][gramtools] from a set of 
 Multiple Sequence Alignments.
 
 [TOC]: #
@@ -15,7 +15,7 @@ Multiple Sequence Alignments.
 
 ## Dependencies
 
-`make_prg` has two commands: `from_msa` and `update`. The `update` command requires `MAFFT` to be in your `PATH`. It can be installed:
+`make_prg` has two commands: `from_msa` and `update`. The `update` command requires `MAFFT` to be installed:
   1. from source: https://mafft.cbrc.jp/alignment/software/;
   2. using `conda`: `conda install -c bioconda mafft`;
 
@@ -27,17 +27,16 @@ You can use `make_prg` with no installation at all by simply downloading the pre
 In this binary, all libraries are linked statically.
 
 * **Requirements**:
-  * `GLIBC >= 2.17` (present on `Ubuntu >= 13.04`, `Debian >= 8.0`, `CentOS >= 7`, `RHEL >= 7.9`,
-  `Fedora >= 19`, etc);
+  * `GLIBC >= 2.27` (present on `Ubuntu >= 18.04`, `Debian >= 10`, `CentOS >= 8`, etc);
 
 * **Download**:
   ```
-  wget https://github.com/leoisl/make_prg/releases/download/v0.3.0/make_prg_0.3.0
+  wget https://github.com/iqbal-lab-org/make_prg/releases/download/v0.4.0/make_prg_0.4.0
   ```
 * **Running**:
 ```
-chmod +x make_prg_0.3.0
-./make_prg_0.3.0 -h
+chmod +x make_prg_0.4.0
+./make_prg_0.4.0 -h
 ```
 
 * **Credits**:
@@ -53,7 +52,14 @@ chmod +x make_prg_0.3.0
 
 * **Installing**:
 ```sh
-pip install git+https://github.com/leoisl/make_prg
+pip install make_prg
+```
+
+### conda
+
+* **Installing**:
+```sh
+conda install -c bioconda make_prg
 ```
 
 * **Running**:
@@ -80,9 +86,8 @@ optional arguments:
 
 Available subcommands:
   
-    from_msa     Make PRG from multiple sequence alignment dir
-    update       Update PRGs given new sequences output by pandora.
-
+    from_msa     Make PRG from multiple sequence alignment
+    update       Update PRGs given new sequences.
 ```
 
 #### `from_msa`
@@ -94,18 +99,37 @@ usage: make_prg from_msa
 optional arguments:
   -h, --help            show this help message and exit
   -i INPUT, --input INPUT
-                        Input dir: all files in this will try to be read as the supported alignment_format. If not aligned in fasta alignment_format, use -f to input the alignment_format type
-  -o OUTPUT_PREFIX, --output_prefix OUTPUT_PREFIX
-                        Output prefix: prefix for the output files
+                        Multiple sequence alignment file or a directory
+                        containing such files
+  -s SUFFIX, --suffix SUFFIX
+                        If the input parameter (-i, --input) is a directory,
+                        then filter for files with this suffix. If this
+                        parameter is not given, all files in the input
+                        directory is considered.
+  -o OUTPUT_PREFIX, --output-prefix OUTPUT_PREFIX
+                        Prefix for the output files
+  -f ALIGNMENT_FORMAT, --alignment-format ALIGNMENT_FORMAT
+                        Alignment format of MSA, must be a biopython AlignIO
+                        input alignment_format. See
+                        http://biopython.org/wiki/AlignIO. Default: fasta
+  -N MAX_NESTING, --max-nesting MAX_NESTING
+                        Maximum number of levels to use for nesting. Default:
+                        5
+  -L MIN_MATCH_LENGTH, --min-match-length MIN_MATCH_LENGTH
+                        Minimum number of consecutive characters which must be
+                        identical for a match. Default: 7
+  -O OUTPUT_TYPE, --output-type OUTPUT_TYPE
+                        p: PRG, b: Binary, g: GFA, a: All. Combinations are
+                        allowed i.e., gb: GFA and Binary. Default: a
+  -F, --force           Force overwrite previous output
   -t THREADS, --threads THREADS
-                        Number of threads
-  -f ALIGNMENT_FORMAT, --alignment_format ALIGNMENT_FORMAT
-                        Alignment format of MSA, must be a biopython AlignIO input alignment_format. See http://biopython.org/wiki/AlignIO. Default: fasta
-  --max_nesting MAX_NESTING
-                        Maximum number of levels to use for nesting. Default: 5
-  -L MIN_MATCH_LENGTH, --min_match_length MIN_MATCH_LENGTH
-                        Minimum number of consecutive characters which must be identical for a match. Default: 7
-  -v, --verbose         Increase output verbosity
+                        Number of threads. 0 will use all available. Default:
+                        1
+  -g, --output-graphs   Outputs the recursive tree graphical representation
+                        (for development use only)
+  -v, --verbose         Increase output verbosity (-v for debug, -vv for trace
+                        - trace is for developers only)
+  --log LOG             Path to write log to. Default is stderr
 ```
 
 #### `update`
@@ -116,18 +140,35 @@ usage: make_prg update
 
 optional arguments:
   -h, --help            show this help message and exit
-  -u UPDATE_DS, --update_DS UPDATE_DS
-                        Filepath to the update data structures. Should point to a file *.update_DS.
-  -d DENOVO_PATHS, --denovo_paths DENOVO_PATHS
-                        Filepath containing denovo sequences output by pandora. Should point to a denovo_paths.txt file.
-  -o OUTPUT_PREFIX, --output_prefix OUTPUT_PREFIX
-                        Output prefix: prefix for the output files
+  -u UPDATE_DS, --update-DS UPDATE_DS
+                        Filepath to the update data structures (a
+                        *.update_DS.zip file created from make_prg from_msa or
+                        update)
+  -o OUTPUT_PREFIX, --output-prefix OUTPUT_PREFIX
+                        Prefix for the output files
+  -d DENOVO_PATHS, --denovo-paths DENOVO_PATHS
+                        Filepath containing denovo sequences. Should point to
+                        a denovo_paths.txt file
+  -D LONG_DELETION_THRESHOLD, --deletion-threshold LONG_DELETION_THRESHOLD
+                        Ignores long deletions of the given size or longer. If
+                        long deletions should not be ignored, put a large
+                        value. Default: 10
+  -m MAFFT, --mafft MAFFT
+                        Path to MAFFT executable. By default, it is assumed to
+                        be on $PATH
+  -O OUTPUT_TYPE, --output-type OUTPUT_TYPE
+                        p: PRG, b: Binary, g: GFA, a: All. Combinations are
+                        allowed i.e., gb: GFA and Binary. Default: a
+  -F, --force           Force overwrite previous output
   -t THREADS, --threads THREADS
-                        Number of threads
-  --mafft MAFFT         Path to MAFFT executable. By default, it is assumed to be on PATH
-  --keep_temp           Keep temp files.
-  -v, --verbose         Increase output verbosity
+                        Number of threads. 0 will use all available. Default:
+                        1
+  -g, --output-graphs   Outputs the recursive tree graphical representation
+                        (for development use only)
+  -v, --verbose         Increase output verbosity (-v for debug, -vv for trace
+                        - trace is for developers only)
+  --log LOG             Path to write log to. Default is stderr
 ```
 
 [pandora]: https://github.com/rmcolq/pandora
-
+[gramtools]: https://github.com/iqbal-lab-org/gramtools/
