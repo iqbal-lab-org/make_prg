@@ -36,12 +36,68 @@ class RecursiveTreeNode(ABC):
         self.alignment: MSA = remove_columns_full_of_gaps_from_MSA(alignment)
         self.parent: Optional["RecursiveTreeNode"] = parent
         self.prg_builder = prg_builder
-        self.id: int = self.prg_builder.get_next_node_id()
+        self.__node_id: int = self.prg_builder.get_next_node_id() # note node_id is fully protected from writes (see self.__hash__())
 
         # generate recursion tree
         self._children: List["RecursiveTreeNode"] = self._get_children(children_subalignments)
 
         self.log_that_node_was_created()
+
+    @property
+    def node_id(self):
+        return self.__node_id
+
+    def __eq__(self, other: "RecursiveTreeNode") -> bool:
+        """
+        Compares two RecursiveTreeNodes. Two RecursiveTreeNodes are equal if all their trivial attributes are equal. For
+        the non-trivial attributes, we compare them like this:
+        1. self._children: we recursively compare these;
+        2. self.parent: is enough for us to compare if the parent is set and its id. We should not recursively compare
+                        the parent, like the children, because then we would get trapped in an infinite recursive loop.
+        3. self.prg_builder: let's compare just the self.prg_builder.locus_name. We should not recursively compare
+                             the prg_builders, because then we would get trapped in an infinite recursive loop.
+        """
+        # first compare trivial attributes
+        if (self.nesting_level, self.prg_builder.locus_name, self.node_id) != (other.nesting_level, other.prg_builder.locus_name, other.node_id):
+            return False
+
+        # now compares parent:
+        both_parents_are_none = self.parent is None and other.parent is None
+        both_parents_are_not_none = self.parent is not None and other.parent is not None
+        only_one_parent_is_none = not both_parents_are_none and not both_parents_are_not_none
+        if only_one_parent_is_none:
+            return False
+        different_parents = both_parents_are_not_none and self.parent.node_id != other.parent.node_id
+        if different_parents:
+            return False
+
+        # now compares the alignment, which requires a special function because Bio.AlignIO.MultipleSeqAlignment
+        # does not implement __eq__()
+        if not equal_msas(self.alignment, other.alignment):
+            return False
+
+        # now recursively compares the children
+        different_number_of_children = len(self.children) != len(other.children)
+        if different_number_of_children:
+            return False
+        for first_child, second_child in zip(self.children, other.children):
+            if first_child != second_child:
+                return False
+
+        return True
+
+    def __hash__(self):
+        """
+        Properties to satisfy:
+            If a == b then hash(a) == hash(b)
+            If hash(a) == hash(b), then a might equal b
+            If hash(a) != hash(b), then a != b
+        Let's then hash on the node_id, which is protected from writes. However, if we hash only on the node_id, we will
+        lose performance significantly, because e.g. all first nodes from every PRG will have node_id 0 and will be hashed
+        to the same bucket. Thus, we need to mix it with another discriminative property, also protected from writes,
+        which could be self.prg_builder.locus_name.
+        """
+        return hash((self.node_id, self.prg_builder.locus_name))
 
     @property
     def children(self):
@@ -73,10 +129,10 @@ class RecursiveTreeNode(ABC):
 
     def __repr__(self):
         return f"{self.__class__.__name__}:\n" \
-               f"Id = {self.id}\n" \
+               f"Id = {self.node_id}\n" \
                f"Nesting level = {self.nesting_level}\n" \
-               f"Parent = {'None' if self.parent is None else f'Id = {self.parent.id}'}\n" \
-               f"Children = [{', '.join(f'Id = {child.id}' for child in self.children)}]\n" \
+               f"Parent = {'None' if self.parent is None else f'Id = {self.parent.node_id}'}\n" \
+               f"Children = [{', '.join(f'Id = {child.node_id}' for child in self.children)}]\n" \
                f"Alignment:\n{format(self.alignment, 'fasta')}"
 
     def __str__(self):

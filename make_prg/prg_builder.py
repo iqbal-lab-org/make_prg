@@ -30,7 +30,7 @@ class PrgBuilder(object):
         min_match_length: int,
         aligner: Optional["MSAAligner"] = None,
     ):
-        self.locus_name: str = locus_name
+        self.__locus_name: str = locus_name  # note locus_name is fully protected from writes (see self.__hash__())
         self.max_nesting: int = max_nesting
         self.min_match_length: int = min_match_length
         self.aligner: Optional["MSAAligner"] = aligner
@@ -41,6 +41,10 @@ class PrgBuilder(object):
         alignment = load_alignment_file(str(msa_file), alignment_format)
         self.root: RecursiveTreeNode = NodeFactory.build(alignment, self, None)
 
+    @property
+    def locus_name(self):
+        return self.__locus_name
+
     def __getstate__(self):
         """
         This method is defined so that we don't pickle self.aligner.
@@ -48,8 +52,36 @@ class PrgBuilder(object):
         comparable, and we don't actually care about the aligner/temp path that was used, if the rest is the same.
         """
         state = self.__dict__.copy()
-        state['aligner'] = None  # force aligner to None
+        state['aligner'] = None  # remove aligner from the object to be pickled
         return state
+
+    def __eq__(self, other: "PrgBuilder") -> bool:
+        """
+        Equality comparison is required because when identical objects are pickled in different environments/machines,
+        their byte representation might be different. However, the reconstructed object is still identical.
+        Similarly to self.__getstate__(), we don't take self.aligner into account here
+        """
+        # first compare trivial attributes
+        if (self.locus_name, self.max_nesting, self.min_match_length, self.next_node_id, self.site_num) != \
+           (other.locus_name, other.max_nesting, other.min_match_length, other.next_node_id, other.site_num):
+            return False
+
+        # now compares attributes that involve RecursiveTreeNode
+        # these are costly to compare, so better to do later
+        if self.prg_index != other.prg_index or self.root != other.root:
+            return False
+
+        return True
+
+    def __hash__(self):
+        """
+        Properties to satisfy:
+            If a == b then hash(a) == hash(b)
+            If hash(a) == hash(b), then a might equal b
+            If hash(a) != hash(b), then a != b
+        Let's then hash on the locus name, which is protected from writes
+        """
+        return hash(self.locus_name)
 
     def replace_root(self, new_root: RecursiveTreeNode):
         self.root = new_root
@@ -147,6 +179,19 @@ class PrgBuilderZipDatabase:
     def close(self):
         if self._zip_file is not None:
             self._zip_file.close()
+
+    def __eq__(self, other: "PrgBuilderZipDatabase") -> bool:
+        different_locis = self.get_loci_names() != other.get_loci_names()
+        if different_locis:
+            return False
+
+        for locus in self.get_loci_names():
+            prg_builder_1 = self.get_PrgBuilder(locus)
+            prg_builder_2 = other.get_PrgBuilder(locus)
+            if prg_builder_1 != prg_builder_2:
+                return False
+
+        return True
 
     def get_number_of_loci(self) -> int:
         return len(self.get_loci_names())

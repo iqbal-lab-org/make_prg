@@ -176,10 +176,7 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
         from_msa.run(options)
 
         self.assertTrue(are_dir_trees_equal(data_dir / "truth_output/several",
-                                            data_dir / "output/several",
-                                            # TODO: remove this, do not ignore zips
-                                            # TODO: but for now, this test is failing in github CI
-                                            ignore_zips=True))
+                                            data_dir / "output/several"))
 
     def test___several_alignments___one_empty_MSA___raises_EmptyMSAError(self):
         input_data = str(data_dir / "several_empty")
@@ -408,7 +405,4 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
         from_msa.run(options)
 
         self.assertTrue(are_dir_trees_equal(data_dir / "truth_output/several_compressed",
-                                            data_dir / "output/several_compressed",
-                                            # TODO: remove this, do not ignore zips
-                                            # TODO: but for now, this test is failing in github CI
-                                            ignore_zips=True))
+                                            data_dir / "output/several_compressed"))

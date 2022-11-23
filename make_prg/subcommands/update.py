@@ -121,7 +121,7 @@ def update(input_and_output_files: InputOutputFilesUpdate):
 
         # update the modified leaves
         # Note: the sorted() is needed for determinism so that we can compare indexes and test outputs
-        for leaf in sorted(leaves_to_update, key=lambda node: node.id):
+        for leaf in sorted(leaves_to_update, key=lambda node: node.node_id):
             leaf.batch_update()
         logger.debug(
             f"Updated {locus_name}: {nb_of_variants_sucessfully_updated} denovo sequences added!"

@@ -23,7 +23,7 @@ class TestRecursiveTreeNode(TestCase):
         self.alignment_mock = Mock()
         with patch.object(NodeFactory, "build"):
             self.prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
-        self.parent_mock = Mock(id=512)
+        self.parent_mock = Mock(node_id=512)
 
     @patch.object(NodeFactory, NodeFactory.build.__name__, side_effect=["child_build_1"])
     def test____get_children___one_child(self, node_factory_build_mock,
@@ -117,7 +117,7 @@ class TestMultiIntervalNode(TestCase):
     def setup(self) -> None:
         self.alignment_mock = Mock()
         self.prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
-        self.parent_mock = Mock(id=512)
+        self.parent_mock = Mock(node_id=512)
 
     @patch("make_prg.recursion_tree.remove_columns_full_of_gaps_from_MSA", return_value="remove_columns_full_of_gaps_from_MSA_mock")
     @patch.object(MultiIntervalNode, MultiIntervalNode._get_children.__name__, return_value=["child_1", "child_2"])
@@ -130,7 +130,7 @@ class TestMultiIntervalNode(TestCase):
         remove_columns_full_of_gaps_from_MSA_mock.assert_called_once_with(self.alignment_mock)
         self.assertTrue("remove_columns_full_of_gaps_from_MSA_mock", node.alignment)
         self.assertEqual(self.parent_mock, node.parent)
-        self.assertEqual(0, node.id)
+        self.assertEqual(0, node.node_id)
         get_children_mock.assert_called_once_with(children_mock)
         self.assertEqual(["child_1", "child_2"], node.children)
         self.assertEqual(self.prg_builder, node.prg_builder)
@@ -185,7 +185,7 @@ class TestMultiIntervalNode(TestCase):
         self.assertEqual(expected_prg, actual_prg)
 
     @patch.object(MultiIntervalNode, MultiIntervalNode._get_children.__name__,
-                  return_value=[Mock(id=100), Mock(id=200)])
+                  return_value=[Mock(node_id=100), Mock(node_id=200)])
     def test___repr_and_str(self, *uninteresting_mocks):
         self.setup()
         alignment = make_alignment(
@@ -226,7 +226,7 @@ class TestMultiClusterNode(TestCase):
     def setup(self) -> None:
         self.alignment_mock = Mock()
         self.prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
-        self.parent_mock = Mock(id=512)
+        self.parent_mock = Mock(node_id=512)
 
     @patch("make_prg.recursion_tree.remove_columns_full_of_gaps_from_MSA", return_value="remove_columns_full_of_gaps_from_MSA_mock")
     @patch.object(MultiClusterNode, MultiClusterNode._get_children.__name__, return_value=["child_1", "child_2"])
@@ -239,7 +239,7 @@ class TestMultiClusterNode(TestCase):
         remove_columns_full_of_gaps_from_MSA_mock.assert_called_once_with(self.alignment_mock)
         self.assertTrue("remove_columns_full_of_gaps_from_MSA_mock", node.alignment)
         self.assertEqual(self.parent_mock, node.parent)
-        self.assertEqual(0, node.id)
+        self.assertEqual(0, node.node_id)
         get_children_mock.assert_called_once_with(children_mock)
         self.assertEqual(["child_1", "child_2"], node.children)
         self.assertEqual(self.prg_builder, node.prg_builder)
@@ -294,7 +294,7 @@ class TestMultiClusterNode(TestCase):
         self.assertEqual(expected_prg, actual_prg)
 
     @patch.object(MultiClusterNode, MultiClusterNode._get_children.__name__,
-                  return_value=[Mock(id=100), Mock(id=200)])
+                  return_value=[Mock(node_id=100), Mock(node_id=200)])
     def test___repr_and_str(self, *uninteresting_mocks):
         self.setup()
         alignment = make_alignment(
@@ -336,7 +336,7 @@ class TestLeafNode(TestCase):
             ["AAAT", "C--C", "AATT", "GNGG"], ["s1", "s2", "s3", "s4"]
         )
         self.prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
-        self.parent_mock = Mock(id=512)
+        self.parent_mock = Mock(node_id=512)
         self.node = LeafNode(1, self.alignment, self.parent_mock, self.prg_builder)
 
     def test___constructor(self, *uninteresting_mocks):
@@ -345,7 +345,7 @@ class TestLeafNode(TestCase):
         self.assertEqual(1, self.node.nesting_level)
         self.assertTrue(self.alignment, self.node.alignment)
         self.assertEqual(self.parent_mock, self.node.parent)
-        self.assertEqual(0, self.node.id)
+        self.assertEqual(0, self.node.node_id)
         self.assertEqual([], self.node.children)
         self.assertEqual(self.prg_builder, self.node.prg_builder)
         self.assertEqual(set(), self.node.new_sequences)
@@ -701,7 +701,7 @@ class TestNodeFactory(TestCase):
         self.alignment = make_alignment(["AAAT", "C--C", "AATT", "GNGG"], ["s1", "s2", "s3", "s4"])
         with patch.object(NodeFactory, NodeFactory.build.__name__):
             self.prg_builder = PrgBuilder("locus", Path("msa"), "fasta", 5, 7)
-        self.parent_mock = Mock(id=512)
+        self.parent_mock = Mock(node_id=512)
 
     @patch.object(NodeFactory, NodeFactory._get_vertical_partition.__name__, return_value=(Mock(), Mock()))
     @patch.object(NodeFactory, NodeFactory._is_single_match_interval.__name__, return_value=False)
@@ -754,9 +754,9 @@ class TestNodeFactory(TestCase):
         # mock MultiIntervalNode.__init__
         def __MultiIntervalNode_init__(node_self, nesting_level, alignment, parent, prg_builder, interval_subalignments):
             self.assertEqual(4, nesting_level)
-            self.assertEqual(self.alignment, alignment)
-            self.assertEqual(outer_parent, parent)
-            self.assertEqual(self.prg_builder, prg_builder)
+            self.assertEqual(id(self.alignment), id(alignment))
+            self.assertEqual(id(outer_parent), id(parent))
+            self.assertEqual(id(self.prg_builder), id(prg_builder))
             self.assertEqual("interval_subalignments_mock", interval_subalignments)
 
         with patch.object(MultiIntervalNode, '__init__', __MultiIntervalNode_init__):
@@ -777,9 +777,9 @@ class TestNodeFactory(TestCase):
         # mock Leaf.__init__
         def __Leaf_init__(node_self, nesting_level, alignment, parent, prg_builder):
             self.assertEqual(4, nesting_level)
-            self.assertEqual(self.alignment, alignment)
-            self.assertEqual(outer_parent, parent)
-            self.assertEqual(self.prg_builder, prg_builder)
+            self.assertEqual(id(self.alignment), id(alignment))
+            self.assertEqual(id(outer_parent), id(parent))
+            self.assertEqual(id(self.prg_builder), id(prg_builder))
         with patch.object(LeafNode, '__init__', __Leaf_init__):
             node = NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
             self.assertTrue(isinstance(node, LeafNode))
@@ -801,9 +801,9 @@ class TestNodeFactory(TestCase):
         def __MultiClusterNode_init__(node_self, nesting_level, alignment, parent, prg_builder,
                                        cluster_subalignments):
             self.assertEqual(5, nesting_level)
-            self.assertEqual(self.alignment, alignment)
-            self.assertEqual(outer_parent, parent)
-            self.assertEqual(self.prg_builder, prg_builder)
+            self.assertEqual(id(self.alignment), id(alignment))
+            self.assertEqual(id(outer_parent), id(parent))
+            self.assertEqual(id(self.prg_builder), id(prg_builder))
             self.assertEqual("get_subalignments_by_clustering_mock", cluster_subalignments)
 
         with patch.object(MultiClusterNode, '__init__', __MultiClusterNode_init__):
@@ -824,9 +824,9 @@ class TestNodeFactory(TestCase):
         # mock LeafNode.__init__
         def __LeafNode_init__(node_self, nesting_level, alignment, parent, prg_builder):
             self.assertEqual(4, nesting_level)
-            self.assertEqual(self.alignment, alignment)
-            self.assertEqual(outer_parent, parent)
-            self.assertEqual(self.prg_builder, prg_builder)
+            self.assertEqual(id(self.alignment), id(alignment))
+            self.assertEqual(id(outer_parent), id(parent))
+            self.assertEqual(id(self.prg_builder), id(prg_builder))
 
         with patch.object(LeafNode, '__init__', __LeafNode_init__):
             node = NodeFactory.build(self.alignment, self.prg_builder, outer_parent)
