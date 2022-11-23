@@ -6,6 +6,7 @@ from make_prg import prg_builder
 from make_prg.from_msa import NESTING_LVL, MIN_MATCH_LEN
 from make_prg.utils import io_utils, gfa, seq_utils
 from make_prg.utils.input_output_files import InputOutputFilesFromMSA
+from make_prg.utils.misc import should_output_debug_graphs
 
 
 class EmptyMSAError(Exception):
@@ -128,7 +129,7 @@ def process_MSA(input_and_output_files: InputOutputFilesFromMSA):
         if options.output_type.gfa:
             gfa.GFA_Output.write_gfa(prefix, prg)
 
-        if options.output_graphs:
+        if should_output_debug_graphs():
             builder.output_debug_graphs(Path(options.output_prefix + "_debug_graphs"))
 
     except ValueError as value_error:

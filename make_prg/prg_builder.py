@@ -8,9 +8,9 @@ import pickle
 from pathlib import Path
 from zipfile import ZipFile
 from make_prg.recursion_tree import RecursiveTreeNode, LeafNode, NodeFactory
-from make_prg.utils.recursive_tree_drawer import RecursiveTreeDrawer
 from make_prg.utils.prg_encoder import PrgEncoder, PRG_Ints
 import os
+from make_prg.utils.misc import should_output_debug_graphs
 
 
 class LeafNotFoundException(Exception):
@@ -155,9 +155,11 @@ class PrgBuilder(object):
             prg_encoder.write(prg_ints, ostream)
 
     def output_debug_graphs(self, debug_graphs_dir: Path):
-        os.makedirs(debug_graphs_dir, exist_ok=True)
-        recursive_tree_drawer = RecursiveTreeDrawer(self.root)
-        recursive_tree_drawer.output_graph(debug_graphs_dir / f"{self.locus_name}.recursion_tree.png")
+        if should_output_debug_graphs():
+            from make_prg.utils.recursive_tree_drawer import RecursiveTreeDrawer
+            os.makedirs(debug_graphs_dir, exist_ok=True)
+            recursive_tree_drawer = RecursiveTreeDrawer(self.root)
+            recursive_tree_drawer.output_graph(debug_graphs_dir / f"{self.locus_name}.recursion_tree.png")
 
 
 class PrgBuilderZipDatabase:

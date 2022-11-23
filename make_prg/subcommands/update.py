@@ -7,6 +7,7 @@ from make_prg.prg_builder import PrgBuilderZipDatabase, LeafNotFoundException
 from make_prg.utils.msa_aligner import MAFFT, MSAAligner
 from dataclasses import dataclass
 from make_prg.utils.input_output_files import InputOutputFilesUpdate
+from make_prg.utils.misc import should_output_debug_graphs
 
 
 def register_parser(subparsers):
@@ -144,7 +145,7 @@ def update(input_and_output_files: InputOutputFilesUpdate):
     if options.output_type.gfa:
         gfa.GFA_Output.write_gfa(str(temp_prefix), prg)
 
-    if options.output_graphs:
+    if should_output_debug_graphs():
         prg_builder_for_locus.output_debug_graphs(Path(options.output_prefix + "_debug_graphs"))
 
     with open(f"{temp_prefix}.stats", "w") as stats_filehandler:

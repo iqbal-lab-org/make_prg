@@ -39,15 +39,6 @@ def setup_common_last_options(parsers: List[argparse.ArgumentParser]):
         )
 
         par.add_argument(
-            "-g",
-            "--output-graphs",
-            dest="output_graphs",
-            action="store_true",
-            default=False,
-            help="Outputs the recursive tree graphical representation (for development use only)"
-        )
-
-        par.add_argument(
             "-v",
             "--verbose",
             action='count',

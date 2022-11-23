@@ -181,21 +181,6 @@ class TestPrgBuilder(TestCase):
         PrgBuilder.write_prg_as_binary(f"{workdir}/sample", sample_prg)
         self.assertTrue(filecmp.cmp(workdir / "sample.bin", workdir / "sample.truth.bin"))
 
-    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
-    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
-    @patch("os.makedirs")
-    def test___output_debug_graphs(self, makedirs_mock, *uninteresting_mocks):
-        self.setup_prg_builder()
-        debug_graphs_dir = Path("debug_graphs")
-
-        output_graph_mock = Mock(name="output_graph_mock")
-        with patch("make_prg.prg_builder.RecursiveTreeDrawer") as RecursiveTreeDrawer_mock:
-            RecursiveTreeDrawer_mock.return_value = Mock(output_graph = output_graph_mock)
-            self.prg_builder.output_debug_graphs(debug_graphs_dir)
-
-            makedirs_mock.assert_called_once_with(debug_graphs_dir, exist_ok=True)
-            RecursiveTreeDrawer_mock.assert_called_once_with(self.prg_builder.root)
-            output_graph_mock.assert_called_with(debug_graphs_dir / "locus.recursion_tree.png")
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
     @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")

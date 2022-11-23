@@ -29,7 +29,7 @@ class RecursiveTreeDrawer:
             node.preorder_traversal_to_build_prg(prg_as_list, do_indexing=False)
             node_attributes["label"] = "".join(prg_as_list)
         else:
-            node_attributes["label"] = str(node.id)
+            node_attributes["label"] = str(node.node_id)
 
         node_attributes["color"] = RecursiveTreeDrawer._get_node_colour(node)
         graph.add_node(node, **node_attributes)
