@@ -2,7 +2,8 @@ from unittest import TestCase
 from unittest.mock import patch
 from make_prg.utils.io_utils import *
 from pathlib import Path
-from tests.test_helpers import make_alignment, equal_msas, are_zip_files_equal
+from tests.test_helpers import make_alignment, are_zip_files_equal
+from make_prg.utils.misc import equal_msas
 
 workdir = Path("tests/data/utils/io_utils/")
 

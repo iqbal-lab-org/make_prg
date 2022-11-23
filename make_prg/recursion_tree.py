@@ -17,6 +17,7 @@ from make_prg.from_msa.interval_partition import IntervalPartitioner, Interval, 
 from make_prg.update.denovo_variants import UpdateData
 from make_prg.update.MLPath import MLPathError
 from abc import ABC, abstractmethod
+from make_prg.utils.misc import equal_msas
 
 SubMSAs = List[MSA]
 

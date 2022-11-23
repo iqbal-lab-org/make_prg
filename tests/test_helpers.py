@@ -22,12 +22,6 @@ def make_alignment(seqs: List[str], ids: List[str] = None) -> MSA:
     return MSA(seqrecords)
 
 
-def equal_msas(msa_1: MSA, msa_2: MSA) -> bool:
-    msa_1_as_fasta = format(msa_1, "fasta")
-    msa_2_as_fasta = format(msa_2, "fasta")
-    return msa_1_as_fasta == msa_2_as_fasta
-
-
 sample_prg = " 5 AATAGGCCG 7  9 GATGCAGTTCAA 10 GATGCGGCGTA 9 AACGCCTTATCCGGCATACGA 11 ATTTATT 12 TTTTATT 11  8  13 G " \
              "14 A 13 ATGCGGCGTACGAATTTAT 15 T 16 C 15  7 CGGCCTGGCTCCCCGTAGGCCG 17 A 18 G 17 " \
              "ATAAGATGCGCCAGCATCGCATCCGGCTATAATGC 19 G 20 A 19  6  21 TTCATTGG 22 TTCAATG 23 G 24 A 23  21 " \

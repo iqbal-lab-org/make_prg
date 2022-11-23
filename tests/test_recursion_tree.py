@@ -1,6 +1,7 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock
-from tests.test_helpers import make_alignment, equal_msas
+from tests.test_helpers import make_alignment
+from make_prg.utils.misc import equal_msas
 from make_prg.recursion_tree import RecursiveTreeNode, MultiIntervalNode, MultiClusterNode, LeafNode, NodeFactory, UpdateError
 from make_prg.prg_builder import PrgBuilder
 from make_prg import MSA

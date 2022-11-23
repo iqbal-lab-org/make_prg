@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from tests.test_helpers import make_alignment, equal_msas
+from tests.test_helpers import make_alignment
+from make_prg.utils.misc import equal_msas
 from make_prg.utils.seq_utils import (
     is_non_match,
     NONMATCH,
@@ -19,8 +20,6 @@ from make_prg.utils.seq_utils import (
     remove_columns_full_of_gaps_from_MSA,
     get_consensus_from_MSA
 )
-from make_prg.from_msa import MSA
-
 
 class TestSeqUtilsMisc(TestCase):
     def test___is_non_match___column_is_all_As(self):
