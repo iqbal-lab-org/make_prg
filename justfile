@@ -1,5 +1,5 @@
-test:
-    poetry run pytest
+test *FLAGS:
+    poetry run pytest {{FLAGS}}
 
 lint:
     poetry run flake8 --max-line-length 88 .
