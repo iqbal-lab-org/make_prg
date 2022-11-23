@@ -1,7 +1,7 @@
 import gzip
 from Bio import AlignIO
 import os
-from make_prg.from_msa import MSA
+from make_prg import MSA
 from typing import Dict, Union
 from pathlib import Path
 from zipfile import ZipFile

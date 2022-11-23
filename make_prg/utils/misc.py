@@ -1,6 +1,6 @@
 from typing import List, Any
 from itertools import groupby, chain
-
+from make_prg import MSA
 
 def remove_duplicated_consecutive_elems_from_list(the_list: List[Any]) -> List[Any]:
     return [elem[0] for elem in groupby(the_list)]

@@ -1,7 +1,8 @@
 from typing import List
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from make_prg.from_msa import MSA
+from make_prg import MSA
+from make_prg.prg_builder import PrgBuilderZipDatabase
 import os
 import shutil
 import filecmp

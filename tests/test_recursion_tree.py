@@ -3,7 +3,7 @@ from unittest.mock import patch, Mock
 from tests.test_helpers import make_alignment, equal_msas
 from make_prg.recursion_tree import RecursiveTreeNode, MultiIntervalNode, MultiClusterNode, LeafNode, NodeFactory, UpdateError
 from make_prg.prg_builder import PrgBuilder
-from make_prg.from_msa import MSA
+from make_prg import MSA
 from pathlib import Path
 from make_prg.from_msa.interval_partition import IntervalType, Interval
 from make_prg.utils.seq_utils import SequenceExpander

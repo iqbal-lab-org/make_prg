@@ -4,7 +4,7 @@ This module contains classes to explicitly represent the make_prg process recurs
 
 from typing import List, Set, Optional, Tuple
 from loguru import logger
-from make_prg.from_msa import MSA
+from make_prg import MSA
 from make_prg.from_msa.cluster_sequences import kmeans_cluster_seqs, ClusteringResult
 from make_prg.utils.seq_utils import (
     SequenceExpander,

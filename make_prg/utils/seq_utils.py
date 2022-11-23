@@ -1,7 +1,7 @@
 from typing import Generator, Tuple, List
 import itertools
 from Bio import pairwise2
-from make_prg.from_msa import MSA
+from make_prg import MSA
 import copy
 import numpy as np
 from Bio.Seq import Seq
