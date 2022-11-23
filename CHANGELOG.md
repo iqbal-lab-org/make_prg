@@ -37,6 +37,7 @@ recursion tree, adding denovo sequences to some specific nodes, and triggering r
 Any preorder traversal of the recursion tree yields the same order of recursive calls of the previous algorithm,
 thus allowing us to translate the algorithms in the previous version as preorder traversals with custom visit
 operations.
+- moved from `setup.py` to `pyproject.toml`
 
 ### Fixed
 - Several minor bugs;
@@ -98,11 +99,11 @@ operations.
   source project CHANGELOG.
 
 
-[Unreleased]: https://github.com/iqbal-lab-org/make_prg/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/iqbal-lab-org/make_prg/compare/0.4.0...HEAD
 
-[0.4.0]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.4.0
-[0.2.0]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.2.0
-[0.1.1]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.1.1
+[0.4.0]: https://github.com/iqbal-lab-org/make_prg/compare/0.2.0...0.4.0
+[0.2.0]: https://github.com/iqbal-lab-org/make_prg/compare/0.1.1...0.2.0
+[0.1.1]: https://github.com/iqbal-lab-org/make_prg/compare/0.1.0...0.1.1
 [0.1.0]: https://github.com/iqbal-lab-org/make_prg/releases/tag/0.1.0
 
 [27]: https://github.com/iqbal-lab-org/make_prg/issues/27
