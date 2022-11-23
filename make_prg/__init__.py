@@ -1,9 +1,16 @@
-# ___Version___ #
-from pkg_resources import get_distribution
+import sys
 
-try:
-    __version__ = get_distribution("make_prg").version
-except:
-    __version__ = "0.4.0"
+"""
+Version has unique source in pyproject.toml.
+importlib fetches version from distribution metadata files
+(in dist-info or egg-info dirs).
+From Python 3.8, importlib_metadata is in standard library as importlib.metadata.
+"""
+if sys.version_info >= (3, 8):
+    from importlib import metadata
+else:
+    import importlib_metadata as metadata
+
+__version__ = metadata.version("make_prg")
 
 __all__ = ["from_msa", "subcommands"]
