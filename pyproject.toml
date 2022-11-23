@@ -21,9 +21,10 @@ loguru = "^0.6.0"
 numpy = "^1.21.4"
 scikit-learn = "0.24.2"
 intervaltree = "^3.1.0"
-networkx = "^2.6.3"
-matplotlib = "^3.5.0"
 importlib-metadata = {version = "^1.7.0", python = "3.7"}
+pygraphviz = { version = "1.7", optional = true }
+networkx = { version = "^2.6.3", optional = true }
+matplotlib = { version = "^3.5.0", optional = true }
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
@@ -58,3 +59,6 @@ profile = "black"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.extras]
+debug_graphs = ["pygraphviz", "networkx", "matplotlib"]
