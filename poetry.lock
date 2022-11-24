@@ -532,8 +532,8 @@ debug-graphs = ["pygraphviz", "networkx", "matplotlib"]
 
 [metadata]
 lock-version = "1.1"
-python-versions = ">=3.8,<3.11"
-content-hash = "040a8f61f5ff75d7a2a10b8ea2bdda8247327c690cac8932383e65142cb6a312"
+python-versions = "^3.8"
+content-hash = "83999c4b46ebd2b34ed1abee7dcd295cdc936dbba92ca8ea5ebd48bba2e12dd6"
 
 [metadata.files]
 attrs = [
