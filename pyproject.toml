@@ -64,7 +64,7 @@ build-backend = "poetry.core.masonry.api"
 debug_graphs = ["pygraphviz", "networkx", "matplotlib"]
 
 [tool.pytest.ini_options]
-addopts = "--cov --cov-report term --cov-fail-under=98"
+addopts = "--cov --cov-report term --cov-fail-under=98 -vv"
 testpaths = ["tests"]
 
 [tool.coverage.run]
