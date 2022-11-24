@@ -26,6 +26,7 @@ jobs:
         uses: snok/install-poetry@v1
         with:
           version: 1.2.2
+          virtualenvs-create: false
       - name: Install project
         run:  just install-ci
       - name: Check formatting
