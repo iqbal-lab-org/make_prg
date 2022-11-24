@@ -1,5 +1,9 @@
 from unittest import TestCase
-from make_prg.utils.misc import remove_duplicated_consecutive_elems_from_list, flatten_list
+
+from make_prg.utils.misc import (
+    flatten_list,
+    remove_duplicated_consecutive_elems_from_list,
+)
 
 
 class TestMisc(TestCase):
@@ -11,7 +15,9 @@ class TestMisc(TestCase):
 
         self.assertEqual(expected, actual)
 
-    def test___remove_duplicated_consecutive_elems_from_list___no_duplicates___nothing_removed(self):
+    def test___remove_duplicated_consecutive_elems_from_list___no_duplicates___nothing_removed(
+        self,
+    ):
         the_list = [1, 2, 3, 4]
 
         expected = [1, 2, 3, 4]
@@ -19,7 +25,9 @@ class TestMisc(TestCase):
 
         self.assertEqual(expected, actual)
 
-    def test___remove_duplicated_consecutive_elems_from_list___several_intertwinned_duplicates___nothing_removed(self):
+    def test___remove_duplicated_consecutive_elems_from_list___several_intertwinned_duplicates___nothing_removed(
+        self,
+    ):
         the_list = [1, 2, 1, 2, 1, 2]
 
         expected = [1, 2, 1, 2, 1, 2]
@@ -27,7 +35,9 @@ class TestMisc(TestCase):
 
         self.assertEqual(expected, actual)
 
-    def test___remove_duplicated_consecutive_elems_from_list___several_consecutive_duplicates(self):
+    def test___remove_duplicated_consecutive_elems_from_list___several_consecutive_duplicates(
+        self,
+    ):
         the_list = [1, 2, 2, 2, 3, 3, 1, 1, 1, 1, 1, 2]
 
         expected = [1, 2, 3, 1, 2]

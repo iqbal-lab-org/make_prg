@@ -2,15 +2,16 @@
 This module contains classes to build PRGs from MSAs and manage sets of PRGs
 """
 
-from typing import Tuple, Dict, Optional, List
-from make_prg.utils.io_utils import load_alignment_file, zip_set_of_files
+import os
 import pickle
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 from zipfile import ZipFile
-from make_prg.recursion_tree import RecursiveTreeNode, LeafNode, NodeFactory
-from make_prg.utils.prg_encoder import PrgEncoder, PRG_Ints
-import os
+
+from make_prg.recursion_tree import LeafNode, NodeFactory, RecursiveTreeNode
+from make_prg.utils.io_utils import load_alignment_file, zip_set_of_files
 from make_prg.utils.misc import should_output_debug_graphs
+from make_prg.utils.prg_encoder import PRG_Ints, PrgEncoder
 
 
 class LeafNotFoundException(Exception):
@@ -21,6 +22,7 @@ class PrgBuilder(object):
     """
     Prg builder based from a multiple sequence alignment.
     """
+
     def __init__(
         self,
         locus_name: str,
@@ -28,12 +30,12 @@ class PrgBuilder(object):
         alignment_format: str,
         max_nesting: int,
         min_match_length: int,
-        aligner: Optional["MSAAligner"] = None,
+        aligner: Optional["MSAAligner"] = None,  # noqa: F821
     ):
         self.__locus_name: str = locus_name  # note locus_name is fully protected from writes (see self.__hash__())
         self.max_nesting: int = max_nesting
         self.min_match_length: int = min_match_length
-        self.aligner: Optional["MSAAligner"] = aligner
+        self.aligner: Optional["MSAAligner"] = aligner  # noqa: F821
         self.next_node_id: int = 0
         self.site_num: int = 5
         self.prg_index: Dict[Tuple[int, int], LeafNode] = {}
@@ -52,7 +54,7 @@ class PrgBuilder(object):
         comparable, and we don't actually care about the aligner/temp path that was used, if the rest is the same.
         """
         state = self.__dict__.copy()
-        state['aligner'] = None  # remove aligner from the object to be pickled
+        state["aligner"] = None  # remove aligner from the object to be pickled
         return state
 
     def __eq__(self, other: "PrgBuilder") -> bool:
@@ -62,8 +64,19 @@ class PrgBuilder(object):
         Similarly to self.__getstate__(), we don't take self.aligner into account here
         """
         # first compare trivial attributes
-        if (self.locus_name, self.max_nesting, self.min_match_length, self.next_node_id, self.site_num) != \
-           (other.locus_name, other.max_nesting, other.min_match_length, other.next_node_id, other.site_num):
+        if (
+            self.locus_name,
+            self.max_nesting,
+            self.min_match_length,
+            self.next_node_id,
+            self.site_num,
+        ) != (
+            other.locus_name,
+            other.max_nesting,
+            other.min_match_length,
+            other.next_node_id,
+            other.site_num,
+        ):
             return False
 
         # now compares attributes that involve RecursiveTreeNode
@@ -157,18 +170,24 @@ class PrgBuilder(object):
     def output_debug_graphs(self, debug_graphs_dir: Path):
         if should_output_debug_graphs():
             from make_prg.utils.recursive_tree_drawer import RecursiveTreeDrawer
+
             os.makedirs(debug_graphs_dir, exist_ok=True)
             recursive_tree_drawer = RecursiveTreeDrawer(self.root)
-            recursive_tree_drawer.output_graph(debug_graphs_dir / f"{self.locus_name}.recursion_tree.png")
+            recursive_tree_drawer.output_graph(
+                debug_graphs_dir / f"{self.locus_name}.recursion_tree.png"
+            )
 
 
 class PrgBuilderZipDatabase:
     """
     Represent a collection of PrgBuilders, to be saved to and loaded from a zip file
     """
+
     def __init__(self, zip_filepath: Path):
         is_a_zip_file = zip_filepath.suffix == ".zip"
-        assert is_a_zip_file, "PrgBuilderZipDatabase initialised without a .zip filepath"
+        assert (
+            is_a_zip_file
+        ), "PrgBuilderZipDatabase initialised without a .zip filepath"
         self._zip_filepath: Path = zip_filepath
         self._zip_file: Optional[ZipFile] = None
 

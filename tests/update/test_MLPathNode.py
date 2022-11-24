@@ -1,16 +1,22 @@
 from unittest import TestCase
-from make_prg.update.MLPath import MLPathNode, EmptyMLPathSequence, MLPathError
+
+from make_prg.update.MLPath import EmptyMLPathSequence, MLPathError, MLPathNode
+
 
 class MLPathNodeTest(TestCase):
     def test___constructor___invalid_sequence_raises_EmptyMLPathSequence(self):
         with self.assertRaises(EmptyMLPathSequence):
             MLPathNode((0, 0), sequence="")
 
-    def test___constructor___invalid_node_length_one_base_shorter_raises_MLPathError(self):
+    def test___constructor___invalid_node_length_one_base_shorter_raises_MLPathError(
+        self,
+    ):
         with self.assertRaises(MLPathError):
             MLPathNode((5, 8), sequence="ACGT")
 
-    def test___constructor___invalid_node_length_one_base_longer_raises_MLPathError(self):
+    def test___constructor___invalid_node_length_one_base_longer_raises_MLPathError(
+        self,
+    ):
         with self.assertRaises(MLPathError):
             MLPathNode((5, 10), sequence="ACGT")
 
@@ -51,7 +57,7 @@ class MLPathNodeTest(TestCase):
     def test___repr(self):
         ml_path_node = MLPathNode((5, 9), sequence="ACGT")
 
-        expected = "MLPathNode(key=(5, 9), sequence=\"ACGT\")"
+        expected = 'MLPathNode(key=(5, 9), sequence="ACGT")'
         actual = repr(ml_path_node)
 
         self.assertEqual(expected, actual)

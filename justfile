@@ -13,7 +13,7 @@ coverage:
 
 # lint code with flake8
 lint:
-    poetry run flake8 --max-line-length 88 .
+    poetry run flake8 .
 
 # format code with black and isort
 fmt:

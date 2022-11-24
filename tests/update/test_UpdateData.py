@@ -1,6 +1,8 @@
 from unittest import TestCase
 from unittest.mock import Mock
+
 from make_prg.update.denovo_variants import UpdateData
+
 
 class TestUpdateData(TestCase):
     def test___constructor(self):

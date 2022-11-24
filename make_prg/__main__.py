@@ -1,12 +1,12 @@
 import argparse
-import sys
 import os
+import sys
+from typing import List
 
 from loguru import logger
 
 from make_prg import __version__
 from make_prg.subcommands import from_msa, update
-from typing import List
 from make_prg.subcommands.output_type import OutputType
 
 
@@ -16,8 +16,10 @@ def setup_common_last_options(parsers: List[argparse.ArgumentParser]):
             "-O",
             "--output-type",
             default="a",
-            help="p: PRG, b: Binary, g: GFA, a: All. Combinations are allowed i.e., gb: GFA and Binary. "
-                 "Default: %(default)s",
+            help=(
+                "p: PRG, b: Binary, g: GFA, a: All. Combinations are allowed i.e., "
+                "gb: GFA and Binary. Default: %(default)s"
+            ),
             type=OutputType,
         )
 
@@ -41,16 +43,21 @@ def setup_common_last_options(parsers: List[argparse.ArgumentParser]):
         par.add_argument(
             "-v",
             "--verbose",
-            action='count',
+            action="count",
             default=0,
-            help="Increase output verbosity (-v for debug, -vv for trace - trace is for developers only)",
+            help=(
+                "Increase output verbosity (-v for debug, -vv for trace - trace is for "
+                "developers only)"
+            ),
         )
 
         par.add_argument("--log", help="Path to write log to. Default is stderr")
 
 
 def setup_logger(args: argparse.Namespace):
-    if "verbose" in args:  # args.verbose does not exist if make_prg is called with no args
+    if (
+        "verbose" in args
+    ):  # args.verbose does not exist if make_prg is called with no args
         log_levels = ["INFO", "DEBUG", "TRACE"]
         log_level = log_levels[min(args.verbose, len(log_levels) - 1)]
         log_file = args.log or sys.stderr

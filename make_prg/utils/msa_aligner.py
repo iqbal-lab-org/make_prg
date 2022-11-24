@@ -1,14 +1,16 @@
-from abc import ABC, abstractmethod
+import os
 import shutil
+import subprocess
+import time
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Set
-import time
-import subprocess
-from loguru import logger
-import os
-from Bio.AlignIO import MultipleSeqAlignment
+
 from Bio import SeqIO
-from make_prg.utils.io_utils import load_alignment_file, create_temp_dir
+from Bio.AlignIO import MultipleSeqAlignment
+from loguru import logger
+
+from make_prg.utils.io_utils import create_temp_dir, load_alignment_file
 
 
 class NotAValidExecutableError(Exception):
@@ -23,7 +25,9 @@ class MSAAligner(ABC):
     def _set_executable(self, executable: str):
         is_valid_executable = shutil.which(executable, mode=os.X_OK) is not None
         if not is_valid_executable:
-            raise NotAValidExecutableError(f"Given MSA executable {executable} does not work or is invalid")
+            raise NotAValidExecutableError(
+                f"Given MSA executable {executable} does not work or is invalid"
+            )
         self._executable: str = executable
 
     def _set_tmpdir(self, tmpdir: Path):
@@ -35,7 +39,9 @@ class MSAAligner(ABC):
         self._set_tmpdir(tmpdir)
 
     @abstractmethod
-    def get_updated_alignment(self, current_alignment: MultipleSeqAlignment, new_sequences: Set[str]) -> MultipleSeqAlignment:
+    def get_updated_alignment(
+        self, current_alignment: MultipleSeqAlignment, new_sequences: Set[str]
+    ) -> MultipleSeqAlignment:
         pass
 
     @classmethod
@@ -55,16 +61,20 @@ class MSAAligner(ABC):
 
         if exit_code != 0:
             raise ExecutionError(
-                f"Failed to execute {self.__class__.get_aligner_name()} for arguments {args} due to the following "
-                f"error:\n{process.stderr.read()}"
+                f"Failed to execute {self.__class__.get_aligner_name()} for arguments "
+                f"{args} due to the following error:\n{process.stderr.read()}"
             )
         stop = time.time()
         runtime = stop - start
-        logger.debug(f"{self.__class__.get_aligner_name()} runtime for arguments {args} in seconds: {runtime:.3f}")
+        logger.debug(
+            f"{self.__class__.get_aligner_name()} runtime for arguments {args} in "
+            f"seconds: {runtime:.3f}"
+        )
 
     @staticmethod
     def _create_new_sequences_file(directory: Path, new_sequences: Set[str]) -> Path:
-        # this is just done so that we have a deterministic order of new_sequences and tests run correctly
+        # this is just done so that we have a deterministic order of new_sequences and
+        # tests run correctly
         new_sequences = sorted(list(new_sequences))
         new_sequences_filepath = directory / "new_sequences.fa"
         with open(new_sequences_filepath, "w") as new_sequences_handler:
@@ -85,7 +95,9 @@ class MAFFT(MSAAligner):
     def _cleanup_run(self, run_tmpdir: Path):
         shutil.rmtree(run_tmpdir)
 
-    def get_updated_alignment(self, current_alignment: MultipleSeqAlignment, new_sequences: Set[str]) -> MultipleSeqAlignment:
+    def get_updated_alignment(
+        self, current_alignment: MultipleSeqAlignment, new_sequences: Set[str]
+    ) -> MultipleSeqAlignment:
         # setup
         run_tmpdir = create_temp_dir(self._tmpdir)
 
@@ -93,8 +105,10 @@ class MAFFT(MSAAligner):
         with open(current_msa_filepath, "w") as current_msa_handler:
             SeqIO.write(current_alignment, current_msa_handler, "fasta")
 
-        new_sequences_filepath = self._create_new_sequences_file(run_tmpdir, new_sequences)
-        new_msa = run_tmpdir / f"updated_msa.fa"
+        new_sequences_filepath = self._create_new_sequences_file(
+            run_tmpdir, new_sequences
+        )
+        new_msa = run_tmpdir / "updated_msa.fa"
 
         # run
         args = " ".join(

@@ -1,11 +1,16 @@
-from unittest import TestCase
-from unittest.mock import patch, Mock, mock_open
-from make_prg.prg_builder import PrgBuilder, LeafNotFoundException, PrgBuilderZipDatabase
-from make_prg.recursion_tree import NodeFactory
-from pathlib import Path
-from tests.test_helpers import sample_prg, are_zip_files_equal
 import filecmp
+from pathlib import Path
+from unittest import TestCase
+from unittest.mock import Mock, mock_open, patch
 from zipfile import ZipFile
+
+from make_prg.prg_builder import (
+    LeafNotFoundException,
+    PrgBuilder,
+    PrgBuilderZipDatabase,
+)
+from make_prg.recursion_tree import NodeFactory
+from tests.test_helpers import are_zip_files_equal, sample_prg
 
 workdir = Path("tests/data/prg_builder/write_prg")
 
@@ -17,8 +22,14 @@ class TestPrgBuilder(TestCase):
         self.aligner = Mock()
         self.max_nesting = 5
         self.min_match_length = 7
-        self.prg_builder = PrgBuilder(self.locus, Path("msa_file"), "fasta",
-                                      self.max_nesting, self.min_match_length, self.aligner)
+        self.prg_builder = PrgBuilder(
+            self.locus,
+            Path("msa_file"),
+            "fasta",
+            self.max_nesting,
+            self.min_match_length,
+            self.aligner,
+        )
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
     @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
@@ -53,8 +64,13 @@ class TestPrgBuilder(TestCase):
 
         def preorder_traversal_to_build_prg_mock_fun(prg_as_list):
             prg_as_list.extend(["a", "b", "c"])
-        preorder_traversal_to_build_prg_mock = Mock(side_effect=preorder_traversal_to_build_prg_mock_fun)
-        self.prg_builder.root.preorder_traversal_to_build_prg = preorder_traversal_to_build_prg_mock
+
+        preorder_traversal_to_build_prg_mock = Mock(
+            side_effect=preorder_traversal_to_build_prg_mock_fun
+        )
+        self.prg_builder.root.preorder_traversal_to_build_prg = (
+            preorder_traversal_to_build_prg_mock
+        )
 
         expected = "abc"
         actual = self.prg_builder.build_prg()
@@ -160,7 +176,7 @@ class TestPrgBuilder(TestCase):
     def test___serialize(self, dump_mock, open_mock, *uninteresting_mocks):
         self.setup_prg_builder()
         self.prg_builder.serialize("filepath")
-        open_mock.assert_called_once_with("filepath", 'wb')
+        open_mock.assert_called_once_with("filepath", "wb")
 
         # did not manage to assert equality of arg [1] (which is the open_mock handler)
         # so asserting equality of arg [0]
@@ -175,12 +191,15 @@ class TestPrgBuilder(TestCase):
 
     def test___write_prg_as_text(self):
         PrgBuilder.write_prg_as_text(f"{workdir}/sample", sample_prg)
-        self.assertTrue(filecmp.cmp(workdir / "sample.prg.fa", workdir / "sample.truth.prg.fa"))
+        self.assertTrue(
+            filecmp.cmp(workdir / "sample.prg.fa", workdir / "sample.truth.prg.fa")
+        )
 
     def test___write_prg_as_binary(self):
         PrgBuilder.write_prg_as_binary(f"{workdir}/sample", sample_prg)
-        self.assertTrue(filecmp.cmp(workdir / "sample.bin", workdir / "sample.truth.bin"))
-
+        self.assertTrue(
+            filecmp.cmp(workdir / "sample.bin", workdir / "sample.truth.bin")
+        )
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
     @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
@@ -188,7 +207,7 @@ class TestPrgBuilder(TestCase):
         self.setup_prg_builder()
 
         expected = self.prg_builder.__dict__
-        expected['aligner'] = None
+        expected["aligner"] = None
         actual = self.prg_builder.__getstate__()
 
         self.assertEqual(expected, actual)
@@ -196,7 +215,9 @@ class TestPrgBuilder(TestCase):
 
 class TestPrgBuilderZipDatabase(TestCase):
     def setUp(self) -> None:
-        self.zip_filepath = Path("tests/data/utils/io_utils/zip_set_of_files/files.truth.zip")
+        self.zip_filepath = Path(
+            "tests/data/utils/io_utils/zip_set_of_files/files.truth.zip"
+        )
         self.prg_builder_zip_db = PrgBuilderZipDatabase(self.zip_filepath)
 
     def tearDown(self) -> None:
@@ -207,7 +228,11 @@ class TestPrgBuilderZipDatabase(TestCase):
             PrgBuilderZipDatabase(Path("file.txt"))
 
     def test___constructor(self):
-        self.assertTrue(are_zip_files_equal(self.zip_filepath, self.prg_builder_zip_db._zip_filepath))
+        self.assertTrue(
+            are_zip_files_equal(
+                self.zip_filepath, self.prg_builder_zip_db._zip_filepath
+            )
+        )
 
     @patch("make_prg.prg_builder.zip_set_of_files")
     def test___save(self, zip_set_of_files_mock):
@@ -215,8 +240,9 @@ class TestPrgBuilderZipDatabase(TestCase):
 
         self.prg_builder_zip_db.save(locus_to_prg_builder_pickle_path_mock)
 
-        zip_set_of_files_mock.assert_called_once_with(self.prg_builder_zip_db._zip_filepath,
-                                                      locus_to_prg_builder_pickle_path_mock)
+        zip_set_of_files_mock.assert_called_once_with(
+            self.prg_builder_zip_db._zip_filepath, locus_to_prg_builder_pickle_path_mock
+        )
 
     def test___load(self):
         self.assertIsNone(self.prg_builder_zip_db._zip_file)
@@ -258,4 +284,3 @@ class TestPrgBuilderZipDatabase(TestCase):
 
         zipfile_read_mock.assert_called_once_with("locus")
         deserialize_from_bytes_mock.assert_called_once_with("read_mock")
-

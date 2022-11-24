@@ -3,11 +3,10 @@ Code responsible for converting a consensus string into a set of disjoint
 match/non_match intervals.
 """
 from enum import Enum, auto
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 from make_prg import MSA
-
-from make_prg.utils.seq_utils import SequenceExpander, is_non_match, has_empty_sequence
+from make_prg.utils.seq_utils import SequenceExpander, has_empty_sequence, is_non_match
 
 
 class PartitioningError(Exception):
@@ -36,7 +35,9 @@ def is_type(letter: str, interval_type: IntervalType) -> bool:
 
 class Interval:
     """Stores a closed interval [a,b]"""
-    # TODO: change to an open interval for consistency with all the other intervals used in make_prg
+
+    # TODO: change to an open interval for consistency with all the other intervals
+    #  used in make_prg
 
     def __init__(self, it_type: IntervalType, start: int, stop: int = None):
         self.type = it_type
@@ -143,9 +144,10 @@ class IntervalPartitioner:
         self, interval: Interval, alignment: MSA, end: bool = False
     ) -> Optional[Interval]:
         """
-        i)If we are given a match interval < min_match_length, we return an extended non_match interval
-        ii)If we are given a non_match interval containing 1+ empty sequence, we pad it with
-           previous match_interval, if any, to avoid empty alleles in resulting prg.
+        i)If we are given a match interval < min_match_length, we return an extended
+        non_match interval
+        ii)If we are given a non_match interval containing 1+ empty sequence, we pad
+        it with previous match_interval, if any, to avoid empty alleles in resulting prg
         """
         if interval.type is IntervalType.Match:
             # The +1 is because we also extend the non_match interval
@@ -187,11 +189,12 @@ class IntervalPartitioner:
         cls, match_intervals: Intervals, non_match_intervals: Intervals, alignment: MSA
     ) -> None:
         """
-        Goes through non-match intervals and makes sure there is more than one sequence there, else makes it a match
-        interval.
+        Goes through non-match intervals and makes sure there is more than one sequence
+        there, else makes it a match interval.
         Modifies the intervals in-place.
         Example reasons for such a conversion to occur:
-            - 'N' in a sequence causes it to be filtered out, and left with a single useable sequence
+            - 'N' in a sequence causes it to be filtered out, and left with a single
+              useable sequence
             - '-' in sequences causes them to appear different, but they are the same
         """
         if len(alignment) == 0:  # For testing convenience
@@ -199,7 +202,9 @@ class IntervalPartitioner:
         for i in reversed(range(len(non_match_intervals))):
             interval = non_match_intervals[i]
             interval_alignment = alignment[:, interval.start : interval.stop + 1]
-            expanded_seqs = SequenceExpander.get_expanded_sequences_from_MSA(interval_alignment)
+            expanded_seqs = SequenceExpander.get_expanded_sequences_from_MSA(
+                interval_alignment
+            )
             if len(expanded_seqs) < 2:
                 changed_interval = non_match_intervals[i]
                 match_intervals.append(
@@ -219,7 +224,8 @@ class IntervalPartitioner:
         alignment_length: int,
     ):
         """
-        Check each position in an alignment is in one, and one only, (match or non_match) interval
+        Check each position in an alignment is in one, and one only,
+        (match or non_match) interval
         """
         for i in range(alignment_length):
             count_match = 0

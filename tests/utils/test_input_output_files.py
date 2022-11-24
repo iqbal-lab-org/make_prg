@@ -1,19 +1,29 @@
-from unittest import TestCase
-from pathlib import Path
-from make_prg.utils.input_output_files import InputOutputFiles, InputOutputFilesFromMSA
 import filecmp
+from pathlib import Path
+from unittest import TestCase
+
+from make_prg.utils.input_output_files import InputOutputFiles, InputOutputFilesFromMSA
 
 workdir = Path("tests/data/utils/input_output_files/")
 
 
 class Test_concatenate_text_files(TestCase):
     def test___concatenate_text_files(self):
-        input_filepaths = [workdir / f"concatenate_text_files/file{file_number}.txt" for file_number in range(1, 4)]
-        output_filepath = workdir / f"concatenate_text_files/concatenated.txt"
+        input_filepaths = [
+            workdir / f"concatenate_text_files/file{file_number}.txt"
+            for file_number in range(1, 4)
+        ]
+        output_filepath = workdir / "concatenate_text_files/concatenated.txt"
 
         InputOutputFiles.concatenate_text_files(input_filepaths, output_filepath)
 
-        self.assertTrue(filecmp.cmp(output_filepath, workdir / f"concatenate_text_files/concatenated.truth.txt"))
+        self.assertTrue(
+            filecmp.cmp(
+                output_filepath,
+                workdir / "concatenate_text_files/concatenated.truth.txt",
+            )
+        )
+
 
 class Test_remove_known_input_extensions(TestCase):
     def test___not_a_fasta_nor_gz_file___no_removes(self):

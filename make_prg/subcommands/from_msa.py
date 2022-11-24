@@ -1,10 +1,12 @@
-from typing import List
 import multiprocessing
 from pathlib import Path
+from typing import List
+
 from loguru import logger
+
 from make_prg import prg_builder
-from make_prg.from_msa import NESTING_LVL, MIN_MATCH_LEN
-from make_prg.utils import io_utils, gfa, seq_utils
+from make_prg.from_msa import MIN_MATCH_LEN, NESTING_LVL
+from make_prg.utils import gfa, io_utils, seq_utils
 from make_prg.utils.input_output_files import InputOutputFilesFromMSA
 from make_prg.utils.misc import should_output_debug_graphs
 
@@ -25,9 +27,7 @@ def register_parser(subparsers):
         action="store",
         type=str,
         required=True,
-        help=(
-            "Multiple sequence alignment file or a directory containing such files"
-        ),
+        help="Multiple sequence alignment file or a directory containing such files",
     )
     subparser_msa.add_argument(
         "-s",
@@ -36,8 +36,9 @@ def register_parser(subparsers):
         type=str,
         default="",
         help=(
-            "If the input parameter (-i, --input) is a directory, then filter for files with this suffix. "
-            "If this parameter is not given, all files in the input directory is considered."
+            "If the input parameter (-i, --input) is a directory, then filter for "
+            "files with this suffix. If this parameter is not given, all files in the "
+            "input directory is considered."
         ),
     )
     subparser_msa.add_argument(
@@ -57,7 +58,8 @@ def register_parser(subparsers):
         default="fasta",
         help=(
             "Alignment format of MSA, must be a biopython AlignIO input "
-            "alignment_format. See http://biopython.org/wiki/AlignIO. Default: %(default)s"
+            "alignment_format. See http://biopython.org/wiki/AlignIO. "
+            "Default: %(default)s"
         ),
     )
     subparser_msa.add_argument(
@@ -96,7 +98,9 @@ def get_all_input_files(input_path: str, suffix: str) -> List[Path]:
         all_files = [input_path]
     else:
         all_files = [
-            path.resolve() for path in input_path.iterdir() if path.is_file() and path.name.endswith(suffix)
+            path.resolve()
+            for path in input_path.iterdir()
+            if path.is_file() and path.name.endswith(suffix)
         ]
     return all_files
 
@@ -112,7 +116,7 @@ def process_MSA(options, input_and_output_files: InputOutputFilesFromMSA):
             msa_file=input_and_output_files.input_filepath,
             alignment_format=options.alignment_format,
             max_nesting=options.max_nesting,
-            min_match_length=options.min_match_length
+            min_match_length=options.min_match_length,
         )
 
         logger.info(f"Writing output files of locus {locus_name}")
@@ -137,7 +141,10 @@ def process_MSA(options, input_and_output_files: InputOutputFilesFromMSA):
         else:
             raise value_error
     except seq_utils.SequenceCurationError as sequence_curation_error:
-        logger.warning(f"Skipping building PRG for {locus_name}. Error: {str(sequence_curation_error)}")
+        logger.warning(
+            f"Skipping building PRG for {locus_name}. Error: "
+            f"{str(sequence_curation_error)}"
+        )
 
 
 def run(cl_options):
@@ -150,7 +157,9 @@ def run(cl_options):
     if there_is_no_input_files:
         raise FileNotFoundError(f"No input files found in {options.input}")
 
-    if not options.force and io_utils.output_files_already_exist(options.output_type, options.output_prefix):
+    if not options.force and io_utils.output_files_already_exist(
+        options.output_type, options.output_prefix
+    ):
         raise RuntimeError("One or more output files already exists, aborting run...")
 
     output_dir = Path(options.output_prefix).parent
@@ -158,21 +167,28 @@ def run(cl_options):
 
     root_temp_dir = io_utils.create_temp_dir(output_dir)
     mp_temp_dir = io_utils.get_temp_dir_for_multiprocess(root_temp_dir)
-    input_and_output_files = InputOutputFilesFromMSA.get_list_of_InputOutputFilesFromMSA(
-        input_files, options.output_type, mp_temp_dir)
+    input_and_output_files = (
+        InputOutputFilesFromMSA.get_list_of_InputOutputFilesFromMSA(
+            input_files, options.output_type, mp_temp_dir
+        )
+    )
     args = [(options, iof) for iof in input_and_output_files]
 
     logger.info(f"Using {options.threads} threads to generate PRGs...")
     with multiprocessing.Pool(options.threads, maxtasksperchild=1) as pool:
         pool.starmap(process_MSA, args, chunksize=1)
-    logger.success(f"All PRGs generated!")
+    logger.success("All PRGs generated!")
 
-    successful_input_and_output_files = InputOutputFilesFromMSA.get_successfull_runs(input_and_output_files)
+    successful_input_and_output_files = InputOutputFilesFromMSA.get_successfull_runs(
+        input_and_output_files
+    )
     all_runs_failed = len(successful_input_and_output_files) == 0
     if all_runs_failed:
         logger.error("No PRGs were built, please check errors")
     else:
-        InputOutputFilesFromMSA.create_final_files(successful_input_and_output_files, options.output_prefix)
+        InputOutputFilesFromMSA.create_final_files(
+            successful_input_and_output_files, options.output_prefix
+        )
 
     io_utils.remove_empty_folders(str(root_temp_dir))
     logger.success("All done!")
