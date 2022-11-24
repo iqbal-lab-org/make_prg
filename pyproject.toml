@@ -62,3 +62,15 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.extras]
 debug_graphs = ["pygraphviz", "networkx", "matplotlib"]
+
+[tool.pytest.ini_options]
+addopts = "--cov --cov-report term --cov-report xml:coverage.xml"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+omit = [
+    "make_prg/utils/recursive_tree_drawer.py",
+    "make_prg/subcommands/from_msa.py",
+    "make_prg/subcommands/update.py",
+    "tests/**"
+]
