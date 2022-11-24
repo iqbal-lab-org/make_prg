@@ -1,4 +1,5 @@
 import multiprocessing
+from itertools import zip_longest
 from pathlib import Path
 from loguru import logger
 from make_prg.utils import io_utils, gfa
@@ -86,16 +87,14 @@ class UpdateSharedData:
     aligner: MSAAligner
 
 
-def update(input_and_output_files: InputOutputFilesUpdate):
+def update(options, input_and_output_files: InputOutputFilesUpdate, update_shared_data):
     # TODO: handle failed runs here?
 
-    global options
     locus_name = input_and_output_files.locus_name
     prg_builder_zip_db = PrgBuilderZipDatabase(options.update_DS)
     prg_builder_zip_db.load()
     prg_builder_for_locus = prg_builder_zip_db.get_PrgBuilder(locus_name)
 
-    global update_shared_data
     prg_builder_for_locus.aligner = update_shared_data.aligner
     update_data_list = update_shared_data.denovo_variants_db.locus_name_to_update_data.get(locus_name, [])
     nb_of_variants_sucessfully_updated = 0
@@ -156,9 +155,7 @@ def update(input_and_output_files: InputOutputFilesUpdate):
 
 
 def run(cl_options):
-    global options
     options = cl_options
-    global update_shared_data
 
     if not options.force and io_utils.output_files_already_exist(options.output_type, options.output_prefix):
         raise RuntimeError("One or more output files already exists, aborting run...")
@@ -188,12 +185,13 @@ def run(cl_options):
         loci = prg_builder_zip_db.get_loci_names()
         input_and_output_files = InputOutputFilesUpdate.get_list_of_InputOutputFilesUpdate(
             loci, options.output_type, mp_temp_dir)
+        args = [(options, iof, update_shared_data) for iof in input_and_output_files]
 
         # update all PRGs with denovo sequences
         logger.info(f"Using {options.threads} threads to update PRGs...")
 
         with multiprocessing.Pool(options.threads, maxtasksperchild=1) as pool:
-            pool.map(update, input_and_output_files, chunksize=1)
+            pool.starmap(update, args, chunksize=1)
         logger.success(f"All PRGs updated!")
 
         InputOutputFilesUpdate.create_final_files(input_and_output_files, options.output_prefix)

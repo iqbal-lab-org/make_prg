@@ -101,8 +101,7 @@ def get_all_input_files(input_path: str, suffix: str) -> List[Path]:
     return all_files
 
 
-def process_MSA(input_and_output_files: InputOutputFilesFromMSA):
-    global options
+def process_MSA(options, input_and_output_files: InputOutputFilesFromMSA):
     locus_name = input_and_output_files.locus_name
     prefix = input_and_output_files.temp_prefix
     logger.info(f"Generating PRG for {locus_name}...")
@@ -142,7 +141,6 @@ def process_MSA(input_and_output_files: InputOutputFilesFromMSA):
 
 
 def run(cl_options):
-    global options
     options = cl_options
 
     logger.info("Getting input files...")
@@ -162,10 +160,11 @@ def run(cl_options):
     mp_temp_dir = io_utils.get_temp_dir_for_multiprocess(root_temp_dir)
     input_and_output_files = InputOutputFilesFromMSA.get_list_of_InputOutputFilesFromMSA(
         input_files, options.output_type, mp_temp_dir)
+    args = [(options, iof) for iof in input_and_output_files]
 
     logger.info(f"Using {options.threads} threads to generate PRGs...")
     with multiprocessing.Pool(options.threads, maxtasksperchild=1) as pool:
-        pool.map(process_MSA, input_and_output_files, chunksize=1)
+        pool.starmap(process_MSA, args, chunksize=1)
     logger.success(f"All PRGs generated!")
 
     successful_input_and_output_files = InputOutputFilesFromMSA.get_successfull_runs(input_and_output_files)
