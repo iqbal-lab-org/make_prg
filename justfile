@@ -12,10 +12,7 @@ install:
     poetry install
 
 install-ci:
-	python -m pip install --upgrade pip
-	python -m pip install poetry~=1.2.2
 	poetry --version
-	poetry config experimental.new-installer false
 	poetry install --no-interaction
 
 check-fmt:
