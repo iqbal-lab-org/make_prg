@@ -13,7 +13,7 @@ install:
 
 install-ci:
     poetry config experimental.new-installer false
-	poetry install --no-interaction
+    poetry install --no-interaction
 
 check-fmt:
     poetry run black --check .
