@@ -1,0 +1,8 @@
+name: make_prg
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python  # this will get patched to the version specified in the CI workflow
+  - just
+  - mafft=7.508  # pin the version for reproducibility

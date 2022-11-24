@@ -1,0 +1,36 @@
+name: Python CI
+
+on: [ push, pull_request ]
+
+env:
+  POETRY_VERSION: '1.2.2'
+  POETRY_HOME:    '/usr'
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: [ 3.8, 3.9, '3.10', '3.11' ]
+        os: [ ubuntu-latest, macos-latest ]
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version:       ${{ matrix.python-version }}
+          miniforge-variant:    Mambaforge
+          miniforge-version:    latest
+          activate-environment: make_prg
+          environment-file:     .github/test-environment.yml
+          use-mamba:            true
+      - name: Install project
+        run:  just install-ci
+      - name: Check formatting
+        run:  just check-fmt
+      - name: Lint
+        run:  just lint
+      - name: Test
+        run:  just test -vv

@@ -13,7 +13,8 @@ install:
 
 install-ci:
 	python -m pip install --upgrade pip
-	python -m pip install poetry
+	python .github/scripts/install-poetry.py -y
+	poetry --version
 	poetry install --no-interaction
 
 check-fmt:
