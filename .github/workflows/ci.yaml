@@ -2,10 +2,6 @@ name: Python CI
 
 on: [ push, pull_request ]
 
-env:
-  POETRY_VERSION: '1.2.2'
-  POETRY_HOME:    '/usr'
-
 jobs:
   test:
     runs-on: ${{ matrix.os }}
