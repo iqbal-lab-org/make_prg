@@ -245,7 +245,7 @@ class TestPrgBuilderZipDatabase(TestCase):
     def test___get_loci_names(self):
         self.prg_builder_zip_db.load()
 
-        expected = ["f1", "file_2", "file3"]
+        expected = ["f1", "file3", "file_2"]
         actual = self.prg_builder_zip_db.get_loci_names()
 
         self.assertEqual(expected, actual)

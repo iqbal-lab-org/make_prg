@@ -199,7 +199,7 @@ class PrgBuilderZipDatabase:
         return len(self.get_loci_names())
 
     def get_loci_names(self) -> List[str]:
-        return self._zip_file.namelist()
+        return sorted(self._zip_file.namelist())
 
     def get_PrgBuilder(self, locus: str) -> PrgBuilder:
         return PrgBuilder.deserialize_from_bytes(self._zip_file.read(locus))

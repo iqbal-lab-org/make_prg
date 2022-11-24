@@ -70,7 +70,7 @@ def are_dir_trees_equal(dir1, dir2):
         print(f"[Dir comparison] File mismatches: {mismatch}")
         return False
     if len(errors)>0:
-        print(f"[Dir comparison] Erros: {errors}")
+        print(f"[Dir comparison] Errors: {errors}")
         return False
 
     # compare zip files
@@ -94,7 +94,12 @@ def are_dir_trees_equal(dir1, dir2):
 
 def are_zip_files_equal(file_1: [Path, str], file_2: [Path, str]) -> bool:
     with ZipFile(file_1) as zip_file_1, ZipFile(file_2) as zip_file_2:
-        if zip_file_1.namelist() != zip_file_2.namelist():
+        zip_file_1_namelist = sorted(zip_file_1.namelist())
+        zip_file_2_namelist = sorted(zip_file_2.namelist())
+        if zip_file_1_namelist != zip_file_2_namelist:
+            print(f"Error: {file_1} and {file_2} differ due to namelist: ")
+            print(f"File 1 namelist: {' '.join(zip_file_1_namelist)}")
+            print(f"File 2 namelist: {' '.join(zip_file_2_namelist)}")
             return False
 
         is_update_DS_zip = str(file_1).endswith(".update_DS.zip") and str(file_2).endswith(".update_DS.zip")
@@ -109,10 +114,11 @@ def are_zip_files_equal(file_1: [Path, str], file_2: [Path, str]) -> bool:
                 zip_db_1.close()
                 zip_db_2.close()
         else:
-            for file in zip_file_1.namelist():
+            for file in zip_file_1_namelist:
                 bytes_from_zip_file_1 = zip_file_1.read(file)
                 bytes_from_zip_file_2 = zip_file_2.read(file)
                 if bytes_from_zip_file_1 != bytes_from_zip_file_2:
+                    print(f"Error: file {file} differs in bytes when comparing {file_1} and {file_2}")
                     return False
 
         return True
