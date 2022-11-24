@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] - 2022-22-11
 
+Dropped support for python 3.7 - minimum supported python version is now 3.8.
+
 ### Added
 - `make_prg update` command, that updates PRGs without requiring to rebuild MSAs and the PRG itself from scratch;
 - Trace (`-vv`) logging level, to track make_prg behaviour (intended for developers only);
