@@ -29,4 +29,4 @@ jobs:
 #      - name: Lint
 #        run:  just lint
       - name: Test
-        run:  just test
+        run:  just test -vv
