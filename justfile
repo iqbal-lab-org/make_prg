@@ -11,7 +11,7 @@ fmt:
 install:
     poetry install
 
-install-ci:
+install-ci: install-mafft
     poetry install --no-interaction
 
 install-mafft:
