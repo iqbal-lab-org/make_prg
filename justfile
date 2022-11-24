@@ -12,7 +12,7 @@ install:
     poetry install
 
 install-ci:
-	poetry --version
+    poetry config experimental.new-installer false
 	poetry install --no-interaction
 
 check-fmt:
