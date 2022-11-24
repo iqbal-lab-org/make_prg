@@ -19,7 +19,7 @@ python = "^3.8"
 biopython = "1.79"
 loguru = "^0.6.0"
 numpy = "^1.21.4"
-scikit-learn = "~1.0"
+scikit-learn = "0.24.2"
 intervaltree = "^3.1.0"
 pygraphviz = { version = "1.7", optional = true }
 networkx = { version = "^2.6.3", optional = true }
