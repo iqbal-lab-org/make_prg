@@ -65,6 +65,8 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.extras]
 debug_graphs = ["pygraphviz", "networkx", "matplotlib"]
 
+# Note: to make breakpoints work when running tests through pycharm IDE, comment out this section
+# See https://intellij-support.jetbrains.com/hc/en-us/community/posts/360008107400-PyCharm-2020-1-not-stopping-on-breakpoints-anymore
 [tool.pytest.ini_options]
 addopts = "--cov --cov-report term --cov-fail-under=98"
 testpaths = ["tests"]
