@@ -10,6 +10,7 @@ Multiple Sequence Alignments.
 - [Install](#install)
   - [No installation needed - precompiled portable binary](#no-installation-needed---precompiled-portable-binary)
   - [pip](#pip)
+  - [conda](#conda)
 - [Running on a sample example](#running-on-a-sample-example)
 - [Usage](#usage)
 
@@ -23,48 +24,37 @@ Multiple Sequence Alignments.
 
 ### No installation needed - precompiled portable binary
 
+> Note: We provide precompiled binaries for Linux OS only
+
 You can use `make_prg` with no installation at all by simply downloading the precompiled binary, and running it.
-In this binary, all libraries are linked statically.
+In this binary, all libraries are linked statically. Compilation is done using [PyInstaller](https://github.com/pyinstaller/pyinstaller).
 
-* **Requirements**:
-  * `GLIBC >= 2.27` (present on `Ubuntu >= 18.04`, `Debian >= 10`, `CentOS >= 8`, etc);
+#### Requirements
+`GLIBC >= 2.27` (present on `Ubuntu >= 18.04`, `Debian >= 10`, `CentOS >= 8`, etc);
 
-* **Download**:
-  ```
-  wget https://github.com/iqbal-lab-org/make_prg/releases/download/v0.4.0/make_prg_0.4.0
-  ```
-* **Running**:
+#### Download
+```
+wget https://github.com/iqbal-lab-org/make_prg/releases/download/0.4.0/make_prg_0.4.0
+```
+
+#### Run
 ```
 chmod +x make_prg_0.4.0
 ./make_prg_0.4.0 -h
 ```
 
-* **Credits**:
-  * Compilation is done using [PyInstaller](https://github.com/pyinstaller/pyinstaller).
-
-* **Notes**:
-  * We provide precompiled binaries for Linux OS only;
-
-
 ### pip
 
-* **Requirements**: `python>=3.7`
+**Requirements**: `python>=3.8`
 
-* **Installing**:
 ```sh
 pip install make_prg
 ```
 
 ### conda
 
-* **Installing**:
 ```sh
 conda install -c bioconda make_prg
-```
-
-* **Running**:
-```
-make_prg -h
 ```
 
 ## Running on a sample example
