@@ -28,7 +28,7 @@ install-ci: install-mafft
 
 # do a local install of MAFFT (intended for use on CI)
 install-mafft:
-    if [ {{os()}} = "macos" ]; then wget https://mafft.cbrc.jp/alignment/software/mafft-7.505-signed.pkg -O mafft.pkg && sudo installer -pkg mafft.pkg -target / && mafft --version ; elif [ {{os()}} = "linux" ]; then wget https://mafft.cbrc.jp/alignment/software/mafft_7.505-1_amd64.deb -O mafft.deb && sudo dpkg -i mafft.deb && mafft --version; else echo "Only support installing mafft for linux or mac"; exit 1; fi
+    if [ {{os()}} = "macos" ]; then wget https://mafft.cbrc.jp/alignment/software/mafft-7.505-signed.pkg -O mafft.pkg && sudo installer -pkg mafft.pkg -target / && rm mafft.pkg && mafft --version ; elif [ {{os()}} = "linux" ]; then wget https://mafft.cbrc.jp/alignment/software/mafft_7.505-1_amd64.deb -O mafft.deb && sudo dpkg -i mafft.deb && rm mafft.deb && mafft --version; else echo "Only support installing mafft for linux or mac"; exit 1; fi
 
 # check code formatting with black and isort
 check-fmt:
