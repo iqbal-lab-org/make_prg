@@ -450,3 +450,101 @@ class TestPrgBuilderZipDatabase(TestCase):
 
         zipfile_read_mock.assert_called_once_with("locus")
         deserialize_from_bytes_mock.assert_called_once_with("read_mock")
+
+    @patch.object(
+        PrgBuilderZipDatabase,
+        PrgBuilderZipDatabase.get_loci_names.__name__,
+        side_effect=[["locus_1"], ["locus_2", "locus_3", "locus_4"]],
+    )
+    def test___eq___different_loci___not_equal(self, *uninteresting_mocks):
+        other_prg_builder_zip_db = PrgBuilderZipDatabase(self.zip_filepath)
+        self.assertNotEqual(self.prg_builder_zip_db, other_prg_builder_zip_db)
+
+    @patch.object(
+        PrgBuilderZipDatabase,
+        PrgBuilderZipDatabase.get_loci_names.__name__,
+        side_effect=[["locus_1", "locus_2"], ["locus_2", "locus_1"]],
+    )
+    def test___eq___different_loci___same_set_of_loci___different_order___not_equal(
+        self, *uninteresting_mocks
+    ):
+        other_prg_builder_zip_db = PrgBuilderZipDatabase(self.zip_filepath)
+        self.assertNotEqual(self.prg_builder_zip_db, other_prg_builder_zip_db)
+
+    @patch.object(
+        PrgBuilderZipDatabase,
+        PrgBuilderZipDatabase.get_loci_names.__name__,
+        return_value=["locus_1", "locus_2", "locus_3"],
+    )
+    def test___eq___two_different_loci(self, *uninteresting_mocks):
+        def get_PrgBuilder_mock_1(locus):
+            return locus + "_prg_builder"
+
+        self.prg_builder_zip_db.get_PrgBuilder = Mock(side_effect=get_PrgBuilder_mock_1)
+
+        def get_PrgBuilder_mock_2(locus):
+            if locus == "locus_1":
+                return locus + "_prg_builder"
+            else:
+                return "foo"
+
+        other_prg_builder_zip_db = PrgBuilderZipDatabase(self.zip_filepath)
+        other_prg_builder_zip_db.get_PrgBuilder = Mock(
+            side_effect=get_PrgBuilder_mock_2
+        )
+
+        self.assertNotEqual(self.prg_builder_zip_db, other_prg_builder_zip_db)
+
+    @patch.object(
+        PrgBuilderZipDatabase,
+        PrgBuilderZipDatabase.get_loci_names.__name__,
+        return_value=["locus_1", "locus_2", "locus_3"],
+    )
+    def test___eq___just_last_locus_different(self, *uninteresting_mocks):
+        def get_PrgBuilder_mock_1(locus):
+            return locus + "_prg_builder"
+
+        self.prg_builder_zip_db.get_PrgBuilder = Mock(side_effect=get_PrgBuilder_mock_1)
+
+        def get_PrgBuilder_mock_2(locus):
+            if locus == "locus_1" or locus == "locus_2":
+                return locus + "_prg_builder"
+            else:
+                return "foo"
+
+        other_prg_builder_zip_db = PrgBuilderZipDatabase(self.zip_filepath)
+        other_prg_builder_zip_db.get_PrgBuilder = Mock(
+            side_effect=get_PrgBuilder_mock_2
+        )
+
+        self.assertNotEqual(self.prg_builder_zip_db, other_prg_builder_zip_db)
+
+    @patch.object(
+        PrgBuilderZipDatabase,
+        PrgBuilderZipDatabase.get_loci_names.__name__,
+        return_value=[],
+    )
+    def test___eq___empty_zip___is_equal(self, *uninteresting_mocks):
+        other_prg_builder_zip_db = PrgBuilderZipDatabase(self.zip_filepath)
+        self.assertEqual(self.prg_builder_zip_db, other_prg_builder_zip_db)
+
+    @patch.object(
+        PrgBuilderZipDatabase,
+        PrgBuilderZipDatabase.get_loci_names.__name__,
+        return_value=["locus_1", "locus_2", "locus_3"],
+    )
+    def test___eq___all_three_locus_equal(self, *uninteresting_mocks):
+        def get_PrgBuilder_mock_1(locus):
+            return locus + "_prg_builder"
+
+        self.prg_builder_zip_db.get_PrgBuilder = Mock(side_effect=get_PrgBuilder_mock_1)
+
+        def get_PrgBuilder_mock_2(locus):
+            return locus + "_prg_builder"
+
+        other_prg_builder_zip_db = PrgBuilderZipDatabase(self.zip_filepath)
+        other_prg_builder_zip_db.get_PrgBuilder = Mock(
+            side_effect=get_PrgBuilder_mock_2
+        )
+
+        self.assertEqual(self.prg_builder_zip_db, other_prg_builder_zip_db)

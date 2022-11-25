@@ -189,9 +189,18 @@ class PrgBuilderZipDatabase:
         if self._zip_file is not None:
             self._zip_file.close()
 
+    def get_number_of_loci(self) -> int:
+        return len(self.get_loci_names())
+
+    def get_loci_names(self) -> List[str]:
+        return sorted(self._zip_file.namelist())
+
+    def get_PrgBuilder(self, locus: str) -> PrgBuilder:
+        return PrgBuilder.deserialize_from_bytes(self._zip_file.read(locus))
+
     def __eq__(self, other: "PrgBuilderZipDatabase") -> bool:
-        different_locis = self.get_loci_names() != other.get_loci_names()
-        if different_locis:
+        different_loci = self.get_loci_names() != other.get_loci_names()
+        if different_loci:
             return False
 
         for locus in self.get_loci_names():
@@ -201,12 +210,3 @@ class PrgBuilderZipDatabase:
                 return False
 
         return True
-
-    def get_number_of_loci(self) -> int:
-        return len(self.get_loci_names())
-
-    def get_loci_names(self) -> List[str]:
-        return sorted(self._zip_file.namelist())
-
-    def get_PrgBuilder(self, locus: str) -> PrgBuilder:
-        return PrgBuilder.deserialize_from_bytes(self._zip_file.read(locus))
