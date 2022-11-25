@@ -479,7 +479,7 @@ name = "setuptools"
 version = "65.6.3"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.7"
 
 [package.extras]
@@ -562,7 +562,7 @@ debug-graphs = ["pygraphviz", "networkx", "matplotlib"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "e863586096ac871790316a1744264241160451e4d544f6452e697b7c854262fa"
+content-hash = "c4fc3c97ac5037c84b67c159a359dc29cc38474c41768677b1b6a816f3263160"
 
 [metadata.files]
 attrs = [
