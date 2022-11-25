@@ -23,6 +23,10 @@ fmt:
 install:
     poetry install
 
+# installs all extra packages
+install_full:
+    poetry install --extras "debug_graphs"
+
 install-ci: install-mafft
     poetry install --no-interaction
 
