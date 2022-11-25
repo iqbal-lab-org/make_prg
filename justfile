@@ -13,12 +13,12 @@ coverage:
 
 # lint code with flake8
 lint:
-    poetry run flake8 . --exclude venv
+    poetry run flake8 . --extend-exclude=venv,.venv
 
 # format code with black and isort
 fmt:
-    poetry run black . --exclude venv
-    poetry run isort . --skip venv
+    poetry run black .
+    poetry run isort .
 
 install:
     poetry install
