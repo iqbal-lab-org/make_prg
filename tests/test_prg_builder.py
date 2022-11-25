@@ -48,6 +48,172 @@ class TestPrgBuilder(TestCase):
 
     @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
     @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___eq___different_locus___not_equal(self, *uninteresting_mocks):
+        self.setup_prg_builder()
+        other = PrgBuilder(
+            "other_locus",  # different locus here
+            Path("msa_file"),
+            "fasta",
+            self.max_nesting,
+            self.min_match_length,
+            self.aligner,
+        )
+        self.assertNotEqual(self.prg_builder, other)
+
+    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___eq___different_max_nesting___not_equal(self, *uninteresting_mocks):
+        self.setup_prg_builder()
+        other = PrgBuilder(
+            self.locus,
+            Path("msa_file"),
+            "fasta",
+            self.max_nesting + 1,  # different max_nesting here
+            self.min_match_length,
+            self.aligner,
+        )
+        self.assertNotEqual(self.prg_builder, other)
+
+    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___eq___different_min_match_length___not_equal(self, *uninteresting_mocks):
+        self.setup_prg_builder()
+        other = PrgBuilder(
+            self.locus,
+            Path("msa_file"),
+            "fasta",
+            self.max_nesting,
+            self.min_match_length + 1,  # different min_match_length here
+            self.aligner,
+        )
+        self.assertNotEqual(self.prg_builder, other)
+
+    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___eq___different_next_node_id___not_equal(self, *uninteresting_mocks):
+        self.setup_prg_builder()
+        other = PrgBuilder(
+            self.locus,
+            Path("msa_file"),
+            "fasta",
+            self.max_nesting,
+            self.min_match_length,
+            self.aligner,
+        )
+        other.next_node_id += 1  # different next_node_id here
+        self.assertNotEqual(self.prg_builder, other)
+
+    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___eq___different_site_num___not_equal(self, *uninteresting_mocks):
+        self.setup_prg_builder()
+        other = PrgBuilder(
+            self.locus,
+            Path("msa_file"),
+            "fasta",
+            self.max_nesting,
+            self.min_match_length,
+            self.aligner,
+        )
+        other.site_num += 1  # different site_num here
+        self.assertNotEqual(self.prg_builder, other)
+
+    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___eq___different_prg_index___not_equal(self, *uninteresting_mocks):
+        self.setup_prg_builder()
+        other = PrgBuilder(
+            self.locus,
+            Path("msa_file"),
+            "fasta",
+            self.max_nesting,
+            self.min_match_length,
+            self.aligner,
+        )
+        other.prg_index = Mock()  # different prg_index here
+        self.assertNotEqual(self.prg_builder, other)
+
+    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___eq___different_root___not_equal(self, *uninteresting_mocks):
+        self.setup_prg_builder()
+        other = PrgBuilder(
+            self.locus,
+            Path("msa_file"),
+            "fasta",
+            self.max_nesting,
+            self.min_match_length,
+            self.aligner,
+        )
+        other.root = Mock()  # different root here
+        self.assertNotEqual(self.prg_builder, other)
+
+    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___eq___all_equal(self, *uninteresting_mocks):
+        self.setup_prg_builder()
+        other = PrgBuilder(
+            self.locus,
+            Path("msa_file"),
+            "fasta",
+            self.max_nesting,
+            self.min_match_length,
+            self.aligner,
+        )
+        self.assertEqual(self.prg_builder, other)
+
+    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___eq___different_aligners___not_taken_into_consideration___still_equal(
+        self, *uninteresting_mocks
+    ):
+        self.setup_prg_builder()
+        other = PrgBuilder(
+            self.locus,
+            Path("msa_file"),
+            "fasta",
+            self.max_nesting,
+            self.min_match_length,
+            self.aligner,
+        )
+        other.aligner = Mock()  # different aligner here
+        self.assertNotEqual(
+            self.prg_builder.aligner, other.aligner
+        )  # ensure aligners are different
+        self.assertEqual(self.prg_builder, other)
+
+    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___hash___same_PRG_Builders___same_hash(self, *uninteresting_mocks):
+        self.setup_prg_builder()
+        other = PrgBuilder(
+            self.locus,
+            Path("msa_file"),
+            "fasta",
+            self.max_nesting,
+            self.min_match_length,
+            self.aligner,
+        )
+        self.assertEqual(hash(self.prg_builder), hash(other))
+
+    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
+    def test___hash___different_PRG_Builders_by_locus_name___different_hash(
+        self, *uninteresting_mocks
+    ):
+        self.setup_prg_builder()
+        other = PrgBuilder(
+            "other_locus",
+            Path("msa_file"),
+            "fasta",
+            self.max_nesting,
+            self.min_match_length,
+            self.aligner,
+        )
+        self.assertNotEqual(hash(self.prg_builder), hash(other))
+
+    @patch("make_prg.prg_builder.load_alignment_file", return_value="MSA")
+    @patch.object(NodeFactory, NodeFactory.build.__name__, return_value="root_node")
     def test___replace_root(self, *uninteresting_mocks):
         self.setup_prg_builder()
         self.assertEqual("root_node", self.prg_builder.root)
