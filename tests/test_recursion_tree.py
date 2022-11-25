@@ -37,6 +37,71 @@ class TestRecursiveTreeNode(TestCase):
         self.parent_mock = Mock(node_id=512)
 
     @patch.object(
+        NodeFactory, NodeFactory.build.__name__, return_value=["child_build_1"]
+    )
+    def test___eq___different_nesting_level(self, *uninteresting_mocks):
+        self.setup()
+        node_1 = MultiIntervalNode(
+            nesting_level=1,
+            alignment=self.alignment_mock,
+            parent=self.parent_mock,
+            prg_builder=self.prg_builder,
+            interval_subalignments=["algn1"],
+        )
+        node_2 = MultiIntervalNode(
+            nesting_level=2,
+            alignment=self.alignment_mock,
+            parent=self.parent_mock,
+            prg_builder=self.prg_builder,
+            interval_subalignments=["algn1"],
+        )
+        self.assertNotEqual(node_1, node_2)
+
+    @patch.object(
+        NodeFactory, NodeFactory.build.__name__, return_value=["child_build_1"]
+    )
+    def test___eq___different_locus_name(self, *uninteresting_mocks):
+        self.setup()
+        node_1 = MultiIntervalNode(
+            nesting_level=1,
+            alignment=self.alignment_mock,
+            parent=self.parent_mock,
+            prg_builder=self.prg_builder,
+            interval_subalignments=["algn1"],
+        )
+        node_2 = MultiIntervalNode(
+            nesting_level=1,
+            alignment=self.alignment_mock,
+            parent=self.parent_mock,
+            prg_builder=PrgBuilder("other_locus", Path("msa"), "fasta", 5, 7),
+            interval_subalignments=["algn1"],
+        )
+        self.assertNotEqual(node_1, node_2)
+
+    @patch.object(
+        NodeFactory, NodeFactory.build.__name__, return_value=["child_build_1"]
+    )
+    def test___eq___different_node_id(self, *uninteresting_mocks):
+        self.setup()
+        node_1 = MultiIntervalNode(
+            nesting_level=1,
+            alignment=self.alignment_mock,
+            parent=self.parent_mock,
+            prg_builder=self.prg_builder,
+            interval_subalignments=["algn1"],
+        )
+        node_1._node_id = 100
+        node_2 = MultiIntervalNode(
+            nesting_level=1,
+            alignment=self.alignment_mock,
+            parent=self.parent_mock,
+            prg_builder=self.prg_builder,
+            interval_subalignments=["algn1"],
+        )
+        node_2._node_id = 200
+        self.assertNotEqual(node_1, node_2)
+
+    @patch.object(
         NodeFactory, NodeFactory.build.__name__, side_effect=["child_build_1"]
     )
     def test____get_children___one_child(
