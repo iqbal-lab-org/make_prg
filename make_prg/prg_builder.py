@@ -10,7 +10,6 @@ from zipfile import ZipFile
 
 from make_prg.recursion_tree import LeafNode, NodeFactory, RecursiveTreeNode
 from make_prg.utils.io_utils import load_alignment_file, zip_set_of_files
-from make_prg.utils.misc import should_output_debug_graphs
 from make_prg.utils.prg_encoder import PRG_Ints, PrgEncoder
 
 
@@ -166,17 +165,6 @@ class PrgBuilder(object):
         prg_ints: PRG_Ints = prg_encoder.encode(prg_string)
         with prg_ints_fpath.open("wb") as ostream:
             prg_encoder.write(prg_ints, ostream)
-
-    def output_debug_graphs(self, debug_graphs_dir: Path):
-        if should_output_debug_graphs():
-            from make_prg.utils.recursive_tree_drawer import RecursiveTreeDrawer
-
-            os.makedirs(debug_graphs_dir, exist_ok=True)
-            recursive_tree_drawer = RecursiveTreeDrawer(self.root)
-            recursive_tree_drawer.output_graph(
-                debug_graphs_dir / f"{self.locus_name}.recursion_tree.png"
-            )
-
 
 class PrgBuilderZipDatabase:
     """

@@ -133,7 +133,8 @@ def process_MSA(options, input_and_output_files: InputOutputFilesFromMSA):
             gfa.GFA_Output.write_gfa(prefix, prg)
 
         if should_output_debug_graphs():
-            builder.output_debug_graphs(Path(options.output_prefix + "_debug_graphs"))
+            from make_prg.utils.recursive_tree_drawer import RecursiveTreeDrawer
+            RecursiveTreeDrawer.output_debug_graphs(builder, Path(options.output_prefix + "_debug_graphs"))
 
     except ValueError as value_error:
         if "No records found in handle" in value_error.args[0]:

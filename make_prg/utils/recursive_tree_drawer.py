@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import os
 import matplotlib.pyplot as plt
 import networkx as nx
 
@@ -9,9 +9,18 @@ from make_prg.recursion_tree import (
     MultiIntervalNode,
     RecursiveTreeNode,
 )
+from make_prg.prg_builder import PrgBuilder
 
 
 class RecursiveTreeDrawer:
+    @staticmethod
+    def output_debug_graphs(prg_builder: PrgBuilder, debug_graphs_dir: Path):
+        os.makedirs(debug_graphs_dir, exist_ok=True)
+        recursive_tree_drawer = RecursiveTreeDrawer(prg_builder.root)
+        recursive_tree_drawer.output_graph(
+            debug_graphs_dir / f"{prg_builder.locus_name}.recursion_tree.png"
+        )
+
     def __init__(self, root: RecursiveTreeNode):
         self._graph: nx.DiGraph = self._build_recursive_tree_graph(root)
 
