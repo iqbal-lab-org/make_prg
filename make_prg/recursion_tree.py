@@ -45,7 +45,7 @@ class RecursiveTreeNode(ABC):
         self.alignment: MSA = remove_columns_full_of_gaps_from_MSA(alignment)
         self.parent: Optional["RecursiveTreeNode"] = parent
         self.prg_builder = prg_builder
-        self.__node_id: int = (
+        self._node_id: int = (
             self.prg_builder.get_next_node_id()
         )  # note node_id is fully protected from writes (see self.__hash__())
 
@@ -58,7 +58,7 @@ class RecursiveTreeNode(ABC):
 
     @property
     def node_id(self):
-        return self.__node_id
+        return self._node_id
 
     def __eq__(self, other: "RecursiveTreeNode") -> bool:
         """

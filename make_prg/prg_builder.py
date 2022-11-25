@@ -30,7 +30,7 @@ class PrgBuilder(object):
         min_match_length: int,
         aligner: Optional["MSAAligner"] = None,  # noqa: F821
     ):
-        self.__locus_name: str = locus_name  # note locus_name is fully protected from writes (see self.__hash__())
+        self._locus_name: str = locus_name  # note locus_name is fully protected from writes (see self.__hash__())
         self.max_nesting: int = max_nesting
         self.min_match_length: int = min_match_length
         self.aligner: Optional["MSAAligner"] = aligner  # noqa: F821
@@ -43,7 +43,7 @@ class PrgBuilder(object):
 
     @property
     def locus_name(self):
-        return self.__locus_name
+        return self._locus_name
 
     def __getstate__(self):
         """
