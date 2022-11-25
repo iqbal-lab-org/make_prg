@@ -31,16 +31,13 @@ RUN curl --proto '=https' -sSf "https://mafft.cbrc.jp/alignment/software/mafft_$
     && rm mafft.deb \
     && mafft --version
 
-# Copy only requirements, to cache them in docker layer
+# install make_prg
 WORKDIR /make_prg
 COPY . /make_prg
 
 RUN poetry run pip install -U pip \
-  && poetry install --no-ansi --only main --all-extras
+    && poetry install --no-ansi --only main --all-extras \
+    && make_prg --version
 
-# we copy at the end so that we don't reinstall dependencies everytime there is a change
-# in the code
-
-RUN make_prg --version
 
 SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
