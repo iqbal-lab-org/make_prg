@@ -2,7 +2,6 @@
 This module contains classes to build PRGs from MSAs and manage sets of PRGs
 """
 
-import os
 import pickle
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -165,6 +164,7 @@ class PrgBuilder(object):
         prg_ints: PRG_Ints = prg_encoder.encode(prg_string)
         with prg_ints_fpath.open("wb") as ostream:
             prg_encoder.write(prg_ints, ostream)
+
 
 class PrgBuilderZipDatabase:
     """

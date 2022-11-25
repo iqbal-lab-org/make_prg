@@ -1,15 +1,16 @@
-from pathlib import Path
 import os
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import networkx as nx
 
+from make_prg.prg_builder import PrgBuilder
 from make_prg.recursion_tree import (
     LeafNode,
     MultiClusterNode,
     MultiIntervalNode,
     RecursiveTreeNode,
 )
-from make_prg.prg_builder import PrgBuilder
 
 
 class RecursiveTreeDrawer:

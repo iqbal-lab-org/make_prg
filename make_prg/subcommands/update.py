@@ -153,7 +153,10 @@ def update(options, input_and_output_files: InputOutputFilesUpdate, update_share
 
     if should_output_debug_graphs():
         from make_prg.utils.recursive_tree_drawer import RecursiveTreeDrawer
-        RecursiveTreeDrawer.output_debug_graphs(prg_builder_for_locus, Path(options.output_prefix + "_debug_graphs"))
+
+        RecursiveTreeDrawer.output_debug_graphs(
+            prg_builder_for_locus, Path(options.output_prefix + "_debug_graphs")
+        )
 
     with open(f"{temp_prefix}.stats", "w") as stats_filehandler:
         print(
