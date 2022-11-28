@@ -136,7 +136,7 @@ class RecursiveTreeNode(ABC):
     def preorder_traversal_to_build_prg(
         self, prg_as_list: List[str], delim_char: str = " "
     ):
-        pass
+        raise NotImplementedError
 
     def is_leaf(self) -> bool:
         return len(self.children) == 0

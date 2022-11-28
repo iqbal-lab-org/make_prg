@@ -42,11 +42,11 @@ class MSAAligner(ABC):
     def get_updated_alignment(
         self, current_alignment: MultipleSeqAlignment, new_sequences: Set[str]
     ) -> MultipleSeqAlignment:
-        pass
+        raise NotImplementedError
 
     @classmethod
     def get_aligner_name(cls) -> str:
-        pass
+        raise NotImplementedError
 
     def _run_aligner(self, args: str, env=None):
         start = time.time()
