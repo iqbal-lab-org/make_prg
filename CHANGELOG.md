@@ -8,8 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] - 2022-22-11
 
-Dropped support for python 3.7 - minimum supported python version is now 3.8.
-
 ### Added
 - `make_prg update` command, that updates PRGs without requiring to rebuild MSAs and the PRG itself from scratch;
 - Trace (`-vv`) logging level, to track make_prg behaviour (intended for developers only);
@@ -39,7 +37,8 @@ recursion tree, adding denovo sequences to some specific nodes, and triggering r
 Any preorder traversal of the recursion tree yields the same order of recursive calls of the previous algorithm,
 thus allowing us to translate the algorithms in the previous version as preorder traversals with custom visit
 operations.
-- moved from `setup.py` to `pyproject.toml`
+- Moved from `setup.py` to `pyproject.toml`
+- Dropped support for `python 3.7`, supported `python` versions are: `3.8`, `3.9`, `3.10`, `3.11`.
 
 ### Fixed
 - Several minor bugs;
