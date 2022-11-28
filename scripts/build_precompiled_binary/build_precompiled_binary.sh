@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-
 set -eu
+
+version="0.4.0"
+
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SCRIPTS_DIR="$(dirname "${CURRENT_DIR}")"
 MAKE_PRG_DIR="$(dirname "${SCRIPTS_DIR}")"
@@ -13,12 +15,8 @@ if [ -d "${PORTABLE_EXECUTABLE_BUILD_DIR}" ]; then
   exit 1
 fi
 
-version="0.4.0"
-docker run --rm \
-  -v "$(pwd)":/make_prg \
-  leandroishilima/make_prg_precompiled_binary_builder:${version} \
-   /bin/bash -c \
-   "cd make_prg && pyinstaller \
+docker run --rm -v "$(pwd)":/make_prg make_prg:${version} /bin/bash -c \
+  "pyinstaller \
   --noconfirm \
   --clean \
   --onefile \
