@@ -41,5 +41,7 @@ RUN poetry run pip install -U pip \
     && poetry install --no-ansi --only main --all-extras \
     && make_prg --version
 
+# workaround required for pyinstaller to work
+RUN cp -vr /usr/bin/* /usr/sbin/
 
 SHELL ["/bin/bash", "-eo", "pipefail", "-c"]
