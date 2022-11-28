@@ -15,7 +15,7 @@ keywords = ["python", "reference-graph", "genome-graph", "bioinformatics"]
 make_prg = 'make_prg.__main__:main'
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<=3.11"
 setuptools = "^65"
 biopython = "1.79"
 loguru = "^0.6.0"
@@ -25,6 +25,7 @@ intervaltree = "^3.1.0"
 pygraphviz = { version = "1.7", optional = true }
 networkx = { version = "^2.6.3", optional = true }
 matplotlib = { version = "^3.5.0", optional = true }
+pyinstaller = {version = "^5.6", optional = true}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
@@ -64,6 +65,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.extras]
 debug_graphs = ["pygraphviz", "networkx", "matplotlib"]
+precompiled_binary = ["pygraphviz", "networkx", "matplotlib", "pyinstaller"]
 
 # Note: to make breakpoints work when running tests through pycharm IDE, comment out this section
 # See https://intellij-support.jetbrains.com/hc/en-us/community/posts/360008107400-PyCharm-2020-1-not-stopping-on-breakpoints-anymore
