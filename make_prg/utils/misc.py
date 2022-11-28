@@ -22,5 +22,6 @@ def equal_msas(msa_1: MSA, msa_2: MSA) -> bool:
     return msa_1_as_fasta == msa_2_as_fasta
 
 
+# Note: not unit tested, just used for in-house debugging
 def should_output_debug_graphs() -> bool:
     return "make_prg_output_debug_graphs" in os.environ
