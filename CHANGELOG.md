@@ -44,6 +44,9 @@ operations.
 - Several minor bugs;
 - Heavy refactoring of almost the whole codebase;
 
+### Removed
+- Support for `Mac OS X`;
+
 ## [0.2.0] - 2021-10-27
 
 ### Added

@@ -3,6 +3,11 @@
 A tool to create and update PRGs for input to [Pandora][pandora] and [Gramtools][gramtools] from a set of 
 Multiple Sequence Alignments.
 
+# Support
+
+We fully support `make_prg` on `linux`.
+No guarantees are made for other operating systems.
+
 [TOC]: #
 
 ## Table of Contents
