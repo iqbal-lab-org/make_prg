@@ -406,34 +406,48 @@ class NodeFactory:
     ) -> RecursiveTreeNode:
         """
         Builds the correct node given the alignment and other parameters.
+
+        Node building priority depends on the type of node we are building:
+        1. If type of node is root
+            1.1. Try to build a leaf
+            1.2. Try to build a multi interval node (even if we have just a single mismatch interval)
+        2. If type of node is non-root
+            2.1. Try to build a leaf
+            2.2. Try to build a multi interval node
+            2.3. Try to build a multi cluster node
+
+        This can be simplified as:
+        1. Try to build a leaf
+        2. Try to build a multi interval node (force this build if type of node is root)
+        3. Try to build a multi cluster node
         """
-        building_the_root = parent_node is None
-        building_multi_interval_node = isinstance(parent_node, MultiClusterNode)
-        building_multi_cluster_node = isinstance(parent_node, MultiIntervalNode)
         min_match_length = prg_builder.min_match_length
+        all_intervals, match_intervals = NodeFactory._get_vertical_partition(
+            alignment, min_match_length
+        )
+        building_a_leaf = NodeFactory._is_single_match_interval(
+            all_intervals, match_intervals
+        )
+        building_multi_interval_node = NodeFactory._is_multi_interval(all_intervals)
+        building_the_root = parent_node is None
         nesting_level = 0 if building_the_root else parent_node.nesting_level
 
-        # Note: root is either a multi interval node or a leaf
-        if building_the_root or building_multi_interval_node:
-            all_intervals, match_intervals = NodeFactory._get_vertical_partition(
-                alignment, min_match_length
+        if building_a_leaf:
+            return LeafNode(nesting_level, alignment, parent_node, prg_builder)
+        elif building_multi_interval_node or building_the_root:
+            interval_subalignments = (
+                NodeFactory._partition_alignment_into_interval_subalignments(
+                    alignment, all_intervals
+                )
             )
-            if NodeFactory._is_single_match_interval(all_intervals, match_intervals):
-                return LeafNode(nesting_level, alignment, parent_node, prg_builder)
-            else:
-                interval_subalignments = (
-                    NodeFactory._partition_alignment_into_interval_subalignments(
-                        alignment, all_intervals
-                    )
-                )
-                return MultiIntervalNode(
-                    nesting_level,
-                    alignment,
-                    parent_node,
-                    prg_builder,
-                    interval_subalignments,
-                )
-        elif building_multi_cluster_node:
+            return MultiIntervalNode(
+                nesting_level,
+                alignment,
+                parent_node,
+                prg_builder,
+                interval_subalignments,
+            )
+        else:  # builds multi cluster node
             clustering_result = kmeans_cluster_seqs(alignment, min_match_length)
             cluster_further = NodeFactory._infer_if_we_should_cluster_further(
                 alignment, clustering_result, nesting_level, prg_builder.max_nesting
@@ -451,12 +465,8 @@ class NodeFactory:
                     prg_builder,
                     cluster_subalignments,
                 )
-            else:
+            else:  # can't cluster further, builds leaf
                 return LeafNode(nesting_level, alignment, parent_node, prg_builder)
-        else:
-            raise ValueError(
-                f"Unsupported parent type for building: {parent_node.__class__}"
-            )
 
     #####################################################################################################
     #  helper methods
@@ -499,6 +509,10 @@ class NodeFactory:
             all_intervals,
         ) = interval_partitioner.get_intervals()
         return all_intervals, match_intervals
+
+    @staticmethod
+    def _is_multi_interval(all_intervals: Intervals) -> bool:
+        return len(all_intervals) > 1
 
     @staticmethod
     def _is_single_match_interval(
