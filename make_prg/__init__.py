@@ -1,9 +1,9 @@
-# ___Version___ #
-from pkg_resources import get_distribution
+from importlib import metadata
 
-try:
-    __version__ = get_distribution("make_prg").version
-except:
-    __version__ = "1.0.0"
+__version__ = metadata.version("make_prg")
 
 __all__ = ["from_msa", "subcommands"]
+
+from Bio.AlignIO import MultipleSeqAlignment
+
+MSA = MultipleSeqAlignment

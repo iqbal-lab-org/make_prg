@@ -1,4 +1,4 @@
-from typing import Dict, List, BinaryIO
+from typing import BinaryIO, Dict, List
 
 
 class ConversionError(Exception):
@@ -21,9 +21,11 @@ def to_bytes(integer: int):
 
 class PrgEncoder:
     """
-    A class that converts a prg string as produced by this program into an integer vector.
+    A class that converts a prg string as produced by this program into an integer
+    vector.
     Note that gramtools uses the following encoding for an A/T SNP: 5A6T6
-    Ie, requires an odd marker at the beginning of a site and an even marker at the end of a site.
+    Ie, requires an odd marker at the beginning of a site and an even marker at the
+    end of a site.
     """
 
     encoding = {"A": 1, "C": 2, "G": 3, "T": 4}

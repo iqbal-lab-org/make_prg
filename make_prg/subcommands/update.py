@@ -1,12 +1,15 @@
 import multiprocessing
-from pathlib import Path
-from loguru import logger
-from make_prg.utils import io_utils, gfa
-from make_prg.update.denovo_variants import DenovoVariantsDB
-from make_prg.prg_builder import PrgBuilderZipDatabase, LeafNotFoundException
-from make_prg.utils.msa_aligner import MAFFT, MSAAligner
 from dataclasses import dataclass
+from pathlib import Path
+
+from loguru import logger
+
+from make_prg.prg_builder import LeafNotFoundException, PrgBuilderZipDatabase
+from make_prg.update.denovo_variants import DenovoVariantsDB
+from make_prg.utils import gfa, io_utils
 from make_prg.utils.input_output_files import InputOutputFilesUpdate
+from make_prg.utils.misc import should_output_debug_graphs
+from make_prg.utils.msa_aligner import MAFFT, MSAAligner
 
 
 def register_parser(subparsers):
@@ -23,6 +26,7 @@ def register_parser(subparsers):
         if not is_zip_file and not is_update_DS:
             subparser_update_prg.error(f"{argument} is not a update_DS nor a zip file.")
         return argument
+
     subparser_update_prg.add_argument(
         "-u",
         "--update-DS",
@@ -34,7 +38,6 @@ def register_parser(subparsers):
             "Filepath to the update data structures (a *.update_DS.zip file created "
             "from make_prg from_msa or update)"
         ),
-
     )
     subparser_update_prg.add_argument(
         "-o",
@@ -53,7 +56,8 @@ def register_parser(subparsers):
         type=str,
         required=True,
         help=(
-            "Filepath containing denovo sequences. Should point to a denovo_paths.txt file"
+            "Filepath containing denovo sequences. Should point to a denovo_paths.txt "
+            "file"
         ),
     )
     subparser_update_prg.add_argument(
@@ -64,7 +68,8 @@ def register_parser(subparsers):
         type=int,
         default=10,
         help=(
-            "Ignores long deletions of the given size or longer. If long deletions should not be ignored, "
+            "Ignores long deletions of the given size or longer. If long deletions "
+            "should not be ignored, "
             "put a large value. Default: %(default)d"
         ),
     )
@@ -85,16 +90,20 @@ class UpdateSharedData:
     aligner: MSAAligner
 
 
-def update(input_and_output_files: InputOutputFilesUpdate):
-    global options
+def update(options, input_and_output_files: InputOutputFilesUpdate, update_shared_data):
+    # TODO: handle failed runs here?
+
     locus_name = input_and_output_files.locus_name
     prg_builder_zip_db = PrgBuilderZipDatabase(options.update_DS)
     prg_builder_zip_db.load()
     prg_builder_for_locus = prg_builder_zip_db.get_PrgBuilder(locus_name)
 
-    global update_shared_data
     prg_builder_for_locus.aligner = update_shared_data.aligner
-    update_data_list = update_shared_data.denovo_variants_db.locus_name_to_update_data.get(locus_name, [])
+    update_data_list = (
+        update_shared_data.denovo_variants_db.locus_name_to_update_data.get(
+            locus_name, []
+        )
+    )
     nb_of_variants_sucessfully_updated = 0
     nb_of_variants_with_failed_update = 0
 
@@ -108,9 +117,7 @@ def update(input_and_output_files: InputOutputFilesUpdate):
                 prg_builder_tree_node = prg_builder_for_locus.get_node_given_interval(
                     update_data.ml_path_node_key
                 )
-                prg_builder_tree_node.add_data_to_batch_update(
-                    update_data
-                )
+                prg_builder_tree_node.add_data_to_batch_update(update_data)
                 leaves_to_update.add(prg_builder_tree_node)
                 nb_of_variants_sucessfully_updated += 1
             except LeafNotFoundException as exc:
@@ -118,11 +125,13 @@ def update(input_and_output_files: InputOutputFilesUpdate):
                 nb_of_variants_with_failed_update += 1
 
         # update the modified leaves
-        # Note: the sorted() is needed for determinism so that we can compare indexes and test outputs
-        for leaf in sorted(leaves_to_update, key=lambda node: node.id):
+        # Note: the sorted() is needed for determinism so that we can compare indexes
+        # and test outputs
+        for leaf in sorted(leaves_to_update, key=lambda node: node.node_id):
             leaf.batch_update()
         logger.debug(
-            f"Updated {locus_name}: {nb_of_variants_sucessfully_updated} denovo sequences added!"
+            f"Updated {locus_name}: {nb_of_variants_sucessfully_updated} denovo "
+            "sequences added!"
         )
     else:
         logger.debug(f"{locus_name} has no new variants, no update needed")
@@ -142,22 +151,27 @@ def update(input_and_output_files: InputOutputFilesUpdate):
     if options.output_type.gfa:
         gfa.GFA_Output.write_gfa(str(temp_prefix), prg)
 
-    if options.output_graphs:
-        prg_builder_for_locus.output_debug_graphs(Path(options.output_prefix + "_debug_graphs"))
+    if should_output_debug_graphs():
+        from make_prg.utils.recursive_tree_drawer import RecursiveTreeDrawer
+
+        RecursiveTreeDrawer.output_debug_graphs(
+            prg_builder_for_locus, Path(options.output_prefix + "_debug_graphs")
+        )
 
     with open(f"{temp_prefix}.stats", "w") as stats_filehandler:
         print(
-            f"{locus_name} {nb_of_variants_sucessfully_updated} {nb_of_variants_with_failed_update}",
+            f"{locus_name} {nb_of_variants_sucessfully_updated} "
+            f"{nb_of_variants_with_failed_update}",
             file=stats_filehandler,
         )
 
 
 def run(cl_options):
-    global options
     options = cl_options
-    global update_shared_data
 
-    if not options.force and io_utils.output_files_already_exist(options.output_type, options.output_prefix):
+    if not options.force and io_utils.output_files_already_exist(
+        options.output_type, options.output_prefix
+    ):
         raise RuntimeError("One or more output files already exists, aborting run...")
 
     # read input data
@@ -175,7 +189,9 @@ def run(cl_options):
         prg_builder_zip_db = PrgBuilderZipDatabase(options.update_DS)
         prg_builder_zip_db.load()
         logger.info(f"Reading {options.denovo_paths}...")
-        denovo_variants_db = DenovoVariantsDB(options.denovo_paths, options.long_deletion_threshold)
+        denovo_variants_db = DenovoVariantsDB(
+            options.denovo_paths, options.long_deletion_threshold
+        )
         update_shared_data = UpdateSharedData(denovo_variants_db, mafft_aligner)
 
         output_dir = Path(options.output_prefix).parent
@@ -183,17 +199,23 @@ def run(cl_options):
 
         mp_temp_dir = io_utils.get_temp_dir_for_multiprocess(root_temp_dir)
         loci = prg_builder_zip_db.get_loci_names()
-        input_and_output_files = InputOutputFilesUpdate.get_list_of_InputOutputFilesUpdate(
-            loci, options.output_type, mp_temp_dir)
+        input_and_output_files = (
+            InputOutputFilesUpdate.get_list_of_InputOutputFilesUpdate(
+                loci, options.output_type, mp_temp_dir
+            )
+        )
+        args = [(options, iof, update_shared_data) for iof in input_and_output_files]
 
         # update all PRGs with denovo sequences
         logger.info(f"Using {options.threads} threads to update PRGs...")
 
         with multiprocessing.Pool(options.threads, maxtasksperchild=1) as pool:
-            pool.map(update, input_and_output_files, chunksize=1)
-        logger.success(f"All PRGs updated!")
+            pool.starmap(update, args, chunksize=1)
+        logger.success("All PRGs updated!")
 
-        InputOutputFilesUpdate.create_final_files(input_and_output_files, options.output_prefix)
+        InputOutputFilesUpdate.create_final_files(
+            input_and_output_files, options.output_prefix
+        )
         io_utils.remove_empty_folders(str(root_temp_dir))
         logger.success("All done!")
     finally:

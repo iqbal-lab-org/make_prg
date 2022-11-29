@@ -1,6 +1,8 @@
 # Toy example
 
 Here we present a walkthrough of running `make_prg` on a toy example.
+Note that there is no need to have `make_prg` installed.
+The test script downloads the precompiled binary of the latest release.
 We run:
 1) `make_prg from_msa` to create PRGs from MSAs;
 2) `make_prg update` to update PRGs with denovo paths;
@@ -11,12 +13,6 @@ We run:
 msas/ : contains the MSAs of 2 genes we are using as toy example here;
 denovo_paths/denovo_paths.txt : contains some denovo paths on these 2 genes. This file is produced by pandora;
 ```
-
-## Dependencies
-
-* `singularity 3.0+`;
-
-**Note: There is no need to have `make_prg` installed. We will run it through `singularity`;**
 
 ## Running
 

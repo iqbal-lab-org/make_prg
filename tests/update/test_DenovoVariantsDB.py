@@ -1,8 +1,9 @@
-from unittest import TestCase
-from make_prg.update.denovo_variants import DenovoVariantsDB, DenovoVariant, UpdateData
-from make_prg.update.MLPath import MLPathNode, MLPathError, MLPath
 from io import StringIO
 from pathlib import Path
+from unittest import TestCase
+
+from make_prg.update.denovo_variants import DenovoVariant, DenovoVariantsDB, UpdateData
+from make_prg.update.MLPath import MLPath, MLPathError, MLPathNode
 
 
 class DenovoVariantsDBTest(TestCase):
@@ -37,8 +38,13 @@ class DenovoVariantsDBTest(TestCase):
         self.assertEqual(expected, actual)
 
     def test___read_MLPathNode(self):
-        handler = StringIO("(3 [121, 171) GAAATGCCCACGACCGGGCTGGATGAGCTGACAGAGGCCGAACGCGAGAC)\n")
-        expected = MLPathNode(key=(121, 171), sequence="GAAATGCCCACGACCGGGCTGGATGAGCTGACAGAGGCCGAACGCGAGAC")
+        handler = StringIO(
+            "(3 [121, 171) GAAATGCCCACGACCGGGCTGGATGAGCTGACAGAGGCCGAACGCGAGAC)\n"
+        )
+        expected = MLPathNode(
+            key=(121, 171),
+            sequence="GAAATGCCCACGACCGGGCTGGATGAGCTGACAGAGGCCGAACGCGAGAC",
+        )
         actual = DenovoVariantsDB._read_MLPathNode(handler)
         self.assertEqual(expected, actual)
 
@@ -53,15 +59,12 @@ class DenovoVariantsDBTest(TestCase):
             DenovoVariantsDB._read_ml_path(handler)
 
     def test___read_ml_path___empty_path_with_1_empty_node___raises_MLPathError(self):
-        handler = StringIO("1 nodes \n"
-                           "(0 [1, 1) )\n")
+        handler = StringIO("1 nodes \n" "(0 [1, 1) )\n")
         with self.assertRaises(MLPathError):
             DenovoVariantsDB._read_ml_path(handler)
 
     def test___read_ml_path___path_with_1_empty_node_1_non_empty_node(self):
-        handler = StringIO("2 nodes \n"
-                           "(0 [1, 1) )\n"
-                           "(1 [3, 10) ACGTACG)\n")
+        handler = StringIO("2 nodes \n" "(0 [1, 1) )\n" "(1 [3, 10) ACGTACG)\n")
 
         expected = MLPath([MLPathNode(key=(3, 10), sequence="ACGTACG")])
         actual = DenovoVariantsDB._read_ml_path(handler)
@@ -69,16 +72,20 @@ class DenovoVariantsDBTest(TestCase):
         self.assertEqual(expected, actual)
 
     def test___read_ml_path___empty_path_with_2_empty_nodes_2_non_empty_node(self):
-        handler = StringIO("4 nodes \n"
-                           "(0 [1, 1) )\n"
-                           "(1 [3, 10) ACGTACG)\n"
-                           "(2 [15, 20) GGCCA)\n"
-                           "(3 [30, 30) )\n")
+        handler = StringIO(
+            "4 nodes \n"
+            "(0 [1, 1) )\n"
+            "(1 [3, 10) ACGTACG)\n"
+            "(2 [15, 20) GGCCA)\n"
+            "(3 [30, 30) )\n"
+        )
 
-        expected = MLPath([
-            MLPathNode(key=(3, 10), sequence="ACGTACG"),
-            MLPathNode(key=(15, 20), sequence="GGCCA"),
-        ])
+        expected = MLPath(
+            [
+                MLPathNode(key=(3, 10), sequence="ACGTACG"),
+                MLPathNode(key=(15, 20), sequence="GGCCA"),
+            ]
+        )
         actual = DenovoVariantsDB._read_ml_path(handler)
 
         self.assertEqual(expected, actual)
@@ -132,8 +139,7 @@ class DenovoVariantsDBTest(TestCase):
         self.assertEqual(expected, actual)
 
     def test___read_variants___one_variant(self):
-        handler = StringIO("1 denovo variants for this locus\n"
-                           "49\tA\tG\n")
+        handler = StringIO("1 denovo variants for this locus\n" "49\tA\tG\n")
 
         expected = [DenovoVariant(48, "A", "G")]
         actual = DenovoVariantsDB._read_variants(handler)
@@ -141,12 +147,18 @@ class DenovoVariantsDBTest(TestCase):
         self.assertEqual(expected, actual)
 
     def test___read_variants___three_variants(self):
-        handler = StringIO("3 denovo variants for this locus\n"
-                           "49\tA\tG\n"
-                           "314\tGT\tAC\n"
-                           "500\t\tA\n")
+        handler = StringIO(
+            "3 denovo variants for this locus\n"
+            "49\tA\tG\n"
+            "314\tGT\tAC\n"
+            "500\t\tA\n"
+        )
 
-        expected = [DenovoVariant(48, "A", "G"), DenovoVariant(313, "GT", "AC"), DenovoVariant(499, "", "A")]
+        expected = [
+            DenovoVariant(48, "A", "G"),
+            DenovoVariant(313, "GT", "AC"),
+            DenovoVariant(499, "", "A"),
+        ]
         actual = DenovoVariantsDB._read_variants(handler)
 
         self.assertEqual(expected, actual)
@@ -158,29 +170,52 @@ class DenovoVariantsDBTest(TestCase):
 
         self.assertEqual(Path(denovo_paths_filepath), denovo_variants_DB.filepath)
         expected_locus_name_to_update_data = {
-            'GC00010897': [
-                UpdateData(ml_path_node_key=(0, 110),
-                           ml_path=denovo_variants_DB.locus_name_to_update_data['GC00010897'][0].ml_path,
-                           new_node_sequence="ATGCAGATACGTGAACAGGGCCGCAAAATTCAGTGCATCCGCATCGTGTACGACAAGGCCATTGGCCGGGGTCGGCAGACGGTCATTGCCACACTGGCCCGCTATACGAC"),
-                UpdateData(ml_path_node_key=(374, 491),
-                           ml_path=denovo_variants_DB.locus_name_to_update_data['GC00010897'][1].ml_path,
-                           new_node_sequence="GTCGGCAAGGCCTTGCGCAAGGCTGGTCACGCGAAGCCCAAGGCGGTCAGAAAGGGCAAGCCGGTCGATCCGGCTGATCCCAAGGATCAAGGGGTGGGGGCACCAAAGGGGAAATGA")
+            "GC00010897": [
+                UpdateData(
+                    ml_path_node_key=(0, 110),
+                    ml_path=denovo_variants_DB.locus_name_to_update_data["GC00010897"][
+                        0
+                    ].ml_path,
+                    new_node_sequence="ATGCAGATACGTGAACAGGGCCGCAAAATTCAGTGCATCCGCATCGTGTACGACAAGGCCATTGGCCGGGGTCGGCAGACGGTCATTGCCACACTGGCCCGCTATACGAC",
+                ),
+                UpdateData(
+                    ml_path_node_key=(374, 491),
+                    ml_path=denovo_variants_DB.locus_name_to_update_data["GC00010897"][
+                        1
+                    ].ml_path,
+                    new_node_sequence="GTCGGCAAGGCCTTGCGCAAGGCTGGTCACGCGAAGCCCAAGGCGGTCAGAAAGGGCAAGCCGGTCGATCCGGCTGATCCCAAGGATCAAGGGGTGGGGGCACCAAAGGGGAAATGA",
+                ),
             ],
-            'GC00006032': [
-                UpdateData(ml_path_node_key=(0, 145),
-                           ml_path=denovo_variants_DB.locus_name_to_update_data['GC00006032'][0].ml_path,
-                           new_node_sequence="TTGAGTAAAACAATCCCCCGCGCTTATATAAGCGCGTTGATATTTTTAGTTATTAACAAGCAACATCATGCTAATACAGACATACAAGGAGATCATCTCTCTTTGCCTGTTTTTTATTATTTCAGGAGTGTAAACACATTTTCCG")
+            "GC00006032": [
+                UpdateData(
+                    ml_path_node_key=(0, 145),
+                    ml_path=denovo_variants_DB.locus_name_to_update_data["GC00006032"][
+                        0
+                    ].ml_path,
+                    new_node_sequence="TTGAGTAAAACAATCCCCCGCGCTTATATAAGCGCGTTGATATTTTTAGTTATTAACAAGCAACATCATGCTAATACAGACATACAAGGAGATCATCTCTCTTTGCCTGTTTTTTATTATTTCAGGAGTGTAAACACATTTTCCG",
+                )
             ],
-            'Cluster_1011': [
-                UpdateData(ml_path_node_key=(930, 946),
-                           ml_path=denovo_variants_DB.locus_name_to_update_data['Cluster_1011'][0].ml_path,
-                           new_node_sequence="TTTTTGACCATTTCCA"),
-
-                UpdateData(ml_path_node_key=(955, 956),
-                           ml_path=denovo_variants_DB.locus_name_to_update_data['Cluster_1011'][1].ml_path,
-                           new_node_sequence="C")
-            ]}
-        self.assertEqual(expected_locus_name_to_update_data, denovo_variants_DB.locus_name_to_update_data)
+            "Cluster_1011": [
+                UpdateData(
+                    ml_path_node_key=(930, 946),
+                    ml_path=denovo_variants_DB.locus_name_to_update_data[
+                        "Cluster_1011"
+                    ][0].ml_path,
+                    new_node_sequence="TTTTTGACCATTTCCA",
+                ),
+                UpdateData(
+                    ml_path_node_key=(955, 956),
+                    ml_path=denovo_variants_DB.locus_name_to_update_data[
+                        "Cluster_1011"
+                    ][1].ml_path,
+                    new_node_sequence="C",
+                ),
+            ],
+        }
+        self.assertEqual(
+            expected_locus_name_to_update_data,
+            denovo_variants_DB.locus_name_to_update_data,
+        )
 
     def test___big_bang___empty(self):
         denovo_paths_filepath = "tests/data/update/empty_denovo_paths.txt"

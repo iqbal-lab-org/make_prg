@@ -1,5 +1,4 @@
 import re
-from loguru import logger
 
 
 class GFA_Output:
@@ -32,8 +31,8 @@ class GFA_Output:
         delim = "%s%d%s" % (self.delim_char, site_num, self.delim_char)
         check_string = delim.join(split_strings)
         assert check_string == prg_string, (
-                "Something has gone wrong with the string split for site %d\nsplit_"
-                "strings: %s" % (site_num, split_strings)
+            "Something has gone wrong with the string split for site %d\nsplit_"
+            "strings: %s" % (site_num, split_strings)
         )
         return split_strings
 
@@ -72,7 +71,7 @@ class GFA_Output:
             )
             self.gfa_site += 2
             for var_string in vars:
-                if pre_var_id != None:
+                if pre_var_id is not None:
                     self.gfa_string += "L\t%d\t+\t%d\t+\t0M\n" % (
                         pre_var_id,
                         self.gfa_id,

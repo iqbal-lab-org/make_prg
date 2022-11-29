@@ -1,0 +1,31 @@
+name: Python CI
+
+on: [ push, pull_request ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: [ 3.8, 3.9, '3.10', '3.11' ]
+        os: [ ubuntu-latest, macos-latest ]
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: extractions/setup-just@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install and configure Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.2.2
+      - name: Install project
+        run:  just install-ci
+      - name: Check formatting
+        run:  just check-fmt
+      - name: Lint
+        run:  just lint
+      - name: Test
+        run:  just test -vv

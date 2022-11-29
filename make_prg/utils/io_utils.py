@@ -1,11 +1,13 @@
 import gzip
-from Bio import AlignIO
 import os
-from make_prg.from_msa import MSA
-from typing import Dict, Union
-from pathlib import Path
-from zipfile import ZipFile
 import tempfile
+from pathlib import Path
+from typing import Dict, Union
+from zipfile import ZipFile
+
+from Bio import AlignIO
+
+from make_prg import MSA
 from make_prg.subcommands.output_type import OutputType
 
 
@@ -45,11 +47,17 @@ def remove_empty_folders(path: str, remove_root: bool = True):
 def output_files_already_exist(output_type: OutputType, output_prefix: str):
     files_to_check = []
     if output_type.prg:
-        files_to_check.extend([Path(output_prefix + ".prg.fa"), Path(output_prefix + ".update_DS.zip")])
+        files_to_check.extend(
+            [Path(output_prefix + ".prg.fa"), Path(output_prefix + ".update_DS.zip")]
+        )
     if output_type.gfa:
-        files_to_check.extend([Path(output_prefix + ".prg.gfa"), Path(output_prefix + ".prg.gfa.zip")])
+        files_to_check.extend(
+            [Path(output_prefix + ".prg.gfa"), Path(output_prefix + ".prg.gfa.zip")]
+        )
     if output_type.binary:
-        files_to_check.extend([Path(output_prefix + ".prg.bin"), Path(output_prefix + ".prg.bin.zip")])
+        files_to_check.extend(
+            [Path(output_prefix + ".prg.bin"), Path(output_prefix + ".prg.bin.zip")]
+        )
 
     for file_to_check in files_to_check:
         if file_to_check.exists():

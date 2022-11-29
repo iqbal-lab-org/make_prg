@@ -1,13 +1,13 @@
-from unittest import TestCase
 from typing import List
+from unittest import TestCase
 
-from tests.test_helpers import make_alignment, MSA
 from make_prg.from_msa.interval_partition import (
-    IntervalType,
     Interval,
     IntervalPartitioner,
+    IntervalType,
     PartitioningError,
 )
+from tests.test_helpers import MSA, make_alignment
 
 Lists = List[List[int]]
 

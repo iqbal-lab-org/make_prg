@@ -1,12 +1,17 @@
-from unittest import TestCase
-from unittest.mock import patch, Mock, call, MagicMock
-from io import BytesIO
 import random
+from io import BytesIO
+from unittest import TestCase
+from unittest.mock import MagicMock, Mock, call, patch
 
 from hypothesis import given
-from hypothesis.strategies import characters, integers, from_regex
+from hypothesis.strategies import characters, from_regex, integers
 
-from make_prg.utils.prg_encoder import PrgEncoder, ConversionError, EncodeError, to_bytes
+from make_prg.utils.prg_encoder import (
+    ConversionError,
+    EncodeError,
+    PrgEncoder,
+    to_bytes,
+)
 
 
 class TestDnaToInt(TestCase):

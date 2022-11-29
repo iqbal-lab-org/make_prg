@@ -1,11 +1,12 @@
-from typing import Generator, Tuple, List
-import itertools
-from Bio import pairwise2
-from make_prg.from_msa import MSA
 import copy
+import itertools
+from typing import Generator, List, Tuple
+
 import numpy as np
+from Bio import pairwise2
 from Bio.Seq import Seq
 
+from make_prg import MSA
 
 NONMATCH = "*"
 GAP = "-"
@@ -102,13 +103,18 @@ class SequenceExpander:
     @classmethod
     def check_all_sequences_are_composed_of_ACGT(cls, sequences: List[str]):
         for sequence in sequences:
-            sequence_is_composed_of_ACGT_only = set(sequence).issubset(cls.standard_bases)
-            assert sequence_is_composed_of_ACGT_only, f"Sequence ({sequence}) should be composed of ACTG only."
+            sequence_is_composed_of_ACGT_only = set(sequence).issubset(
+                cls.standard_bases
+            )
+            assert (
+                sequence_is_composed_of_ACGT_only
+            ), f"Sequence ({sequence}) should be composed of ACTG only."
 
     @classmethod
     def get_expanded_sequences(cls, sequences: List[str]) -> Sequences:
         """
-        Expand sequences in the given list of sequences, following the translation table in SequenceExpander.iupac.
+        Expand sequences in the given list of sequences, following the translation
+        table in SequenceExpander.iupac.
         It does the following steps:
             1. Check that we don't have disallowed bases;
             2. Remove sequences with N;
@@ -149,11 +155,14 @@ class SequenceExpander:
         return cls.get_expanded_sequences(gapless_seqs)
 
 
-def align(seq1: str, seq2: str,
-          match_score: float = 2,
-          mismatch_score: float = -0.9,
-          gap_open_score: float = -1.1,
-          gap_extend_score: float = -1) -> Tuple[str, str]:
+def align(
+    seq1: str,
+    seq2: str,
+    match_score: float = 2,
+    mismatch_score: float = -0.9,
+    gap_open_score: float = -1.1,
+    gap_extend_score: float = -1,
+) -> Tuple[str, str]:
 
     seq1_is_empty = len(seq1) == 0
     seq2_is_empty = len(seq2) == 0
@@ -163,9 +172,16 @@ def align(seq1: str, seq2: str,
     elif seq2_is_empty:
         return seq1, GAP * len(seq1)
     else:
-        # TODO: replace alignment library from BioPython to e.g. edlib due to performance reasons?
+        # TODO: replace alignment library from BioPython to e.g. edlib due to
+        #  performance reasons?
         alignment = pairwise2.align.globalms(
-            seq1, seq2, match_score, mismatch_score, gap_open_score, gap_extend_score, one_alignment_only=True
+            seq1,
+            seq2,
+            match_score,
+            mismatch_score,
+            gap_open_score,
+            gap_extend_score,
+            one_alignment_only=True,
         )
         alignment = alignment[0]
         return alignment.seqA, alignment.seqB
@@ -173,7 +189,8 @@ def align(seq1: str, seq2: str,
 
 def remove_columns_full_of_gaps_from_MSA(alignment: MSA) -> MSA:
     """
-    Note: This code is long and a bit convoluted because it is optimised (it was too slow if done in the most intuitive
+    Note: This code is long and a bit convoluted because it is optimised (it was too
+    slow if done in the most intuitive
     way).
     """
     alignment_as_array = np.array([list(rec) for rec in alignment], str, order="F")
@@ -205,7 +222,10 @@ def get_consensus_from_MSA(alignment: MSA) -> str:
     for i in range(alignment.get_alignment_length()):
         column = set([record.seq[i] for record in alignment])
         column = column.difference({"N"})
-        column_is_ambiguous = len(SequenceExpander.ambiguous_bases.intersection(column)) > 0 or len(column) != 1
+        column_is_ambiguous = (
+            len(SequenceExpander.ambiguous_bases.intersection(column)) > 0
+            or len(column) != 1
+        )
         column_is_all_gaps = column == {"-"}
         not_a_match = column_is_ambiguous or column_is_all_gaps
         if not_a_match:

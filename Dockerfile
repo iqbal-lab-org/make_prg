@@ -1,26 +1,47 @@
-FROM alpine
-MAINTAINER Michael Hall <michael@mbh.sh>
+# To build: docker build . -t make_prg:0.4.0
+# Tagged as such, it can be used in scripts/build_precompiled_binary/build_precompiled_binary.sh to build the precompiled binary
+FROM python:3.10-slim
 
-# DEPENDENCIES
-RUN apk update && apk upgrade && \
-    apk --no-cache add bash fd 'py3-scikit-learn>=0.19.1' 'py3-numpy>=1.14.0' py3-pip && \
-    apk --no-cache add --virtual .builddeps gcc musl-dev
-# INSTALL
-COPY . /make_prg
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt update \
+    && apt install -y curl graphviz graphviz-dev build-essential \
+    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+    && apt-get clean -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# install just
+ENV JUST_VERSION="1.8.0"
+RUN (curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh \
+    | bash -s -- --tag $JUST_VERSION --to /bin) \
+    && just --version
+
+# install poetry
+ENV POETRY_VERSION="1.2.2" \
+    POETRY_HOME="/usr/local" \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+RUN (curl -sSL https://install.python-poetry.org | python3 -) \
+    && poetry --version
+
+# install mafft
+ARG MAFFT_VERSION="7.505"
+RUN curl --proto '=https' -sSf "https://mafft.cbrc.jp/alignment/software/mafft_${MAFFT_VERSION}-1_amd64.deb" -o mafft.deb \
+    && dpkg -i mafft.deb \
+    && rm mafft.deb \
+    && mafft --version
+
+# install make_prg
 WORKDIR /make_prg
-RUN python3 -m pip install --no-cache-dir .
-# TEST
-RUN python3 -m pip install --no-cache-dir nose hypothesis pytest
-RUN nosetests -v tests/ && make_prg --help
-# CLEANUP
-WORKDIR /
-RUN python3 -m pip uninstall -y nose hypothesis pytest && \
-    apk del .builddeps && \
-    rm -rf /root/.cache && \
-    rm -rf /make_prg
+COPY . /make_prg
 
-# so that the use of python uses the python3 in the container
-RUN python3 -m venv /venv
-ENV PATH=/venv/bin:$PATH
+RUN poetry run pip install -U pip \
+    && poetry install --no-ansi --only main --all-extras \
+    && make_prg --version
 
-CMD ["python3", "-m", "make_prg"]
+# workaround required for pyinstaller to work
+RUN cp -vr /usr/bin/* /usr/sbin/
+
+SHELL ["/bin/bash", "-eo", "pipefail", "-c"]

@@ -1,0 +1,91 @@
+[tool.poetry]
+name = "make_prg"
+version = "0.4.0"
+description = "Code to create a PRG from a Multiple Sequence Alignment file"
+authors = ["Michael Hall <michael@mbh.sh>", "Leandro Ishi <leandro@ebi.ac.uk>", "Brice Letcher <bletcher@ebi.ac.uk>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/iqbal-lab-org/make_prg"
+repository = "https://github.com/iqbal-lab-org/make_prg"
+documentation = "https://github.com/iqbal-lab-org/make_prg"
+packages = [{include = "make_prg"}]
+keywords = ["python", "reference-graph", "genome-graph", "bioinformatics"]
+
+[tool.poetry.scripts]
+make_prg = 'make_prg.__main__:main'
+
+[tool.poetry.dependencies]
+python = ">=3.8,<=3.11"
+setuptools = "^65"
+biopython = "1.79"
+loguru = "^0.6.0"
+numpy = "^1.21.4"
+scikit-learn = "0.24.2"
+intervaltree = "^3.1.0"
+pygraphviz = { version = "1.7", optional = true }
+networkx = { version = "^2.6.3", optional = true }
+matplotlib = { version = "^3.5.0", optional = true }
+pyinstaller = {version = "^5.6", optional = true}
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.2.0"
+pytest-cov = "^4.0.0"
+hypothesis = "^6.24.5"
+black = "^22.10.0"
+isort = "^5.10.1"
+flake8 = "^5.0.4"
+
+[tool.black]
+line-length = 88
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+)
+'''
+
+[tool.isort]
+profile = "black"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.extras]
+debug_graphs = ["pygraphviz", "networkx", "matplotlib"]
+precompiled_binary = ["pygraphviz", "networkx", "matplotlib", "pyinstaller"]
+
+# Note: to make breakpoints work when running tests through pycharm IDE, comment out this section
+# See https://intellij-support.jetbrains.com/hc/en-us/community/posts/360008107400-PyCharm-2020-1-not-stopping-on-breakpoints-anymore
+[tool.pytest.ini_options]
+addopts = "--cov --cov-report term --cov-fail-under=98"
+testpaths = ["tests"]
+
+# Note: to make pycharm IDE able to collect coverage statistics, comment out this section
+[tool.coverage.run]
+omit = [
+    "make_prg/utils/recursive_tree_drawer.py",  # this source file is never executed by users, just for internal debugging
+    "make_prg/subcommands/from_msa.py",         # CLI source file, ignored in coverage
+    "make_prg/subcommands/update.py",           # CLI source file, ignored in coverage
+    "tests/**"                                  # test source dir, ignored in coverage, as it can bring the percentage up
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "def __repr__",
+    "@abstractmethod",
+    "raise NotImplementedError",
+    "logger.*"
+]

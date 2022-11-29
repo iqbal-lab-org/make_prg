@@ -145,3 +145,8 @@ dmypy.json
 
 # profiling data
 .prof
+
+sample_example
+tests
+.coverage*
+.github
