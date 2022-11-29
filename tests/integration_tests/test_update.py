@@ -2,6 +2,8 @@ from argparse import Namespace
 from pathlib import Path
 from unittest import TestCase
 
+import pytest
+
 from make_prg.subcommands import output_type, update
 from tests.test_helpers import are_dir_trees_equal, remove_dir_if_exists
 
@@ -9,6 +11,7 @@ data_dir = Path("tests/integration_tests/data")
 
 
 # NOTE: for these tests we need mafft in $PATH
+@pytest.mark.forked
 class Test_Update_Integration_Full_Builds(TestCase):
     def prepare_options(self, test_name: str, update_DS: Path):
         output_folder = data_dir / "output_update" / test_name
