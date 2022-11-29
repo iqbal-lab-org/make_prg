@@ -1,15 +1,15 @@
 import multiprocessing
-from dataclasses import dataclass
 from pathlib import Path
 
 from loguru import logger
 
 from make_prg.prg_builder import LeafNotFoundException, PrgBuilderZipDatabase
 from make_prg.update.denovo_variants import DenovoVariantsDB
+from make_prg.update.update_shared_data import SingletonUpdateSharedData
 from make_prg.utils import gfa, io_utils
 from make_prg.utils.input_output_files import InputOutputFilesUpdate
 from make_prg.utils.misc import should_output_debug_graphs
-from make_prg.utils.msa_aligner import MAFFT, MSAAligner
+from make_prg.utils.msa_aligner import MAFFT
 
 
 def register_parser(subparsers):
@@ -84,13 +84,7 @@ def register_parser(subparsers):
     return subparser_update_prg
 
 
-@dataclass
-class UpdateSharedData:
-    denovo_variants_db: DenovoVariantsDB
-    aligner: MSAAligner
-
-
-def update(options, input_and_output_files: InputOutputFilesUpdate, update_shared_data):
+def update(options, input_and_output_files: InputOutputFilesUpdate):
     # TODO: handle failed runs here?
 
     locus_name = input_and_output_files.locus_name
@@ -98,9 +92,11 @@ def update(options, input_and_output_files: InputOutputFilesUpdate, update_share
     prg_builder_zip_db.load()
     prg_builder_for_locus = prg_builder_zip_db.get_PrgBuilder(locus_name)
 
-    prg_builder_for_locus.aligner = update_shared_data.aligner
+    # retrieves singleton data
+    update_shared_data = SingletonUpdateSharedData()
+    prg_builder_for_locus.aligner = update_shared_data.data.aligner
     update_data_list = (
-        update_shared_data.denovo_variants_db.locus_name_to_update_data.get(
+        update_shared_data.data.denovo_variants_db.locus_name_to_update_data.get(
             locus_name, []
         )
     )
@@ -192,7 +188,9 @@ def run(cl_options):
         denovo_variants_db = DenovoVariantsDB(
             options.denovo_paths, options.long_deletion_threshold
         )
-        update_shared_data = UpdateSharedData(denovo_variants_db, mafft_aligner)
+
+        # initialises a singleton storing the denovo_variants_db and the aligner for the update operation
+        SingletonUpdateSharedData(denovo_variants_db, mafft_aligner)
 
         output_dir = Path(options.output_prefix).parent
         output_dir.mkdir(exist_ok=True)
@@ -204,7 +202,7 @@ def run(cl_options):
                 loci, options.output_type, mp_temp_dir
             )
         )
-        args = [(options, iof, update_shared_data) for iof in input_and_output_files]
+        args = [(options, iof) for iof in input_and_output_files]
 
         # update all PRGs with denovo sequences
         logger.info(f"Using {options.threads} threads to update PRGs...")
