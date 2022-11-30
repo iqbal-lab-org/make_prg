@@ -5,8 +5,8 @@ Multiple Sequence Alignments.
 
 # Support
 
-We fully support `make_prg` on `linux`.
-No guarantees are made for other operating systems.
+We fully support `make_prg` on `linux` with `python` versions `3.8`, `3.9`, `3.10`, `3.11`.
+No guarantees are made for other operating systems or `python` versions.
 
 [TOC]: #
 
@@ -50,7 +50,7 @@ chmod +x make_prg_0.4.0
 
 ### pip
 
-**Requirements**: `python>=3.8`
+**Requirements**: `python>=3.8,<=3.11`
 
 ```sh
 pip install make_prg
@@ -94,36 +94,24 @@ usage: make_prg from_msa
 optional arguments:
   -h, --help            show this help message and exit
   -i INPUT, --input INPUT
-                        Multiple sequence alignment file or a directory
-                        containing such files
+                        Multiple sequence alignment file or a directory containing such files
   -s SUFFIX, --suffix SUFFIX
-                        If the input parameter (-i, --input) is a directory,
-                        then filter for files with this suffix. If this
-                        parameter is not given, all files in the input
-                        directory is considered.
+                        If the input parameter (-i, --input) is a directory, then filter for files with this suffix. If this parameter is not given, all files in the
+                        input directory is considered.
   -o OUTPUT_PREFIX, --output-prefix OUTPUT_PREFIX
                         Prefix for the output files
   -f ALIGNMENT_FORMAT, --alignment-format ALIGNMENT_FORMAT
-                        Alignment format of MSA, must be a biopython AlignIO
-                        input alignment_format. See
-                        http://biopython.org/wiki/AlignIO. Default: fasta
+                        Alignment format of MSA, must be a biopython AlignIO input alignment_format. See http://biopython.org/wiki/AlignIO. Default: fasta
   -N MAX_NESTING, --max-nesting MAX_NESTING
-                        Maximum number of levels to use for nesting. Default:
-                        5
+                        Maximum number of levels to use for nesting. Default: 5
   -L MIN_MATCH_LENGTH, --min-match-length MIN_MATCH_LENGTH
-                        Minimum number of consecutive characters which must be
-                        identical for a match. Default: 7
+                        Minimum number of consecutive characters which must be identical for a match. Default: 7
   -O OUTPUT_TYPE, --output-type OUTPUT_TYPE
-                        p: PRG, b: Binary, g: GFA, a: All. Combinations are
-                        allowed i.e., gb: GFA and Binary. Default: a
+                        p: PRG, b: Binary, g: GFA, a: All. Combinations are allowed i.e., gb: GFA and Binary. Default: a
   -F, --force           Force overwrite previous output
   -t THREADS, --threads THREADS
-                        Number of threads. 0 will use all available. Default:
-                        1
-  -g, --output-graphs   Outputs the recursive tree graphical representation
-                        (for development use only)
-  -v, --verbose         Increase output verbosity (-v for debug, -vv for trace
-                        - trace is for developers only)
+                        Number of threads. 0 will use all available. Default: 1
+  -v, --verbose         Increase output verbosity (-v for debug, -vv for trace - trace is for developers only)
   --log LOG             Path to write log to. Default is stderr
 ```
 
@@ -136,32 +124,21 @@ usage: make_prg update
 optional arguments:
   -h, --help            show this help message and exit
   -u UPDATE_DS, --update-DS UPDATE_DS
-                        Filepath to the update data structures (a
-                        *.update_DS.zip file created from make_prg from_msa or
-                        update)
+                        Filepath to the update data structures (a *.update_DS.zip file created from make_prg from_msa or update)
   -o OUTPUT_PREFIX, --output-prefix OUTPUT_PREFIX
                         Prefix for the output files
   -d DENOVO_PATHS, --denovo-paths DENOVO_PATHS
-                        Filepath containing denovo sequences. Should point to
-                        a denovo_paths.txt file
+                        Filepath containing denovo sequences. Should point to a denovo_paths.txt file
   -D LONG_DELETION_THRESHOLD, --deletion-threshold LONG_DELETION_THRESHOLD
-                        Ignores long deletions of the given size or longer. If
-                        long deletions should not be ignored, put a large
-                        value. Default: 10
+                        Ignores long deletions of the given size or longer. If long deletions should not be ignored, put a large value. Default: 10
   -m MAFFT, --mafft MAFFT
-                        Path to MAFFT executable. By default, it is assumed to
-                        be on $PATH
+                        Path to MAFFT executable. By default, it is assumed to be on $PATH
   -O OUTPUT_TYPE, --output-type OUTPUT_TYPE
-                        p: PRG, b: Binary, g: GFA, a: All. Combinations are
-                        allowed i.e., gb: GFA and Binary. Default: a
+                        p: PRG, b: Binary, g: GFA, a: All. Combinations are allowed i.e., gb: GFA and Binary. Default: a
   -F, --force           Force overwrite previous output
   -t THREADS, --threads THREADS
-                        Number of threads. 0 will use all available. Default:
-                        1
-  -g, --output-graphs   Outputs the recursive tree graphical representation
-                        (for development use only)
-  -v, --verbose         Increase output verbosity (-v for debug, -vv for trace
-                        - trace is for developers only)
+                        Number of threads. 0 will use all available. Default: 1
+  -v, --verbose         Increase output verbosity (-v for debug, -vv for trace - trace is for developers only)
   --log LOG             Path to write log to. Default is stderr
 ```
 
