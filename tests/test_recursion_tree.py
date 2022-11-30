@@ -1744,6 +1744,30 @@ class TestNodeFactory(TestCase):
             NodeFactory._is_single_match_interval(all_intervals, match_intervals)
         )
 
+    def test____is_multi_interval___no_intervals___not_multi_interval(
+        self, *uninteresting_mocks
+    ):
+        all_intervals = []
+        self.assertFalse(NodeFactory._is_multi_interval(all_intervals))
+
+    def test____is_multi_interval___one_interval___not_multi_interval(
+        self, *uninteresting_mocks
+    ):
+        all_intervals = [Mock()]
+        self.assertFalse(NodeFactory._is_multi_interval(all_intervals))
+
+    def test____is_multi_interval___two_intervals___is_multi_interval(
+        self, *uninteresting_mocks
+    ):
+        all_intervals = [Mock(), Mock()]
+        self.assertTrue(NodeFactory._is_multi_interval(all_intervals))
+
+    def test____is_multi_interval___three_intervals___is_multi_interval(
+        self, *uninteresting_mocks
+    ):
+        all_intervals = [Mock(), Mock(), Mock()]
+        self.assertTrue(NodeFactory._is_multi_interval(all_intervals))
+
     def test___partition_alignment_into_interval_subalignments(
         self, *uninteresting_mocks
     ):
