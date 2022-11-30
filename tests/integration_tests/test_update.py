@@ -219,3 +219,17 @@ class Test_Update_Integration_Full_Builds(TestCase):
                 data_dir / "output_update/match_update_simple_bin_only",
             )
         )
+
+    def test___update_sample_example(self):
+        options = self.prepare_options(
+            test_name="sample_example_update",
+            update_DS=data_dir
+            / "truth_output/sample_example/sample_example.update_DS.zip",
+        )
+        update.run(options)
+        self.assertTrue(
+            are_dir_trees_equal(
+                data_dir / "truth_output_update/sample_example_update",
+                data_dir / "output_update/sample_example_update",
+            )
+        )

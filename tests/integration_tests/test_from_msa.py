@@ -516,3 +516,14 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
                 data_dir / "output/several_compressed",
             )
         )
+
+    def test___sample_example(self):
+        options = self.prepare_options("sample_example")
+        options.input = str(data_dir / "sample_example")
+        from_msa.run(options)
+        self.assertTrue(
+            are_dir_trees_equal(
+                data_dir / "truth_output/sample_example",
+                data_dir / "output/sample_example",
+            )
+        )
