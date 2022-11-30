@@ -88,6 +88,10 @@ class MSAAligner(ABC):
 
 
 class MAFFT(MSAAligner):
+    def __init__(self, tmpdir: Path = Path("..")):
+        source_file_dir = os.path.dirname(os.path.abspath(__file__))
+        super().__init__(f"{source_file_dir}/mafft-linux64/mafft.bat", tmpdir)
+
     @classmethod
     def get_aligner_name(cls) -> str:
         return "MAFFT"

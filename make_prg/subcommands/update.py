@@ -177,7 +177,7 @@ def run(cl_options):
 
     root_temp_dir = io_utils.create_temp_dir(output_dir)
     msa_temp_path = root_temp_dir / "msa_temp"
-    mafft_aligner = MAFFT(executable=options.mafft, tmpdir=msa_temp_path)
+    mafft_aligner = MAFFT(tmpdir=msa_temp_path)
 
     prg_builder_zip_db = None
     try:
