@@ -30,6 +30,7 @@ pyinstaller = {version = "^5.6", optional = true}
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.0"
 pytest-cov = "^4.0.0"
+pytest-forked = "^1.4.0"
 hypothesis = "^6.24.5"
 black = "^22.10.0"
 isort = "^5.10.1"
