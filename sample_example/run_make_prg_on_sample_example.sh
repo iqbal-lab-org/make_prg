@@ -4,8 +4,7 @@ set -eu
 # configs
 version="0.4.0"
 make_prg="./make_prg_${version}"
-# TODO: update to release URL when we have it
-make_prg_URL="https://www.dropbox.com/s/jfzuxjkjd5ke15x/make_prg_0.4.0?dl=1"
+make_prg_URL="https://github.com/iqbal-lab-org/make_prg/releases/download/0.4.0/make_prg_0.4.0"
 
 
 if [ ! -f ${make_prg} ]; then
