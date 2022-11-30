@@ -410,16 +410,18 @@ class NodeFactory:
         Node building priority depends on the type of node we are building:
         1. If type of node is root
             1.1. Try to build a leaf
-            1.2. Try to build a multi interval node (even if we have just a single mismatch interval)
+            1.2. Force build a multi interval node (even if we have just a single mismatch interval)
         2. If type of node is non-root
             2.1. Try to build a leaf
             2.2. Try to build a multi interval node
             2.3. Try to build a multi cluster node
+            2.4. If all fails, force build a leaf
 
         This can be simplified as:
         1. Try to build a leaf
         2. Try to build a multi interval node (force this build if type of node is root)
         3. Try to build a multi cluster node
+        4. Force build a leaf node
         """
         min_match_length = prg_builder.min_match_length
         all_intervals, match_intervals = NodeFactory._get_vertical_partition(
@@ -447,7 +449,7 @@ class NodeFactory:
                 prg_builder,
                 interval_subalignments,
             )
-        else:  # builds multi cluster node
+        else:  # builds a multi cluster node
             clustering_result = kmeans_cluster_seqs(alignment, min_match_length)
             cluster_further = NodeFactory._infer_if_we_should_cluster_further(
                 alignment, clustering_result, nesting_level, prg_builder.max_nesting
@@ -465,7 +467,7 @@ class NodeFactory:
                     prg_builder,
                     cluster_subalignments,
                 )
-            else:  # can't cluster further, builds leaf
+            else:  # can't cluster further, force builds leaf
                 return LeafNode(nesting_level, alignment, parent_node, prg_builder)
 
     #####################################################################################################

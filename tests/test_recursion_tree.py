@@ -1348,7 +1348,47 @@ class TestNodeFactory(TestCase):
         NodeFactory._partition_alignment_into_interval_subalignments.__name__,
         return_value="interval_subalignments_mock",
     )
-    def test___build___parent_node_is_None___not_a_single_match_interval___builds_multi_interval_root(
+    def test___build___parent_node_is_None_has_multiple_intervals___builds_multi_interval_root(
+        self, *uninteresting_mocks
+    ):
+        self.setup()
+
+        # mock MultiIntervalNode.__init__
+        def __init__(
+            node_self,
+            nesting_level,
+            alignment,
+            parent,
+            prg_builder,
+            interval_subalignments,
+        ):
+            self.assertEqual(0, nesting_level)
+            self.assertEqual(self.alignment, alignment)
+            self.assertEqual(None, parent)
+            self.assertEqual(self.prg_builder, prg_builder)
+            self.assertEqual("interval_subalignments_mock", interval_subalignments)
+
+        with patch.object(MultiIntervalNode, "__init__", __init__):
+            node = NodeFactory.build(self.alignment, self.prg_builder, parent_node=None)
+            self.assertTrue(isinstance(node, MultiIntervalNode))
+
+    @patch.object(
+        NodeFactory,
+        NodeFactory._get_vertical_partition.__name__,
+        return_value=(Mock(), Mock()),
+    )
+    @patch.object(
+        NodeFactory, NodeFactory._is_multi_interval.__name__, return_value=False
+    )
+    @patch.object(
+        NodeFactory, NodeFactory._is_single_match_interval.__name__, return_value=False
+    )
+    @patch.object(
+        NodeFactory,
+        NodeFactory._partition_alignment_into_interval_subalignments.__name__,
+        return_value="interval_subalignments_mock",
+    )
+    def test___build___parent_node_is_None_has_single_non_match_interval___force_builds_multi_interval_root(
         self, *uninteresting_mocks
     ):
         self.setup()
