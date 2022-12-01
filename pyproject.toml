@@ -68,13 +68,15 @@ build-backend = "poetry.core.masonry.api"
 debug_graphs = ["pygraphviz", "networkx", "matplotlib"]
 precompiled_binary = ["pygraphviz", "networkx", "matplotlib", "pyinstaller"]
 
-# Note: to make breakpoints work when running tests through pycharm IDE, comment out this section
+# Note: to make breakpoints work when running tests through pycharm IDE, comment out section [tool.pytest.ini_options]
 # See https://intellij-support.jetbrains.com/hc/en-us/community/posts/360008107400-PyCharm-2020-1-not-stopping-on-breakpoints-anymore
+# Note: to make pycharm IDE able to collect coverage statistics, comment out sections
+# [tool.pytest.ini_options], [tool.coverage.run], [tool.coverage.report]
+
 [tool.pytest.ini_options]
 addopts = "--cov --cov-report term --cov-fail-under=98"
 testpaths = ["tests"]
 
-# Note: to make pycharm IDE able to collect coverage statistics, comment out this section
 [tool.coverage.run]
 omit = [
     "make_prg/utils/recursive_tree_drawer.py",  # this source file is never executed by users, just for internal debugging
