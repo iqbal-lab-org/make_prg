@@ -5,13 +5,12 @@ Multiple Sequence Alignments.
 
 # Support
 
-We fully support `make_prg` on `linux` with `python` versions `3.8`, `3.9`, `3.10`, `3.11`.
+We fully support `make_prg` on `linux` with `python` versions `3.8`-`3.11`.
 No guarantees are made for other operating systems or `python` versions.
 
 [TOC]: #
 
 ## Table of Contents
-- [Dependencies](#dependencies)
 - [Install](#install)
   - [No installation needed - precompiled portable binary](#no-installation-needed---precompiled-portable-binary)
   - [pip](#pip)
@@ -19,17 +18,9 @@ No guarantees are made for other operating systems or `python` versions.
 - [Running on a sample example](#running-on-a-sample-example)
 - [Usage](#usage)
 
-## Dependencies
-
-`make_prg` has two commands: `from_msa` and `update`. The `update` command requires `MAFFT` to be installed:
-  1. from source: https://mafft.cbrc.jp/alignment/software/;
-  2. using `conda`: `conda install -c bioconda mafft`;
-
 ## Install
 
 ### No installation needed - precompiled portable binary
-
-> Note: We provide precompiled binaries for Linux OS only
 
 You can use `make_prg` with no installation at all by simply downloading the precompiled binary, and running it.
 In this binary, all libraries are linked statically. Compilation is done using [PyInstaller](https://github.com/pyinstaller/pyinstaller).
