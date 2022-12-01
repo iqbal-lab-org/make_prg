@@ -5,8 +5,8 @@ Multiple Sequence Alignments.
 
 # Support
 
-We fully support `make_prg` on `linux` with `python` versions `3.8`-`3.11`.
-No guarantees are made for other operating systems or `python` versions.
+We fully support `make_prg` on `linux` with `python` versions `3.8`-`3.11`. For other operating systems, `make_prg`
+can be run through containers.
 
 [TOC]: #
 
@@ -15,6 +15,7 @@ No guarantees are made for other operating systems or `python` versions.
   - [No installation needed - precompiled portable binary](#no-installation-needed---precompiled-portable-binary)
   - [pip](#pip)
   - [conda](#conda)
+  - [Container](#container)
 - [Running on a sample example](#running-on-a-sample-example)
 - [Usage](#usage)
 
@@ -52,6 +53,40 @@ pip install make_prg
 ```sh
 conda install -c bioconda make_prg
 ```
+
+### Container
+
+Docker images are hosted at [quay.io].
+
+#### `singularity`
+
+Prerequisite: [`singularity`][singularity]
+
+```sh
+URI="docker://quay.io/iqballab/make_prg"
+singularity exec "$URI" make_prg --help
+```
+
+The above will use the latest version. If you want to specify a version then use a
+[tag][quay.io] (or commit) like so.
+
+```sh
+VERSION="0.4.0"
+URI="docker://quay.io/iqballab/make_prg:${VERSION}"
+```
+
+#### `docker`
+
+[![Docker Repository on Quay](https://quay.io/repository/iqballab/make_prg/status "Docker Repository on Quay")](https://quay.io/repository/iqballab/make_prg)
+
+Prerequisite: [`docker`][docker]
+
+```sh
+docker pull quay.io/iqballab/make_prg
+docker run quay.io/iqballab/make_prg --help
+```
+
+You can find all the available tags on the [quay.io repository][quay.io].
 
 ## Running on a sample example
 
@@ -132,3 +167,6 @@ options:
 
 [pandora]: https://github.com/rmcolq/pandora
 [gramtools]: https://github.com/iqbal-lab-org/gramtools/
+[docker]: https://docs.docker.com/v17.12/install/
+[quay.io]: https://quay.io/repository/iqballab/make_prg
+[singularity]: https://sylabs.io/guides/3.4/user-guide/quick_start.html#quick-installation-steps
