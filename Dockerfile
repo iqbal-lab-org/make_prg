@@ -26,13 +26,6 @@ ENV POETRY_VERSION="1.2.2" \
 RUN (curl -sSL https://install.python-poetry.org | python3 -) \
     && poetry --version
 
-# install mafft
-ARG MAFFT_VERSION="7.505"
-RUN curl --proto '=https' -sSf "https://mafft.cbrc.jp/alignment/software/mafft_${MAFFT_VERSION}-1_amd64.deb" -o mafft.deb \
-    && dpkg -i mafft.deb \
-    && rm mafft.deb \
-    && mafft --version
-
 # install make_prg
 WORKDIR /make_prg
 COPY . /make_prg
