@@ -34,6 +34,7 @@ class MSAAligner(ABC):
         tmpdir.mkdir(parents=True, exist_ok=True)
         self._tmpdir: Path = tmpdir
 
+    # tmpdir == Path("..") means the root temp dir is ".." and we will build per-run temp dir alongside "."
     def __init__(self, executable: str, tmpdir: Path = Path("..")):
         self._set_executable(executable)
         self._set_tmpdir(tmpdir)
@@ -73,8 +74,7 @@ class MSAAligner(ABC):
 
     @staticmethod
     def _create_new_sequences_file(directory: Path, new_sequences: Set[str]) -> Path:
-        # this is just done so that we have a deterministic order of new_sequences and
-        # tests run correctly
+        # sorted() is done so that we have a deterministic order of new_sequences and tests run correctly
         new_sequences = sorted(list(new_sequences))
         new_sequences_filepath = directory / "new_sequences.fa"
         with open(new_sequences_filepath, "w") as new_sequences_handler:
