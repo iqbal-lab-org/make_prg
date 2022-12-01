@@ -5,7 +5,7 @@ Multiple Sequence Alignments.
 
 # Support
 
-We fully support `make_prg` on `linux` with `python` versions `3.8`, `3.9`, `3.10`, `3.11`.
+We fully support `make_prg` on `linux` with `python` versions `3.8`-`3.11`.
 No guarantees are made for other operating systems or `python` versions.
 
 [TOC]: #
