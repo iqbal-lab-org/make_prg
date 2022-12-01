@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Trace (`-vv`) logging level, to track make_prg behaviour (intended for developers only);
 - Multithreading support (`-t` parameter);
 - A sample example;
-- 325 new tests (from 116 to 441 total tests), with test coverage >99% in non-argument parsing code;
+- 363 new tests (from 116 to 479 total tests), with test coverage >99% in non-argument parsing code;
 - Precompiled binary;
 
 ### Changed
@@ -38,14 +38,14 @@ Any preorder traversal of the recursion tree yields the same order of recursive 
 thus allowing us to translate the algorithms in the previous version as preorder traversals with custom visit
 operations.
 - Moved from `setup.py` to `pyproject.toml`
-- Dropped support for `python 3.7`, supported `python` versions are: `3.8`, `3.9`, `3.10`, `3.11`.
 
 ### Fixed
 - Several minor bugs;
 - Heavy refactoring of almost the whole codebase;
 
 ### Removed
-- Support for `Mac OS X`;
+- Dropped support for `python 3.7`, supported `python` versions are: `3.8`, `3.9`, `3.10`, `3.11`.
+- Dropped support for `Mac OS X`;
 
 ## [0.2.0] - 2021-10-27
 

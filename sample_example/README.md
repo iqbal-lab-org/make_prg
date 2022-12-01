@@ -1,11 +1,18 @@
 # Toy example
 
 Here we present a walkthrough of running `make_prg` on a toy example.
-Note that there is no need to have `make_prg` installed.
-The test script downloads the precompiled binary of the latest release.
 We run:
 1) `make_prg from_msa` to create PRGs from MSAs;
 2) `make_prg update` to update PRGs with denovo paths;
+
+# Dependencies
+
+* `mafft` in `PATH`. Can be installed:
+  1. from source: https://mafft.cbrc.jp/alignment/software/;
+  2. using `conda`: `conda install -c bioconda mafft`;
+
+There is no need to have `make_prg` itself installed.
+The test script downloads the precompiled binary of the latest release.
 
 ## Input data description
 
