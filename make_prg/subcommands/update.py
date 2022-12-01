@@ -73,12 +73,6 @@ def register_parser(subparsers):
             "put a large value. Default: %(default)d"
         ),
     )
-    subparser_update_prg.add_argument(
-        "-m",
-        "--mafft",
-        help="Path to MAFFT executable. By default, it is assumed to be on $PATH",
-        default="mafft",
-    )
     subparser_update_prg.set_defaults(func=run)
 
     return subparser_update_prg
