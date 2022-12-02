@@ -75,7 +75,7 @@ precompiled_binary = ["pygraphviz", "networkx", "matplotlib", "pyinstaller"]
 # [tool.pytest.ini_options], [tool.coverage.run], [tool.coverage.report]
 
 [tool.pytest.ini_options]
-addopts = "--cov --cov-report term --cov-fail-under=98"
+addopts = "--cov --cov-report term --cov-report xml --cov-fail-under=98"
 testpaths = ["tests"]
 
 [tool.coverage.run]
