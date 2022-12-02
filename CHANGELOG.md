@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Trace (`-vv`) logging level, to track make_prg behaviour (intended for developers only);
 - Multithreading support (`-t` parameter);
 - A sample example;
-- 363 new tests (from 116 to 479 total tests), with test coverage >99% in non-argument parsing code;
+- 365 new tests (from 116 to 481 total tests), with test coverage >99% in non-argument parsing code;
 - Precompiled binary;
 
 ### Changed

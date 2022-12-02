@@ -10,7 +10,6 @@ from tests.test_helpers import are_dir_trees_equal, remove_dir_if_exists
 data_dir = Path("tests/integration_tests/data")
 
 
-# NOTE: for these tests we need mafft in $PATH
 @pytest.mark.forked
 class Test_Update_Integration_Full_Builds(TestCase):
     def prepare_options(self, test_name: str, update_DS: Path):
@@ -23,11 +22,9 @@ class Test_Update_Integration_Full_Builds(TestCase):
             update_DS=update_DS,
             output_prefix=output_prefix,
             long_deletion_threshold=1000000,
-            mafft="mafft",
             log=None,
             output_type=output_type.OutputType("a"),
             force=False,
-            output_graphs=False,
             threads=1,
             verbose=False,
         )
@@ -136,11 +133,9 @@ class Test_Update_Integration_Full_Builds(TestCase):
             denovo_paths=str(data_dir / "match_update_simple" / "denovo_paths.txt"),
             update_DS=data_dir / "truth_output/match/match.update_DS.zip",
             output_prefix=output_prefix,
-            mafft="mafft",
             log=None,
             output_type=output_type.OutputType("a"),
             force=False,
-            output_graphs=False,
             threads=1,
             verbose=False,
         )
@@ -160,11 +155,9 @@ class Test_Update_Integration_Full_Builds(TestCase):
             update_DS=data_dir / "truth_output/match/match.update_DS.zip",
             output_prefix=output_prefix,
             long_deletion_threshold=1000000,
-            mafft="mafft",
             log=None,
             output_type=output_type.OutputType("a"),
             force=True,
-            output_graphs=False,
             threads=1,
             verbose=False,
         )

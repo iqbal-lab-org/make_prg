@@ -5,31 +5,23 @@ Multiple Sequence Alignments.
 
 # Support
 
-We fully support `make_prg` on `linux` with `python` versions `3.8`-`3.11`.
-No guarantees are made for other operating systems or `python` versions.
+We fully support `make_prg` on `linux` with `python` versions `3.8`-`3.11`. For other operating systems, `make_prg`
+can be run through containers.
 
 [TOC]: #
 
 ## Table of Contents
-- [Dependencies](#dependencies)
 - [Install](#install)
   - [No installation needed - precompiled portable binary](#no-installation-needed---precompiled-portable-binary)
   - [pip](#pip)
   - [conda](#conda)
+  - [Container](#container)
 - [Running on a sample example](#running-on-a-sample-example)
 - [Usage](#usage)
-
-## Dependencies
-
-`make_prg` has two commands: `from_msa` and `update`. The `update` command requires `MAFFT` to be installed:
-  1. from source: https://mafft.cbrc.jp/alignment/software/;
-  2. using `conda`: `conda install -c bioconda mafft`;
 
 ## Install
 
 ### No installation needed - precompiled portable binary
-
-> Note: We provide precompiled binaries for Linux OS only
 
 You can use `make_prg` with no installation at all by simply downloading the precompiled binary, and running it.
 In this binary, all libraries are linked statically. Compilation is done using [PyInstaller](https://github.com/pyinstaller/pyinstaller).
@@ -62,6 +54,40 @@ pip install make_prg
 conda install -c bioconda make_prg
 ```
 
+### Container
+
+Docker images are hosted at [quay.io].
+
+#### `singularity`
+
+Prerequisite: [`singularity`][singularity]
+
+```sh
+URI="docker://quay.io/iqballab/make_prg"
+singularity exec "$URI" make_prg --help
+```
+
+The above will use the latest version. If you want to specify a version then use a
+[tag][quay.io] (or commit) like so.
+
+```sh
+VERSION="0.4.0"
+URI="docker://quay.io/iqballab/make_prg:${VERSION}"
+```
+
+#### `docker`
+
+[![Docker Repository on Quay](https://quay.io/repository/iqballab/make_prg/status "Docker Repository on Quay")](https://quay.io/repository/iqballab/make_prg)
+
+Prerequisite: [`docker`][docker]
+
+```sh
+docker pull quay.io/iqballab/make_prg
+docker run quay.io/iqballab/make_prg --help
+```
+
+You can find all the available tags on the [quay.io repository][quay.io].
+
 ## Running on a sample example
 
 To see how to input files to both `make_prg from_msa` and `make_prg update`, and the outputs
@@ -75,7 +101,7 @@ usage: make_prg <subcommand> <options>
 
 Subcommand entrypoint
 
-optional arguments:
+options:
   -h, --help     show this help message and exit
   -V, --version  show program's version number and exit
 
@@ -91,13 +117,12 @@ Available subcommands:
 $ make_prg from_msa --help
 usage: make_prg from_msa
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -i INPUT, --input INPUT
                         Multiple sequence alignment file or a directory containing such files
   -s SUFFIX, --suffix SUFFIX
-                        If the input parameter (-i, --input) is a directory, then filter for files with this suffix. If this parameter is not given, all files in the
-                        input directory is considered.
+                        If the input parameter (-i, --input) is a directory, then filter for files with this suffix. If this parameter is not given, all files in the input directory is considered.
   -o OUTPUT_PREFIX, --output-prefix OUTPUT_PREFIX
                         Prefix for the output files
   -f ALIGNMENT_FORMAT, --alignment-format ALIGNMENT_FORMAT
@@ -121,7 +146,7 @@ optional arguments:
 $ make_prg update --help
 usage: make_prg update
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -u UPDATE_DS, --update-DS UPDATE_DS
                         Filepath to the update data structures (a *.update_DS.zip file created from make_prg from_msa or update)
@@ -131,8 +156,6 @@ optional arguments:
                         Filepath containing denovo sequences. Should point to a denovo_paths.txt file
   -D LONG_DELETION_THRESHOLD, --deletion-threshold LONG_DELETION_THRESHOLD
                         Ignores long deletions of the given size or longer. If long deletions should not be ignored, put a large value. Default: 10
-  -m MAFFT, --mafft MAFFT
-                        Path to MAFFT executable. By default, it is assumed to be on $PATH
   -O OUTPUT_TYPE, --output-type OUTPUT_TYPE
                         p: PRG, b: Binary, g: GFA, a: All. Combinations are allowed i.e., gb: GFA and Binary. Default: a
   -F, --force           Force overwrite previous output
@@ -144,3 +167,6 @@ optional arguments:
 
 [pandora]: https://github.com/rmcolq/pandora
 [gramtools]: https://github.com/iqbal-lab-org/gramtools/
+[docker]: https://docs.docker.com/v17.12/install/
+[quay.io]: https://quay.io/repository/iqballab/make_prg
+[singularity]: https://sylabs.io/guides/3.4/user-guide/quick_start.html#quick-installation-steps

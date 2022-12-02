@@ -25,4 +25,5 @@ docker run --rm -v "$(pwd)":/make_prg make_prg:${version} /bin/bash -c \
   --specpath precompiled_binary/spec \
   --name make_prg_${version} \
   --hidden-import=\"sklearn.utils._weight_vector\" \
+  --add-data ../../make_prg/utils/mafft-linux64:make_prg/utils/mafft-linux64 \
   make_prg/__main__.py"

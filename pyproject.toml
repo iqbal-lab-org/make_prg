@@ -2,7 +2,8 @@
 name = "make_prg"
 version = "0.4.0"
 description = "Code to create a PRG from a Multiple Sequence Alignment file"
-authors = ["Michael Hall <michael@mbh.sh>", "Leandro Ishi <leandro@ebi.ac.uk>", "Brice Letcher <bletcher@ebi.ac.uk>"]
+authors = ["Michael Hall <michael@mbh.sh>", "Leandro Ishi <leandro@ebi.ac.uk>", "Brice Letcher <bletcher@ebi.ac.uk>",
+           "Rachel Colquhoun <rachel.colquhoun@ed.ac.uk>"]
 license = "MIT"
 readme = "README.md"
 homepage = "https://github.com/iqbal-lab-org/make_prg"
