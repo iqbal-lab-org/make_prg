@@ -1,0 +1,12 @@
+H	VN:Z:1.0	bn:Z:--linear --singlearr
+S	0	TTAAACG	RC:i:0
+L	0	+	1	+	0M
+S	1	TGGTT	RC:i:0
+L	0	+	2	+	0M
+S	2	CCCCC	RC:i:0
+L	0	+	3	+	0M
+S	3	AAAAA	RC:i:0
+S	4	*	RC:i:0
+L	1	+	4	+	0M
+L	2	+	4	+	0M
+L	3	+	4	+	0M

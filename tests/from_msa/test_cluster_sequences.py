@@ -1,46 +1,94 @@
-from unittest import TestCase, skip
-from unittest.mock import patch, Mock
-import random
 from itertools import product
+from unittest import TestCase, skip
+from unittest.mock import patch
 
-from numpy import array, array_equal
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from numpy import array, array_equal
 
-from make_prg.seq_utils import standard_bases, ungap
 from make_prg.from_msa.cluster_sequences import (
-    count_distinct_kmers,
-    count_kmer_occurrences,
-    get_majority_char_in_column,
-    get_majority_string,
-    hamming_distance,
-    get_distances,
-    DISTANCE_THRESHOLD,
     LENGTH_THRESHOLD,
     MAX_CLUSTERS,
-    get_one_ref_like_threshold_distance,
-    sequences_are_one_reference_like,
-    cluster_further,
-    extract_clusters,
-    merge_sequences,
-    merge_clusters,
-    kmeans_cluster_seqs_in_interval,
     ClusteringResult,
+    cluster_further,
+    count_distinct_kmers,
+    count_kmer_occurrences,
+    extract_clusters,
+    get_distances,
+    get_majority_char_in_column,
+    get_majority_string,
+    get_one_ref_like_threshold_distance,
+    hamming_distance,
+    kmeans_cluster_seqs,
+    merge_clusters,
+    merge_sequences,
+    sequences_are_one_reference_like,
 )
-
-from tests.from_msa import make_alignment, MSA
+from make_prg.utils.seq_utils import SequenceExpander, ungap
+from tests.test_helpers import MSA, make_alignment
 
 
 class TestClusteringResult(TestCase):
-    def test_clustering_result_mutual_exclusivity(self):
-        sequences = ["AATA", "AAAA"]
-        clustered_ids = [["s0"], ["s1"]]
-        with self.assertRaises(AssertionError):
-            ClusteringResult(clustered_ids, sequences)
-        with self.assertRaises(AssertionError):
-            ClusteringResult(None, None)
-        ClusteringResult(clustered_ids, None)
-        ClusteringResult(None, sequences)
+    def setUp(self) -> None:
+        self.clustered_ids = [["s0"], ["s1"]]
+        self.sequences = ["AATA", "AAAA"]
+        self.clustering_result = ClusteringResult(self.clustered_ids, self.sequences)
+
+    def test___constructor___no_sequences(self):
+        clustering_result = ClusteringResult(self.clustered_ids)
+
+        self.assertEqual(self.clustered_ids, clustering_result.clustered_ids)
+        self.assertIsNone(clustering_result.sequences)
+
+    def test___constructor___with_sequences(self):
+        self.assertEqual(self.clustered_ids, self.clustering_result.clustered_ids)
+        self.assertEqual(self.sequences, self.clustering_result.sequences)
+
+    def test___eq___equality(self):
+        clustering_result_copy = ClusteringResult(self.clustered_ids, self.sequences)
+        self.assertEqual(clustering_result_copy, self.clustering_result)
+
+    def test___eq___inequality(self):
+        other = ClusteringResult([["s0"]], ["A"])
+        self.assertNotEqual(other, self.clustering_result)
+
+        other = ClusteringResult([["s0"], ["s1"]], ["A"])
+        self.assertNotEqual(other, self.clustering_result)
+
+        other = ClusteringResult([["s0"]], ["AATA", "AAAA"])
+        self.assertNotEqual(other, self.clustering_result)
+
+        other = "other_type"
+        self.assertNotEqual(other, self.clustering_result)
+
+    def test___no_clustering___single_cluster_with_single_seq(self):
+        clustering_result = ClusteringResult([["s0"]])
+        self.assertTrue(clustering_result.no_clustering)
+
+    def test___no_clustering___single_cluster_with_several_seqs(self):
+        clustering_result = ClusteringResult([["s0", "s1", "s2", "s3", "s4", "s5"]])
+        self.assertTrue(clustering_result.no_clustering)
+
+    def test___no_clustering___three_small_clusters(self):
+        clustering_result = ClusteringResult([["s0"], ["s1"], ["s2"]])
+        self.assertFalse(clustering_result.no_clustering)
+
+    def test___have_precomputed_sequences___no_precomputed_sequences(self):
+        clustering_result = ClusteringResult(self.clustered_ids)
+        self.assertFalse(clustering_result.have_precomputed_sequences)
+
+    def test___have_precomputed_sequences___has_precomputed_sequences(self):
+        self.assertTrue(self.clustering_result.have_precomputed_sequences)
+
+    def test___repr(self):
+        expected = "ClusteringResult(clustered_ids=[['s0'], ['s1']], sequences=['AATA', 'AAAA'])"
+        actual = repr(self.clustering_result)
+        self.assertEqual(expected, actual)
+
+    def test___str(self):
+        expected = "ClusteringResult(clustered_ids=[['s0'], ['s1']], sequences=['AATA', 'AAAA'])"
+        actual = str(self.clustering_result)
+        self.assertEqual(expected, actual)
 
 
 class TestCountKmers(TestCase):
@@ -254,45 +302,53 @@ class TestExtractClusters(TestCase):
 
 class TestClustering_Trivial(TestCase):
     def test_one_seq_returns_single_id(self):
-        alignment = MSA([SeqRecord(Seq("AAAT"), id="s1")])
-        result = kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
-        self.assertTrue(result.no_clustering)
+        alignment = make_alignment(["AAAT"])
+        expected = ClusteringResult(clustered_ids=[["s0"]], sequences=["AAAT"])
+        result = kmeans_cluster_seqs(alignment, 1)
+        self.assertEqual(expected, result)
 
     @patch("make_prg.from_msa.cluster_sequences.KMeans")
     def test_GivenTwoIdenticalSeqs_NoKmeansAndOneCluster(self, mockKMeans):
         alignment = make_alignment(["AAAT", "AAAT"])
-        result = kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
+        expected = ClusteringResult(clustered_ids=[["s0", "s1"]], sequences=["AAAT"])
+        result = kmeans_cluster_seqs(alignment, 1)
+
         mockKMeans.assert_not_called()
-        self.assertTrue(result.no_clustering)
+        self.assertEqual(expected, result)
 
     @patch("make_prg.from_msa.cluster_sequences.KMeans")
     def test_GivenTwoDifferentSeqs_NoKmeansAndTwoClusters(self, mockKMeans):
         alignment = make_alignment(["AAAT", "ATAT"])
-        result = kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
+        expected = ClusteringResult(
+            clustered_ids=[["s0", "s1"]], sequences=["AAAT", "ATAT"]
+        )
+        result = kmeans_cluster_seqs(alignment, 1)
+
         mockKMeans.assert_not_called()
-        self.assertTrue(result.no_clustering)
+        self.assertEqual(expected, result)
 
 
 class TestClustering_SmallSequences(TestCase):
     def test_GivenLessThanTwoLongSeqs_NoClustering(self):
-        sequences = ["A-A-T", "CCCCC", "AA--T"]
-        alignment = make_alignment(sequences)
-        result = kmeans_cluster_seqs_in_interval([0, 4], alignment, 4)
-        self.assertTrue(result.no_clustering)
-        self.assertEqual(result.sequences, ["AAT", "CCCCC"])
+        alignment = make_alignment(["A-A-T", "CCCCC", "AA--T"])
+
+        expected = ClusteringResult(
+            clustered_ids=[["s0", "s1", "s2"]], sequences=["AAT", "CCCCC"]
+        )
+        result = kmeans_cluster_seqs(alignment, 4)
+
+        self.assertEqual(expected, result)
 
     @skip(
         "This fails, probably because kmean clustering should never run with this input"
     )
     def test_ambiguous_sequences_in_short_interval_separate_clusters(self):
-        alignment = MSA(
-            [
-                SeqRecord(Seq("ARAT"), id="s1"),
-                SeqRecord(Seq("WAAT"), id="s2"),
-            ]
-        )
-        result = kmeans_cluster_seqs_in_interval([0, 3], alignment, 5)
-        self.assertEqual([["s1"], ["s2"]], result)
+        alignment = make_alignment(["ARAT", "WAAT"])
+
+        expected = ClusteringResult([["s0", "s1"]])
+        result = kmeans_cluster_seqs(alignment, 5)
+
+        self.assertEqual(expected, result)
 
     @patch("make_prg.from_msa.cluster_sequences.KMeans")
     def test_GivenAllSequencesBelowKmerSize_NoClustering(self, mockKMeans):
@@ -305,10 +361,14 @@ class TestClustering_SmallSequences(TestCase):
             ]
         )
 
-        result = kmeans_cluster_seqs_in_interval([0, len(alignment[0])], alignment, 6)
+        result = kmeans_cluster_seqs(alignment, 6)
         mockKMeans.assert_not_called()
-        self.assertTrue(result.no_clustering)
-        self.assertEqual(result.sequences, ["AAAT", "AATT", "CACAT"])
+
+        expected = ClusteringResult(
+            clustered_ids=[["s0", "s3", "s1", "s2"]],
+            sequences=["AAAT", "AATT", "CACAT"],
+        )
+        self.assertEqual(expected, result)
 
 
 class TestClustering_GappedSequences(TestCase):
@@ -318,9 +378,9 @@ class TestClustering_GappedSequences(TestCase):
         due to different seq length"""
         sequences = ["A---T", "AAAAT", "AAA-T"]
         alignment = make_alignment(sequences)
-        actual = kmeans_cluster_seqs_in_interval([0, 4], alignment, 1)
-        expected = [["s0"], ["s1", "s2"]]
-        self.assertEqual(actual.clustered_ids, expected)
+        actual = kmeans_cluster_seqs(alignment, 1)
+        expected = ClusteringResult(clustered_ids=[["s0"], ["s1", "s2"]])
+        self.assertEqual(expected, actual)
 
 
 class TestClustering_RunKmeans(TestCase):
@@ -328,7 +388,7 @@ class TestClustering_RunKmeans(TestCase):
     def test_GivenThreeSequencesAboveKmerSize_KMeansClusteringCalled(self, mockfit):
         alignment = make_alignment(["AAAT", "TTTT", "ATAT"])
         try:
-            result = kmeans_cluster_seqs_in_interval([0, 3], alignment, 2)
+            _ = kmeans_cluster_seqs(alignment, 2)
         except ValueError:
             pass
         mockfit.assert_called_once()
@@ -342,19 +402,21 @@ class TestClustering_RunKmeans(TestCase):
                 SeqRecord(Seq("C-TC"), id="s4"),
             ]
         )
-        result = kmeans_cluster_seqs_in_interval([0, 3], alignment, 1)
-        self.assertEqual([["s1", "s2"], ["s3", "s4"]], result.clustered_ids)
+
+        expected = ClusteringResult(clustered_ids=[["s1", "s2"], ["s3", "s4"]])
+        result = kmeans_cluster_seqs(alignment, 1)
+        self.assertEqual(expected, result)
 
     def test_GivenTwoSequenceGroups_ReturnsTwoClusters(self):
         sequences = ["CATATAAAATA", "CATATAATATA", "GGGGCGGGCCC", "GGGGCGGGCGC"]
-        expected_clustering = [["s0", "s1"], ["s2", "s3"]]
-        seq_size = len(sequences[0])
         alignment = make_alignment(sequences)
+
+        expected_clustering = ClusteringResult(
+            clustered_ids=[["s0", "s1"], ["s2", "s3"]]
+        )
         for kmer_size in range(1, 7):
-            result = kmeans_cluster_seqs_in_interval(
-                [0, seq_size - 1], alignment, kmer_size
-            )
-            self.assertEqual(expected_clustering, result.clustered_ids)
+            result = kmeans_cluster_seqs(alignment, kmer_size)
+            self.assertEqual(expected_clustering, result)
 
     def test_GivenThreeSequenceGroups_ReturnsThreeClusters(self):
         sequences = [
@@ -365,58 +427,99 @@ class TestClustering_RunKmeans(TestCase):
             "TTTAATTTTAA",
             "TTTAAGTTTAA",
         ]
-        expected_clustering = [["s0", "s1"], ["s2", "s3"], ["s4", "s5"]]
-        seq_size = len(sequences[0])
         alignment = make_alignment(sequences)
+
+        expected_clustering = ClusteringResult(
+            [["s0", "s1"], ["s2", "s3"], ["s4", "s5"]]
+        )
         for kmer_size in range(1, 7):
-            result = kmeans_cluster_seqs_in_interval(
-                [0, seq_size - 1], alignment, kmer_size
-            )
-            for cluster in expected_clustering:
+            result = kmeans_cluster_seqs(alignment, kmer_size)
+            for cluster in expected_clustering.clustered_ids:
                 self.assertTrue(cluster in result.clustered_ids)
 
     def test_GivenAllSequencesOneSnpApart_ReturnsNoClustering(self):
         sequences = ["CATATAAAATA", "CATATAACATA", "CATATAAGATA", "CATATAATATA"]
-        seq_size = len(sequences[0])
         alignment = make_alignment(sequences)
+
+        expected = ClusteringResult(
+            clustered_ids=[["s0", "s1", "s2", "s3"]],
+            sequences=["CATATAAAATA", "CATATAACATA", "CATATAAGATA", "CATATAATATA"],
+        )
         for kmer_size in range(1, 7):
-            result = kmeans_cluster_seqs_in_interval(
-                [0, seq_size - 1], alignment, kmer_size
-            )
-            self.assertTrue(result.no_clustering)
-            self.assertEqual(result.sequences, sequences)
+            result = kmeans_cluster_seqs(alignment, kmer_size)
+            self.assertEqual(expected, result)
 
     def test_GivenAllSequencesSmallEditDist_ReturnsNoClustering(self):
         """Cf graph 157.pdf in issue #15"""
         sequences = [
-            "gctccgccggtcccgccggtcc",
-            "gctccgccgggcccgccggtcc",
-            "tctccgccggtcccgccggtcc",
-            "gctcagccggtcccgccggtcc",
-            "gctccgccggtcccaccggtcc",
-            "gctccgccggtaccgccggtcc",
-            "gctccgctggtcccgccggtcc",
-            "gctccgccggtcccgctggtcc",
-            "gctccgccggtcccgccggtct",
-            "gctccgccggtcccgcctgtcc",
-            "gctccgccggtcctgccggtcc",
+            "GCTCCGCCGGTCCCGCCGGTCC",
+            "GCTCCGCCGGGCCCGCCGGTCC",
+            "TCTCCGCCGGTCCCGCCGGTCC",
+            "GCTCAGCCGGTCCCGCCGGTCC",
+            "GCTCCGCCGGTCCCACCGGTCC",
+            "GCTCCGCCGGTACCGCCGGTCC",
+            "GCTCCGCTGGTCCCGCCGGTCC",
+            "GCTCCGCCGGTCCCGCTGGTCC",
+            "GCTCCGCCGGTCCCGCCGGTCT",
+            "GCTCCGCCGGTCCCGCCTGTCC",
+            "GCTCCGCCGGTCCTGCCGGTCC",
         ]
-        seq_size = len(sequences[0])
         alignment = make_alignment(sequences)
+
+        expected = ClusteringResult(
+            clustered_ids=[
+                ["s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10"]
+            ],
+            sequences=[
+                "GCTCCGCCGGTCCCGCCGGTCC",
+                "GCTCCGCCGGGCCCGCCGGTCC",
+                "TCTCCGCCGGTCCCGCCGGTCC",
+                "GCTCAGCCGGTCCCGCCGGTCC",
+                "GCTCCGCCGGTCCCACCGGTCC",
+                "GCTCCGCCGGTACCGCCGGTCC",
+                "GCTCCGCTGGTCCCGCCGGTCC",
+                "GCTCCGCCGGTCCCGCTGGTCC",
+                "GCTCCGCCGGTCCCGCCGGTCT",
+                "GCTCCGCCGGTCCCGCCTGTCC",
+                "GCTCCGCCGGTCCTGCCGGTCC",
+            ],
+        )
+
         for kmer_size in range(4, 8):
-            result = kmeans_cluster_seqs_in_interval(
-                [0, seq_size - 1], alignment, kmer_size
-            )
-            self.assertTrue(result.no_clustering)
-            self.assertEqual(result.sequences, sequences)
+            result = kmeans_cluster_seqs(alignment, kmer_size)
+            print(result)
+            self.assertEqual(expected, result)
 
     def test_GivenManyVeryDifferentSequences_EachSeqInOwnCluster(self):
         # all 256 distinct DNA 4-mers.
         # We want clustering to keep looking for clusters, and stop at MAX_CLUSTERS
-        all_4mers = list(map("".join, product(standard_bases, repeat=4)))
+        all_4mers = list(
+            map("".join, product(SequenceExpander.standard_bases, repeat=4))
+        )
         alignment = make_alignment(all_4mers)
-        result = kmeans_cluster_seqs_in_interval([0, 4], alignment, 4)
+        result = kmeans_cluster_seqs(alignment, 4)
         self.assertEqual(len(result.clustered_ids), MAX_CLUSTERS)
+
+    def test_GivenFewVeryDifferentSequences_NoClustering(self):
+        # We want clustering to keep looking for clusters, and stop at num_sequences, and realise there is no clustering
+        sequences = [
+            "AAAAAAAAAAAAAAAAAAAAAA",
+            "CCCCCCCCCCCCCCCCCCCCCC",
+            "GGGGGGGGGGGGGGGGGGGGGG",
+            "TTTTTTTTTTTTTTTTTTTTTT",
+        ]
+        alignment = make_alignment(sequences)
+        expected = ClusteringResult(
+            clustered_ids=[["s0", "s1", "s2", "s3"]],
+            sequences=[
+                "AAAAAAAAAAAAAAAAAAAAAA",
+                "CCCCCCCCCCCCCCCCCCCCCC",
+                "GGGGGGGGGGGGGGGGGGGGGG",
+                "TTTTTTTTTTTTTTTTTTTTTT",
+            ],
+        )
+        result = kmeans_cluster_seqs(alignment, 7)
+        self.assertEqual(expected, result)
 
     def test_GivenSequencesWithSameKmerCounts_ClusteringInterrupted(self):
         """
@@ -440,47 +543,36 @@ class TestClustering_RunKmeans(TestCase):
         assert not sequences_are_one_reference_like(sequences)
 
         alignment = make_alignment(sequences)
-        result = kmeans_cluster_seqs_in_interval([0, len(sequences[0])], alignment, 7)
-        self.assertTrue(result.no_clustering)
-
-
-class TestMergeSequences(TestCase):
-    def setUp(self):
-        self.long_seqs = ["AATAA", "TTAAA"]
-        self.short_seqs = ["AA", "TT"]
-        self.first_seq = self.long_seqs[0]
-
-    def test_GivenFirstSeqNotInList_Fails(self):
-        with self.assertRaises(ValueError):
-            merge_sequences(self.short_seqs, self.long_seqs, first_seq="TTTTT")
-
-    def test_GivenShortFirst_FirstSeqIsFirstSeqOut(self):
-        result = merge_sequences(
-            self.short_seqs, self.long_seqs, first_seq=self.first_seq
+        expected = ClusteringResult(
+            clustered_ids=[["s0", "s1", "s2"]],
+            sequences=[
+                "TTTTTTTGGGGGGGAAAAAAATTTTTTTAAAAAAATTTTTTTAAAAAAA",
+                "TTTTTTTAAAAAAATTTTTTTGGGGGGGAAAAAAATTTTTTTAAAAAAA",
+                "TTTTTTTAAAAAAATTTTTTTAAAAAAATTTTTTTGGGGGGGAAAAAAA",
+            ],
         )
-        expected = ["AATAA", "AA", "TT", "TTAAA"]
-        self.assertEqual(result.sequences, expected)
-
-    def test_GivenLongFirst_FirstSeqIsFirstSeqOut(self):
-        result = merge_sequences(
-            self.long_seqs, self.short_seqs, first_seq=self.first_seq
-        )
-        expected = ["AATAA", "TTAAA", "AA", "TT"]
-        self.assertEqual(result.sequences, expected)
+        result = kmeans_cluster_seqs(alignment, 7)
+        self.assertEqual(expected, result)
 
 
 class TestMergeClusters(TestCase):
     clusters = [["s1", "s2"], ["s3"]]
     small_seqs = [["s4"], ["s5", "s6"]]
-    to_merge = [clusters, small_seqs]
 
     def test_GivenFirstIDNotFound_Fails(self):
         with self.assertRaises(ValueError):
-            merge_clusters(self.to_merge, "s200")
+            merge_clusters(self.clusters, self.small_seqs, first_id="s200")
 
     def test_GivenFirstIDFound_MergedAndFirstIDInFirstCluster(self):
-        actual = merge_clusters(self.to_merge, "s5")
+        actual = merge_clusters(self.clusters, self.small_seqs, first_id="s5")
         expected = [["s5", "s6"], ["s1", "s2"], ["s3"], ["s4"]]
+        self.assertEqual(actual, expected)
+
+    def test_GivenFirstIDFound_FirstIDInLastClusterAndLastPosition_MergedAndFirstIDInFirstCluster(
+        self,
+    ):
+        actual = merge_clusters(self.clusters, self.small_seqs, first_id="s6")
+        expected = [["s6", "s5"], ["s1", "s2"], ["s3"], ["s4"]]
         self.assertEqual(actual, expected)
 
 
@@ -491,7 +583,7 @@ class TestKMeansOrdering(TestCase):
     in first position of first cluster.
     """
 
-    def test_first_id_in_first_cluster(self):
+    def test_first_id_in_first_cluster___first_id_in_first_pos_of_first_cluster(self):
         alignment = make_alignment(
             [
                 "AATTAATTATATAATAAC",
@@ -500,10 +592,73 @@ class TestKMeansOrdering(TestCase):
             ],
             ["s1", "s2", "s3"],
         )
-        order_1 = kmeans_cluster_seqs_in_interval([0, len(alignment[0])], alignment, 5)
-        self.assertEqual(order_1.clustered_ids, [["s1", "s2"], ["s3"]])
+        expected_order = ClusteringResult(clustered_ids=[["s1", "s2"], ["s3"]])
+        order = kmeans_cluster_seqs(alignment, 5)
+        self.assertEqual(expected_order, order)
 
-        order_2 = kmeans_cluster_seqs_in_interval(
-            [0, len(alignment[0])], alignment[::-1], 5
+    def test_first_id_in_last_cluster(self):
+        alignment = make_alignment(
+            [
+                "TTAATTAATTAATTAATT",
+                "AATTAAGTATATAATAAC",
+                "AATTAATTATATAATAAC",
+            ],
+            ["s3", "s2", "s1"],
         )
-        self.assertEqual(order_2.clustered_ids, [["s3"], ["s2", "s1"]])
+
+        expected_order = ClusteringResult(clustered_ids=[["s3"], ["s2", "s1"]])
+        order = kmeans_cluster_seqs(alignment, 5)
+        self.assertEqual(expected_order, order)
+
+    def test_first_id_in_first_cluster___first_id_is_small_seq(self):
+        alignment = make_alignment(
+            [
+                "A-----------------",
+                "AATTAATTATATAATAAC",
+                "AATTAAGTATATAATAAC",
+                "TTAATTAATTAATTAATT",
+            ],
+            ["small", "s2", "s3", "s4"],
+        )
+        expected_order = ClusteringResult(
+            clustered_ids=[["small"], ["s2", "s3"], ["s4"]]
+        )
+        order = kmeans_cluster_seqs(alignment, 5)
+        self.assertEqual(expected_order, order)
+
+
+class TestMergeSequences(TestCase):
+    def setUp(self):
+        self.long_seqs = ["AATAA", "TTAAA"]
+        self.short_seqs = ["AA", "TT"]
+        self.first_seq = self.long_seqs[0]
+
+    def test_GivenFirstSeqNotInList_Fails(self):
+        with self.assertRaises(AssertionError):
+            merge_sequences(self.short_seqs, self.long_seqs, first_seq="TTTTT")
+
+    def test_GivenShortFirst_FirstSeqIsFirstSeqOut(self):
+        expected = ["AATAA", "AA", "TT", "TTAAA"]
+        actual = merge_sequences(
+            self.short_seqs, self.long_seqs, first_seq=self.first_seq
+        )
+        self.assertEqual(expected, actual)
+
+    def test_GivenLongFirst_FirstSeqIsFirstSeqOut(self):
+        expected = ["AATAA", "TTAAA", "AA", "TT"]
+        actual = merge_sequences(
+            self.long_seqs, self.short_seqs, first_seq=self.first_seq
+        )
+        self.assertEqual(expected, actual)
+
+    def test_GivenSeqsWithAmbiguousBases_ExpansionIsDone_Duplicates_are_removed(self):
+        expected = ["GA", "TA", "AATAA", "AACAA", "TTGAA", "TTAAA", "TC"]
+        actual = merge_sequences(["AAYAA", "TTRAA"], ["KA", "TM"], first_seq="KA")
+        self.assertEqual(expected, actual)
+
+    def test_GivenFirstSeqWithN_FirstSeqIsRemoved(self):
+        expected = ["AATAA", "TTAAA", "AA", "TT"]
+        actual = merge_sequences(
+            ["ANA"] + self.long_seqs, self.short_seqs, first_seq="ANA"
+        )
+        self.assertEqual(expected, actual)

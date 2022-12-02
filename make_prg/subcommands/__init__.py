@@ -1,1 +1,1 @@
-__all__ = ["from_msa"]
+__all__ = ["from_msa", "update"]

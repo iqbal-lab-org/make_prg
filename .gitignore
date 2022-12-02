@@ -104,4 +104,21 @@ ENV/
 *~
 *.swp
 
+# CLion
 .idea
+
+# sample examples
+sample_example/msas_output/
+sample_example/msas_updated/
+sample_example/make_prg*
+
+# tests
+tests/data/utils/create_new_sequences_file/new_sequences.fa
+tests/data/utils/gfa/big_bang.gfa
+tests/data/utils/recursive_tree_drawer/sample.recursion_tree.png
+tests/data/utils/input_output_files/concatenate_text_files/concatenated.txt
+tests/data/utils/io_utils/zip_set_of_files/files.zip
+tests/data/prg_builder/write_prg/sample.bin
+tests/data/prg_builder/write_prg/sample.prg.fa
+tests/integration_tests/data/output/
+tests/integration_tests/data/output_update/

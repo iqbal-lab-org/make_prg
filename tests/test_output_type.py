@@ -1,6 +1,6 @@
-from make_prg.subcommands.output_type import OutputType, UnknownOutputTypeError
-
 import pytest
+
+from make_prg.subcommands.output_type import OutputType, UnknownOutputTypeError
 
 
 class TestOutputType:
