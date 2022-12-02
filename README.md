@@ -1,10 +1,13 @@
-![master branch badge](https://github.com/iqbal-lab-org/make_prg/actions/workflows/ci.yaml/badge.svg) 
-[![codecov](https://codecov.io/github/iqbal-lab-org/make_prg/branch/master/graph/badge.svg?token=6IQSY13MSH)](https://codecov.io/github/iqbal-lab-org/make_prg)
-
 # make_prg
 
 A tool to create and update PRGs for input to [Pandora][pandora] and [Gramtools][gramtools] from a set of 
 Multiple Sequence Alignments.
+
+![master branch badge](https://github.com/iqbal-lab-org/make_prg/actions/workflows/ci.yaml/badge.svg) 
+[![codecov](https://codecov.io/github/iqbal-lab-org/make_prg/branch/master/graph/badge.svg?token=6IQSY13MSH)](https://codecov.io/github/iqbal-lab-org/make_prg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 
 # Support
 
