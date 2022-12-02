@@ -31,6 +31,8 @@ jobs:
         run:  just test -vv
 
       # create coverage badge
+      - name: Install toml for coverage badge
+        run: pip install toml
       - name: Coverage Badge
         uses: tj-actions/coverage-badge-py@v1.8
 
