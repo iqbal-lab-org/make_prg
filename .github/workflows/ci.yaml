@@ -38,7 +38,7 @@ jobs:
       - name: Upload Coverage Results
         uses: coverallsapp/github-action@master
         with:
-          github-token: ${{ secrets.github_token }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: lcov.info
           parallel: true
           flag-name: run-${{ matrix.test_number }}
@@ -50,5 +50,5 @@ jobs:
     - name: Coveralls Finished
       uses: coverallsapp/github-action@master
       with:
-        github-token: ${{ secrets.github_token }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         parallel-finished: true
