@@ -144,7 +144,7 @@ class PrgBuilder(object):
 
     def serialize(self, filepath: [Path, str]):
         with open(filepath, "wb") as filehandler:
-            pickle.dump(self, filehandler)
+            pickle.dump(self, filehandler, protocol=4)
 
     @staticmethod
     def deserialize_from_bytes(array_of_bytes: bytes) -> "PrgBuilder":
