@@ -30,30 +30,14 @@ jobs:
       - name: Test
         run:  just test -vv
 
-      # create coverage badge
-      - name: Install toml for coverage badge
-        run: pip install toml
-      - name: Coverage Badge
-        uses: tj-actions/coverage-badge-py@v1.8
-
-      # push coverage badge
-      - name: Verify Changed files
-        uses: tj-actions/verify-changed-files@v12
-        id: changed_files
-        with:
-          files: coverage.svg
-
-      - name: Commit files
-        if: steps.changed_files.outputs.files_changed == 'true'
+      - name: Convert Coverage Results
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add coverage.svg
-          git commit -m "Updated coverage.svg"
+          pip install coveragepy-lcov
+          coveragepy-lcov --data_file_path .coverage --output_file_path lcov.info
 
-      - name: Push changes
-        if: steps.changed_files.outputs.files_changed == 'true'
-        uses: ad-m/github-push-action@master
+      - name: Upload Coverage Results
+        uses: coverallsapp/github-action@master
         with:
-          github_token: ${{ secrets.github_token }}
-          branch: ${{ github.ref }}
+          github-token: ${{ secrets.github_token }}
+          path-to-lcov: lcov.info
+          
