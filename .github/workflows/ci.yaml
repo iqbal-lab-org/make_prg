@@ -32,12 +32,11 @@ jobs:
 
       - name: Convert Coverage Results
         run: |
-          pip install coveragepy-lcov
-          coveragepy-lcov --data_file_path .coverage --output_file_path lcov.info
+          poetry run pip install coveragepy-lcov
+          poertry run coveragepy-lcov --data_file_path .coverage --output_file_path lcov.info
 
       - name: Upload Coverage Results
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.github_token }}
           path-to-lcov: lcov.info
-          
