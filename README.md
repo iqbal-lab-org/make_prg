@@ -1,3 +1,13 @@
+| Branch             | Status                                                                                                       |
+|:-------------------|:-------------------------------------------------------------------------------------------------------------|
+| [`master`][master] | ![master branch badge](https://github.com/iqbal-lab-org/make_prg/actions/workflows/ci.yaml/badge.svg)        |
+| [`dev`][dev]       | ![dev branch badge](https://github.com/iqbal-lab-org/make_prg/actions/workflows/ci.yaml/badge.svg?branch=dev) |
+
+[master]: https://github.com/iqbal-lab-org/make_prg/tree/master
+[dev]: https://github.com/iqbal-lab-org/make_prg/tree/dev
+
+
+
 # make_prg
 
 A tool to create and update PRGs for input to [Pandora][pandora] and [Gramtools][gramtools] from a set of 
