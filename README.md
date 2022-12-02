@@ -1,11 +1,4 @@
-| Branch             | Status                                                                                                       |
-|:-------------------|:-------------------------------------------------------------------------------------------------------------|
-| [`master`][master] | ![master branch badge](https://github.com/iqbal-lab-org/make_prg/actions/workflows/ci.yaml/badge.svg)        |
-| [`dev`][dev]       | ![dev branch badge](https://github.com/iqbal-lab-org/make_prg/actions/workflows/ci.yaml/badge.svg?branch=dev) |
-
-[master]: https://github.com/iqbal-lab-org/make_prg/tree/master
-[dev]: https://github.com/iqbal-lab-org/make_prg/tree/dev
-
+![master branch badge](https://github.com/iqbal-lab-org/make_prg/actions/workflows/ci.yaml/badge.svg) 
 [![codecov](https://codecov.io/github/iqbal-lab-org/make_prg/branch/master/graph/badge.svg?token=6IQSY13MSH)](https://codecov.io/github/iqbal-lab-org/make_prg)
 
 # make_prg
