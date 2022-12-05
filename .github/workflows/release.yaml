@@ -13,23 +13,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: extractions/setup-just@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install and configure Poetry
+        uses: snok/install-poetry@v1
         with:
-          python-version:       3.8
-          mamba-version:        "*"
-          channels:             conda-forge,bioconda,defaults
-          channel-priority:     strict
-          activate-environment: make_prg
-          environment-file:     environment.yaml
-          auto-update-conda:    true
-      - name:  Install project
-        shell: bash -l {0}
-        run:   |
-               python -m pip install -U pip
-               just install-ci
-      - name: Test project
-        shell: bash -l {0}
-        run:  just test
+          version: 1.2.2
+      - name: Install project
+        run:  just install-ci
+      - name: Check formatting
+        run:  just check-fmt
+      - name: Lint
+        run:  just lint
+      - name: Test
+        run:  just test -vv
       - name: Build a binary wheel and a source tarball
         shell: bash -l {0}
         run:  just build
