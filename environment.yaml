@@ -6,4 +6,4 @@ channels:
 dependencies:
   - "python>=3.8,<=3.11"
   - just=1.8.0
-  - poetry=1.2.2
+  - poetry=1.1.15
