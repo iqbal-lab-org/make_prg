@@ -1,9 +1,10 @@
 name: Release
 
-on:
-  push:
-    tags:
-      - '*.*.*'
+#on:
+#  push:
+#    tags:
+#      - '*.*.*'
+on: [ push, pull_request ]
 
 jobs:
   build-n-publish:
@@ -32,8 +33,8 @@ jobs:
       - name: Build a binary wheel and a source tarball
         shell: bash -l {0}
         run:  just build
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          user:     __token__
-          password: ${{ secrets.PYPI_TOKEN }}
+#      - name: Publish to PyPI
+#        uses: pypa/gh-action-pypi-publish@master
+#        with:
+#          user:     __token__
+#          password: ${{ secrets.PYPI_TOKEN }}
