@@ -1,0 +1,9 @@
+name: make_prg
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - "python>=3.8,<=3.11"
+  - just=1.8.0
+  - poetry=1.1
