@@ -67,6 +67,15 @@ def get_number_of_unique_gapped_sequences(sub_alignment: MSA) -> int:
     return number_of_unique_gapped_sequences
 
 
+def get_deduplicated_alignment(sub_alignment: MSA) -> MSA:
+    seq_to_record = {}
+    for record in sub_alignment:
+        seq = str(record.seq)
+        if seq not in seq_to_record:
+            seq_to_record[seq] = record
+    return MSA(seq_to_record.values())
+
+
 class SequenceCurationError(Exception):
     pass
 

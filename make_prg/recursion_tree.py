@@ -19,6 +19,7 @@ from make_prg.utils.seq_utils import (
     get_number_of_unique_gapped_sequences,
     get_number_of_unique_ungapped_sequences,
     remove_columns_full_of_gaps_from_MSA,
+    get_deduplicated_alignment
 )
 
 SubMSAs = List[MSA]
@@ -423,6 +424,7 @@ class NodeFactory:
         3. Try to build a multi cluster node
         4. Force build a leaf node
         """
+        alignment = get_deduplicated_alignment(alignment)
         min_match_length = prg_builder.min_match_length
         all_intervals, match_intervals = NodeFactory._get_vertical_partition(
             alignment, min_match_length
