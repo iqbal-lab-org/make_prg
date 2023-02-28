@@ -16,10 +16,10 @@ from make_prg.utils.misc import equal_msas
 from make_prg.utils.seq_utils import (
     SequenceExpander,
     get_consensus_from_MSA,
+    get_deduplicated_alignment,
     get_number_of_unique_gapped_sequences,
     get_number_of_unique_ungapped_sequences,
     remove_columns_full_of_gaps_from_MSA,
-    get_deduplicated_alignment
 )
 
 SubMSAs = List[MSA]
