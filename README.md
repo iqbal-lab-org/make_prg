@@ -33,7 +33,7 @@ You can use `make_prg` with no installation at all by simply downloading the pre
 In this binary, all libraries are linked statically. Compilation is done using [PyInstaller](https://github.com/pyinstaller/pyinstaller).
 
 #### Requirements
-`GLIBC >= 2.27` (present on `Ubuntu >= 18.04`, `Debian >= 10`, `CentOS >= 8`, etc);
+`GLIBC >= 2.29` (present on `Ubuntu >= 19.04`, `Debian >= 11`, `CentOS >= 9`, etc);
 
 #### Download
 ```
