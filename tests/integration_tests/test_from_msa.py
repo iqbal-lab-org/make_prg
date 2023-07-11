@@ -516,3 +516,15 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
                 data_dir / "output/sample_example",
             )
         )
+
+
+    def test___amira(self):
+        options = self.prepare_options("amira_MSAs")
+        options.input = str(data_dir / "amira_MSAs")
+        from_msa.run(options)
+        self.assertTrue(
+            are_dir_trees_equal(
+                data_dir / "truth_output/amira_MSAs",
+                data_dir / "output/amira_MSAs",
+            )
+        )
