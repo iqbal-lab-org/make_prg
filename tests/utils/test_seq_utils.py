@@ -572,6 +572,10 @@ class TestGetMajorityConsensusFromMSA(TestCase):
         self.one_N_one_base_alignment = make_alignment(
             ["NNNN", "ACGT"], ["seq1", "seq2"]
         )
+        self.with_some_columns_full_of_gaps_and_Ns = make_alignment(
+            ["ANG-", "ANG-", "ANN-", "A---", "C---"],
+            ["seq1", "seq2", "seq3", "seq4", "seq5"],
+        )
         self.sample_alignment = make_alignment(
             ["ACGT", "ACGT", "A--C", "A--G", "C---"],
             ["seq1", "seq2", "seq3", "seq4", "seq5"],
@@ -591,6 +595,14 @@ class TestGetMajorityConsensusFromMSA(TestCase):
     def test___get_majority_consensus_from_MSA___one_N_one_base(self):
         consensus = get_majority_consensus_from_MSA(self.one_N_one_base_alignment)
         self.assertEqual(consensus, "ACGT")  # The consensus should be the base sequence
+
+    def test___get_majority_consensus_from_MSA___with_some_columns_full_of_gaps_and_Ns(
+        self,
+    ):
+        consensus = get_majority_consensus_from_MSA(
+            self.with_some_columns_full_of_gaps_and_Ns
+        )
+        self.assertEqual(consensus, "ATGA")  # The consensus should be the base sequence
 
     def test___get_majority_consensus_from_MSA___sample_alignment(self):
         consensus = get_majority_consensus_from_MSA(self.sample_alignment)
