@@ -517,7 +517,6 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             )
         )
 
-
     def test___amira(self):
         options = self.prepare_options("amira_MSAs")
         options.input = str(data_dir / "amira_MSAs")

@@ -1,6 +1,7 @@
 import gzip
 import os
 import tempfile
+from io import StringIO
 from pathlib import Path
 from typing import Dict, Union
 from zipfile import ZipFile
@@ -9,12 +10,13 @@ from Bio import AlignIO
 from Bio.Seq import Seq
 
 from make_prg import MSA
-from io import StringIO
 from make_prg.subcommands.output_type import OutputType
 from make_prg.utils.seq_utils import get_majority_consensus_from_MSA
 
 
-def load_alignment_file(msa_file: Union[str, Path, StringIO], alignment_format: str) -> MSA:
+def load_alignment_file(
+    msa_file: Union[str, Path, StringIO], alignment_format: str
+) -> MSA:
     if isinstance(msa_file, StringIO):
         alignment = AlignIO.read(msa_file, alignment_format)
     else:
@@ -35,8 +37,14 @@ def load_alignment_file(msa_file: Union[str, Path, StringIO], alignment_format: 
 
     # Replace 'N' with the consensus sequence in each record
     for record in alignment:
-        record.seq = Seq("".join(
-            [consensus[i] if nucleotide == 'N' else nucleotide for i, nucleotide in enumerate(str(record.seq))]))
+        record.seq = Seq(
+            "".join(
+                [
+                    consensus[i] if nucleotide == "N" else nucleotide
+                    for i, nucleotide in enumerate(str(record.seq))
+                ]
+            )
+        )
 
     return alignment
 

@@ -1,13 +1,13 @@
 import copy
+import hashlib
 import itertools
+import random
+from collections import Counter
 from typing import Generator, List, Tuple
 
 import numpy as np
 from Bio import pairwise2
 from Bio.Seq import Seq
-from collections import Counter
-import random
-import hashlib
 
 from make_prg import MSA
 
@@ -248,14 +248,15 @@ def get_majority_consensus_from_MSA(alignment: MSA) -> str:
     random_seed_for_this_alignment = hashlib.sha256(all_seqs.encode()).digest()
     random.seed(random_seed_for_this_alignment)
 
-
     # Initialize the consensus sequence as an empty string
-    consensus = ''
+    consensus = ""
 
     # Loop over the positions in the alignment
     for i in range(alignment.get_alignment_length()):
         # Count the residues at this position, ignoring gaps
-        pos_counts = Counter(record.seq[i] for record in alignment if record.seq[i] != '-')
+        pos_counts = Counter(
+            record.seq[i] for record in alignment if record.seq[i] != "-"
+        )
 
         # If there are no residues other than gaps at this position, use a random base
         if len(pos_counts) == 0:
@@ -266,11 +267,13 @@ def get_majority_consensus_from_MSA(alignment: MSA) -> str:
         max_residue, max_count = pos_counts.most_common(1)[0]
 
         # If the residue is 'N', use the second most common residue
-        if max_residue == 'N':
-            max_residue = pos_counts.most_common(2)[1][0] if len(pos_counts) > 1 else 'N'
+        if max_residue == "N":
+            max_residue = (
+                pos_counts.most_common(2)[1][0] if len(pos_counts) > 1 else "N"
+            )
 
         # If the residue is still 'N', randomise it
-        if max_residue == 'N':
+        if max_residue == "N":
             max_residue = random.choice("ACGT")
 
         # Add the residue to the consensus sequence
