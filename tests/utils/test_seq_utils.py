@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from make_prg.utils.misc import equal_msas
+from make_prg import MSA
 from make_prg.utils.seq_utils import (
     GAP,
     NONMATCH,
@@ -18,6 +19,7 @@ from make_prg.utils.seq_utils import (
     remove_columns_full_of_gaps_from_MSA,
     remove_duplicates,
     ungap,
+    get_majority_consensus_from_MSA
 )
 from tests.test_helpers import make_alignment
 
@@ -560,3 +562,29 @@ class Test_get_consensus_from_MSA(TestCase):
         actual = get_consensus_from_MSA(alignment)
 
         self.assertEqual(expected, actual)
+
+
+class TestGetMajorityConsensusFromMSA(TestCase):
+    def setUp(self):
+        # Create some sample alignments for testing
+        self.empty_alignment = MSA([])
+        self.all_N_alignment = make_alignment(["NNNN", "NNNN"], ["seq1", "seq2"])
+        self.one_N_one_base_alignment = make_alignment(["NNNN", "ACGT"], ["seq1", "seq2"])
+        self.sample_alignment = make_alignment(["ACGT", "ACGT", "A--C", "A--G", "C---"], ["seq1", "seq2", "seq3", "seq4", "seq5"])
+
+    def test___get_majority_consensus_from_MSA___empty_alignment(self):
+        consensus = get_majority_consensus_from_MSA(self.empty_alignment)
+        self.assertEqual(consensus, "")
+
+    def test___get_majority_consensus_from_MSA___all_Ns(self):
+        consensus = get_majority_consensus_from_MSA(self.all_N_alignment)
+        for char in consensus:
+            self.assertIn(char, "ACGT")  # Each character should be a random choice of A, C, G, or T
+
+    def test___get_majority_consensus_from_MSA___one_N_one_base(self):
+        consensus = get_majority_consensus_from_MSA(self.one_N_one_base_alignment)
+        self.assertEqual(consensus, "ACGT")  # The consensus should be the base sequence
+
+    def test___get_majority_consensus_from_MSA___sample_alignment(self):
+        consensus = get_majority_consensus_from_MSA(self.sample_alignment)
+        self.assertEqual(consensus, "ACGT")  # The consensus should be the most common base at each position

@@ -6,21 +6,38 @@ from typing import Dict, Union
 from zipfile import ZipFile
 
 from Bio import AlignIO
+from Bio.Seq import Seq
 
 from make_prg import MSA
+from io import StringIO
 from make_prg.subcommands.output_type import OutputType
+from make_prg.utils.seq_utils import get_majority_consensus_from_MSA
 
 
-def load_alignment_file(msa_file: Union[str, Path], alignment_format: str) -> MSA:
-    msa_file = str(msa_file)
-    if msa_file.endswith(".gz"):
-        handle = gzip.open(msa_file, "rt")
-        alignment = AlignIO.read(handle, alignment_format)
-        handle.close()
-    else:
+def load_alignment_file(msa_file: Union[str, Path, StringIO], alignment_format: str) -> MSA:
+    if isinstance(msa_file, StringIO):
         alignment = AlignIO.read(msa_file, alignment_format)
+    else:
+        msa_file = str(msa_file)
+        if msa_file.endswith(".gz"):
+            with gzip.open(msa_file, "rt") as handle:
+                alignment = AlignIO.read(handle, alignment_format)
+        else:
+            with open(msa_file, "r") as handle:
+                alignment = AlignIO.read(handle, alignment_format)
+
+    # upper case seqs
     for record in alignment:
         record.seq = record.seq.upper()
+
+    # Compute the consensus sequence
+    consensus = get_majority_consensus_from_MSA(alignment)
+
+    # Replace 'N' with the consensus sequence in each record
+    for record in alignment:
+        record.seq = Seq("".join(
+            [consensus[i] if nucleotide == 'N' else nucleotide for i, nucleotide in enumerate(str(record.seq))]))
+
     return alignment
 
 
