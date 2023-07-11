@@ -36,7 +36,7 @@ precommit: fmt lint test
 
 # build a python release
 build:
-    poetry run build
+    poetry build --no-interaction
 
 # prints out the commands to run to tag the release and push it
 tag:
