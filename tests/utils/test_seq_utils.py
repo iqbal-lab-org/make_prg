@@ -483,7 +483,7 @@ class Test_remove_columns_full_of_gaps_from_MSA(TestCase):
 class TestSeqIteration(TestCase):
     input_seqs = ["TTAGGTTT", "TTA--TTT", "GGA-TTTT"]
 
-    def test_get_seqs_from_alignment(self):
+    def test___get_seqs_from_alignment(self):
         msa = make_alignment(self.input_seqs)
 
         expected = self.input_seqs
@@ -491,7 +491,7 @@ class TestSeqIteration(TestCase):
 
         self.assertEqual(expected, actual)
 
-    def test_count_alignment_seqs(self):
+    def test___count_alignment_seqs(self):
         msa = make_alignment(self.input_seqs)
 
         expected = 3
@@ -580,6 +580,14 @@ class TestGetMajorityConsensusFromMSA(TestCase):
             ["ACGT", "ACGT", "A--C", "A--G", "C---"],
             ["seq1", "seq2", "seq3", "seq4", "seq5"],
         )
+        self.lower_case_sample_alignment = make_alignment(
+            ["acgt", "acgt", "a--c", "a--g", "c---"],
+            ["seq1", "seq2", "seq3", "seq4", "seq5"],
+        )
+        self.equally_likely_bases = make_alignment(
+            ["AAAAAAAAAAAAAAAAAAAAAAAAA", "CCCCCCCCCCCCCCCCCCCCCCCCC"],
+            ["seq1", "seq2"],
+        )
 
     def test___get_majority_consensus_from_MSA___empty_alignment(self):
         consensus = get_majority_consensus_from_MSA(self.empty_alignment)
@@ -590,7 +598,7 @@ class TestGetMajorityConsensusFromMSA(TestCase):
         for char in consensus:
             self.assertIn(
                 char, "ACGT"
-            )  # Each character should be a random choice of A, C, G, or T
+            )
 
     def test___get_majority_consensus_from_MSA___one_N_one_base(self):
         consensus = get_majority_consensus_from_MSA(self.one_N_one_base_alignment)
@@ -602,10 +610,21 @@ class TestGetMajorityConsensusFromMSA(TestCase):
         consensus = get_majority_consensus_from_MSA(
             self.with_some_columns_full_of_gaps_and_Ns
         )
-        self.assertEqual(consensus, "ATGA")  # The consensus should be the base sequence
+        self.assertEqual(consensus, "AAGC")  # The consensus should be the base sequence
 
     def test___get_majority_consensus_from_MSA___sample_alignment(self):
         consensus = get_majority_consensus_from_MSA(self.sample_alignment)
         self.assertEqual(
             consensus, "ACGT"
         )  # The consensus should be the most common base at each position
+
+    def test___get_majority_consensus_from_MSA___lower_case_sample_alignment(self):
+        consensus = get_majority_consensus_from_MSA(self.lower_case_sample_alignment)
+        self.assertEqual(
+            consensus, "ACGT"
+        )  # The consensus should be the most common base at each position
+
+
+    def test___get_majority_consensus_from_MSA___equally_likely_bases(self):
+        consensus = get_majority_consensus_from_MSA(self.equally_likely_bases)
+        self.assertEqual(set(consensus), {'A', 'C'})  # A and C should be chosen at random
