@@ -596,9 +596,7 @@ class TestGetMajorityConsensusFromMSA(TestCase):
     def test___get_majority_consensus_from_MSA___all_Ns(self):
         consensus = get_majority_consensus_from_MSA(self.all_N_alignment)
         for char in consensus:
-            self.assertIn(
-                char, "ACGT"
-            )
+            self.assertIn(char, "ACGT")
 
     def test___get_majority_consensus_from_MSA___one_N_one_base(self):
         consensus = get_majority_consensus_from_MSA(self.one_N_one_base_alignment)
@@ -624,7 +622,8 @@ class TestGetMajorityConsensusFromMSA(TestCase):
             consensus, "ACGT"
         )  # The consensus should be the most common base at each position
 
-
     def test___get_majority_consensus_from_MSA___equally_likely_bases(self):
         consensus = get_majority_consensus_from_MSA(self.equally_likely_bases)
-        self.assertEqual(set(consensus), {'A', 'C'})  # A and C should be chosen at random
+        self.assertEqual(
+            set(consensus), {"A", "C"}
+        )  # A and C should be chosen at random

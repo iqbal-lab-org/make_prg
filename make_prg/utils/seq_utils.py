@@ -250,7 +250,9 @@ def generate_random_seed(sequences: List[str]) -> bytes:
 def get_consensus_residue(position: int, sequences: List[str]) -> str:
     # Count the residues at this position, ignoring gaps and Ns
     pos_counts = Counter(
-        seq[position] for seq in sequences if seq[position] != GAP and seq[position] != "N"
+        seq[position]
+        for seq in sequences
+        if seq[position] != GAP and seq[position] != "N"
     )
 
     # If there are no residues other than gaps and Ns at this position, use a random base
@@ -283,4 +285,3 @@ def get_majority_consensus_from_MSA(alignment: MSA) -> str:
         consensus += get_consensus_residue(i, all_seqs)
 
     return consensus
-
