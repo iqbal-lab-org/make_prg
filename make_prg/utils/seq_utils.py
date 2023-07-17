@@ -247,7 +247,9 @@ def generate_random_seed(sequences: List[str]) -> bytes:
     return hashlib.sha256("".join(sequences).encode()).digest()
 
 
-def get_consensus_residue(position: int, sequences: List[str], local_random: random.Random) -> str:
+def get_consensus_residue(
+    position: int, sequences: List[str], local_random: random.Random
+) -> str:
     # Count the residues at this position, ignoring gaps and Ns
     pos_counts = Counter(
         seq[position]

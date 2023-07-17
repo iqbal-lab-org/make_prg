@@ -1,7 +1,12 @@
 from unittest import TestCase
 from unittest.mock import Mock
 
-from make_prg.update.denovo_variants import DenovoError, DenovoVariant, TooLongDeletion, NonACGTError
+from make_prg.update.denovo_variants import (
+    DenovoError,
+    DenovoVariant,
+    NonACGTError,
+    TooLongDeletion,
+)
 from make_prg.update.MLPath import MLPathNode
 
 
