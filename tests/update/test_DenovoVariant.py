@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock
 
-from make_prg.update.denovo_variants import DenovoError, DenovoVariant, TooLongDeletion
+from make_prg.update.denovo_variants import DenovoError, DenovoVariant, TooLongDeletion, NonACGTError
 from make_prg.update.MLPath import MLPathNode
 
 
@@ -9,12 +9,12 @@ class DenovoVariantTest(TestCase):
     def setUp(self) -> None:
         self.sample_denovo_variant = DenovoVariant(5, "AACC", "GT")
 
-    def test___ref_not_composed_of_ACGT_only___DenovoError_raised(self):
-        with self.assertRaises(DenovoError):
+    def test___ref_not_composed_of_ACGT_only___NonACGTError_raised(self):
+        with self.assertRaises(NonACGTError):
             DenovoVariant(0, ref="ACGTB", alt="")
 
-    def test___alt_not_composed_of_ACGT_only___DenovoError_raised(self):
-        with self.assertRaises(DenovoError):
+    def test___alt_not_composed_of_ACGT_only___NonACGTError_raised(self):
+        with self.assertRaises(NonACGTError):
             DenovoVariant(0, ref="", alt="ACGTB")
 
     def test___ref_and_alt_are_identical___DenovoError_raised(self):
