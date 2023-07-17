@@ -1,5 +1,8 @@
 import copy
+import hashlib
 import itertools
+import random
+from collections import Counter
 from typing import Generator, List, Tuple
 
 import numpy as np
@@ -234,3 +237,51 @@ def get_consensus_from_MSA(alignment: MSA) -> str:
             consensus_string_as_list.append(column.pop())
     consensus_string = "".join(consensus_string_as_list)
     return consensus_string
+
+
+def convert_to_upper(sequences: Generator) -> Generator:
+    return (s.upper() for s in sequences)
+
+
+def generate_random_seed(sequences: List[str]) -> bytes:
+    return hashlib.sha256("".join(sequences).encode()).digest()
+
+
+def get_consensus_residue(position: int, sequences: List[str]) -> str:
+    # Count the residues at this position, ignoring gaps and Ns
+    pos_counts = Counter(
+        seq[position]
+        for seq in sequences
+        if seq[position] != GAP and seq[position] != "N"
+    )
+
+    # If there are no residues other than gaps and Ns at this position, use a random base
+    if len(pos_counts) == 0:
+        return random.choice("ACGT")
+
+    # Find the residue(s) with the highest count
+    max_count = pos_counts.most_common(1)[0][1]
+    max_residues = [res for res, count in pos_counts.items() if count == max_count]
+
+    # Randomly select a residue from the residues with the highest count
+    return random.choice(max_residues)
+
+
+def get_majority_consensus_from_MSA(alignment: MSA) -> str:
+    """
+    Produces a consensus string (composed only of ACGT) just based on the major base for each column.
+    """
+    all_seqs = get_alignment_seqs(alignment)
+    all_seqs = list(convert_to_upper(all_seqs))
+    random_seed_for_this_alignment = generate_random_seed(all_seqs)
+    random.seed(random_seed_for_this_alignment)
+
+    # Initialize the consensus sequence as an empty string
+    consensus = ""
+
+    # Loop over the positions in the alignment
+    for i in range(alignment.get_alignment_length()):
+        # Add the residue to the consensus sequence
+        consensus += get_consensus_residue(i, all_seqs)
+
+    return consensus
