@@ -170,13 +170,21 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             )
         )
 
-    def test___fails___a_column_full_of_Ns(self):
-        options = self.prepare_options("fails")
+    def test___a_column_full_of_Ns(self):
+        options = self.prepare_options("a_column_full_of_Ns")
         from_msa.run(options)
+        self.assertTrue(
+            are_dir_trees_equal(
+                data_dir / "truth_output/a_column_full_of_Ns",
+                data_dir / "output/a_column_full_of_Ns",
+            )
+        )
 
     def test___fails___unexpected_char_in_MSA(self):
         options = self.prepare_options("fails_2")
         from_msa.run(options)
+        output_dir_is_empty = len(os.listdir(data_dir / "output/fails_2")) == 0
+        self.assertTrue(output_dir_is_empty)
 
     def test___nested_snp_backgrounds(self):
         options = self.prepare_options("nested_snps_seq_backgrounds")
