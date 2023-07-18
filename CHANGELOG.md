@@ -6,7 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.0] - 2022-22-11
+## [0.5.0] - 2023-07-18
+
+### Fixed
+
+- Properly handling Ns in the MSA, and in the denovo sequences (see [PR #60](https://github.com/iqbal-lab-org/make_prg/pull/60)
+and [PR #61](https://github.com/iqbal-lab-org/make_prg/pull/61) for more details);
+
+## [0.4.0] - 2022-11-22
 
 ### Added
 - `make_prg update` command, that updates PRGs without requiring to rebuild MSAs and the PRG itself from scratch;
@@ -103,8 +110,9 @@ operations.
   source project CHANGELOG.
 
 
-[Unreleased]: https://github.com/iqbal-lab-org/make_prg/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/iqbal-lab-org/make_prg/compare/0.5.0...HEAD
 
+[0.5.0]: https://github.com/iqbal-lab-org/make_prg/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/iqbal-lab-org/make_prg/compare/0.2.0...0.4.0
 [0.2.0]: https://github.com/iqbal-lab-org/make_prg/compare/0.1.1...0.2.0
 [0.1.1]: https://github.com/iqbal-lab-org/make_prg/compare/0.1.0...0.1.1

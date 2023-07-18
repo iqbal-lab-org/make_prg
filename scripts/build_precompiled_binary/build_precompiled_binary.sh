@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-version="0.4.0"
+version="0.5.0"
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SCRIPTS_DIR="$(dirname "${CURRENT_DIR}")"
