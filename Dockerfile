@@ -32,7 +32,7 @@ COPY . /make_prg
 
 RUN poetry run pip install -U pip \
     && poetry install --no-ansi --only main --all-extras \
-    && make_prg --version
+    && make_prg --version && pytest tests
 
 # workaround required for pyinstaller to work
 RUN cp -vr /usr/bin/* /usr/sbin/
