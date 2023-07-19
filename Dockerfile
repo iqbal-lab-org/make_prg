@@ -1,6 +1,6 @@
 # To build: docker build . -t make_prg:0.5.0
 # Tagged as such, it can be used in scripts/build_precompiled_binary/build_precompiled_binary.sh to build the precompiled binary
-FROM python:3.8-slim
+FROM python:3.10-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
