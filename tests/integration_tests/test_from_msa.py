@@ -3,6 +3,8 @@ from argparse import Namespace
 from pathlib import Path
 from unittest import TestCase
 
+import pytest
+
 from make_prg.subcommands import from_msa, output_type
 from make_prg.subcommands.from_msa import EmptyMSAError
 from tests.test_helpers import are_dir_trees_equal, remove_dir_if_exists
@@ -331,6 +333,7 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
 
         return input_data, output_prefix
 
+    @pytest.mark.run(after="test___match")
     def test___output_files_already_exist___force_overwrite(self):
         input_data, output_prefix = self.prepare_files_for_testing_force_overwrite(
             "match"
@@ -369,6 +372,7 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             )
         )
 
+    @pytest.mark.run(after="test___match___produce_only_PRGs")
     def test___match___produce_only_PRGs___output_files_already_exist(self):
         input_data, output_prefix = self.prepare_files_for_testing_force_overwrite(
             "match_prg_only"
@@ -402,6 +406,7 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             )
         )
 
+    @pytest.mark.run(after="test___match___produce_only_GFAs")
     def test___match___produce_only_GFAs___output_files_already_exist(self):
         input_data, output_prefix = self.prepare_files_for_testing_force_overwrite(
             "match_gfa_only"
@@ -435,6 +440,7 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             )
         )
 
+    @pytest.mark.run(after="test___match___produce_only_binary_PRGs")
     def test___match___produce_only_binary___output_files_already_exist(self):
         input_data, output_prefix = self.prepare_files_for_testing_force_overwrite(
             "match_bin_only"

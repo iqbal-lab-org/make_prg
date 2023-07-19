@@ -259,7 +259,9 @@ def kmeans_cluster_seqs(
             break
         if num_clusters == num_sequences:
             break
-        kmeans = KMeans(n_clusters=num_clusters, random_state=2).fit(count_matrix)
+        kmeans = KMeans(n_clusters=num_clusters, random_state=2, algorithm="elkan").fit(
+            count_matrix
+        )
         prev_cluster_assignment = cluster_assignment
         cluster_assignment = list(kmeans.predict(count_matrix))
         num_fitted_clusters = len(set(cluster_assignment))
