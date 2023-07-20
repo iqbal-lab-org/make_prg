@@ -170,13 +170,21 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             )
         )
 
-    def test___fails___a_column_full_of_Ns(self):
-        options = self.prepare_options("fails")
+    def test___a_column_full_of_Ns(self):
+        options = self.prepare_options("a_column_full_of_Ns")
         from_msa.run(options)
+        self.assertTrue(
+            are_dir_trees_equal(
+                data_dir / "truth_output/a_column_full_of_Ns",
+                data_dir / "output/a_column_full_of_Ns",
+            )
+        )
 
     def test___fails___unexpected_char_in_MSA(self):
         options = self.prepare_options("fails_2")
         from_msa.run(options)
+        output_dir_is_empty = len(os.listdir(data_dir / "output/fails_2")) == 0
+        self.assertTrue(output_dir_is_empty)
 
     def test___nested_snp_backgrounds(self):
         options = self.prepare_options("nested_snps_seq_backgrounds")
@@ -313,10 +321,8 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             from_msa.run(options)
 
     def prepare_files_for_testing_force_overwrite(self, test_case):
-        output_dir = data_dir / f"output/{test_case}"
-        assert (
-            output_dir.exists()
-        ), f"Error, {output_dir} should exist already when running this test"
+        output_dir = data_dir / f"output/{test_case}_overwrite"
+        remove_dir_if_exists(output_dir)
 
         input_data = str(data_dir / f"{test_case}.fa")
         output_prefix = str(output_dir / test_case)
@@ -324,10 +330,26 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
         return input_data, output_prefix
 
     def test___output_files_already_exist___force_overwrite(self):
+        # first run
         input_data, output_prefix = self.prepare_files_for_testing_force_overwrite(
             "match"
         )
+        options = Namespace(
+            input=input_data,
+            suffix="",
+            output_prefix=output_prefix,
+            alignment_format="fasta",
+            log=None,
+            max_nesting=5,
+            min_match_length=7,
+            output_type=output_type.OutputType("a"),
+            force=False,
+            threads=1,
+            verbose=False,
+        )
+        from_msa.run(options)
 
+        # second run, forces overwrite
         options = Namespace(
             input=input_data,
             suffix="",
@@ -341,12 +363,12 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             threads=1,
             verbose=False,
         )
-
         from_msa.run(options)
 
         self.assertTrue(
             are_dir_trees_equal(
-                data_dir / "truth_output/match", data_dir / "output/match"
+                data_dir / "truth_output/match_overwrite",
+                data_dir / "output/match_overwrite",
             )
         )
 
@@ -361,28 +383,6 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             )
         )
 
-    def test___match___produce_only_PRGs___output_files_already_exist(self):
-        input_data, output_prefix = self.prepare_files_for_testing_force_overwrite(
-            "match_prg_only"
-        )
-
-        options = Namespace(
-            input=input_data,
-            suffix="",
-            output_prefix=output_prefix,
-            alignment_format="fasta",
-            log=None,
-            max_nesting=5,
-            min_match_length=7,
-            output_type=output_type.OutputType("p"),
-            force=False,
-            threads=1,
-            verbose=False,
-        )
-
-        with self.assertRaises(RuntimeError):
-            from_msa.run(options)
-
     def test___match___produce_only_GFAs(self):
         options = self.prepare_options("match_gfa_only")
         options.output_type = output_type.OutputType("g")
@@ -394,28 +394,6 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             )
         )
 
-    def test___match___produce_only_GFAs___output_files_already_exist(self):
-        input_data, output_prefix = self.prepare_files_for_testing_force_overwrite(
-            "match_gfa_only"
-        )
-
-        options = Namespace(
-            input=input_data,
-            suffix="",
-            output_prefix=output_prefix,
-            alignment_format="fasta",
-            log=None,
-            max_nesting=5,
-            min_match_length=7,
-            output_type=output_type.OutputType("g"),
-            force=False,
-            threads=1,
-            verbose=False,
-        )
-
-        with self.assertRaises(RuntimeError):
-            from_msa.run(options)
-
     def test___match___produce_only_binary_PRGs(self):
         options = self.prepare_options("match_bin_only")
         options.output_type = output_type.OutputType("b")
@@ -426,28 +404,6 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
                 data_dir / "output/match_bin_only",
             )
         )
-
-    def test___match___produce_only_binary___output_files_already_exist(self):
-        input_data, output_prefix = self.prepare_files_for_testing_force_overwrite(
-            "match_bin_only"
-        )
-
-        options = Namespace(
-            input=input_data,
-            suffix="",
-            output_prefix=output_prefix,
-            alignment_format="fasta",
-            log=None,
-            max_nesting=5,
-            min_match_length=7,
-            output_type=output_type.OutputType("b"),
-            force=False,
-            threads=1,
-            verbose=False,
-        )
-
-        with self.assertRaises(RuntimeError):
-            from_msa.run(options)
 
     def test___match___compressed_input_file(self):
         input_data = str(data_dir / "match.fa.gz")
@@ -514,5 +470,16 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             are_dir_trees_equal(
                 data_dir / "truth_output/sample_example",
                 data_dir / "output/sample_example",
+            )
+        )
+
+    def test___amira(self):
+        options = self.prepare_options("amira_MSAs")
+        options.input = str(data_dir / "amira_MSAs")
+        from_msa.run(options)
+        self.assertTrue(
+            are_dir_trees_equal(
+                data_dir / "truth_output/amira_MSAs",
+                data_dir / "output/amira_MSAs",
             )
         )

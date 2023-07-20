@@ -21,6 +21,10 @@ class DenovoError(Exception):
     pass
 
 
+class NonACGTError(Exception):
+    pass
+
+
 class TooLongDeletion(Exception):
     pass
 
@@ -82,7 +86,7 @@ class DenovoVariant:
     def _check_sequence_is_composed_of_ACGT_only(seq: str):
         sequence_is_composed_of_ACGT_only = all([base in "ACGT" for base in seq])
         if not sequence_is_composed_of_ACGT_only:
-            raise DenovoError(f"Found a non-ACGT seq ({seq}) in a denovo variant")
+            raise NonACGTError(f"Found a non-ACGT seq ({seq}) in a denovo variant")
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -496,7 +500,7 @@ class DenovoVariantsDB:
                     filehandler, long_deletion_threshold
                 )
                 variants.append(denovo_variant)
-            except TooLongDeletion as error:
+            except (TooLongDeletion, NonACGTError) as error:
                 logger.warning(f"Ignoring variant: {error}")
         return variants
 

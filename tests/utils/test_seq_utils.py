@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from make_prg import MSA
 from make_prg.utils.misc import equal_msas
 from make_prg.utils.seq_utils import (
     GAP,
@@ -10,6 +11,7 @@ from make_prg.utils.seq_utils import (
     count,
     get_alignment_seqs,
     get_consensus_from_MSA,
+    get_majority_consensus_from_MSA,
     get_number_of_unique_gapped_sequences,
     get_number_of_unique_ungapped_sequences,
     has_empty_sequence,
@@ -481,7 +483,7 @@ class Test_remove_columns_full_of_gaps_from_MSA(TestCase):
 class TestSeqIteration(TestCase):
     input_seqs = ["TTAGGTTT", "TTA--TTT", "GGA-TTTT"]
 
-    def test_get_seqs_from_alignment(self):
+    def test___get_seqs_from_alignment(self):
         msa = make_alignment(self.input_seqs)
 
         expected = self.input_seqs
@@ -489,7 +491,7 @@ class TestSeqIteration(TestCase):
 
         self.assertEqual(expected, actual)
 
-    def test_count_alignment_seqs(self):
+    def test___count_alignment_seqs(self):
         msa = make_alignment(self.input_seqs)
 
         expected = 3
@@ -560,3 +562,68 @@ class Test_get_consensus_from_MSA(TestCase):
         actual = get_consensus_from_MSA(alignment)
 
         self.assertEqual(expected, actual)
+
+
+class TestGetMajorityConsensusFromMSA(TestCase):
+    def setUp(self):
+        # Create some sample alignments for testing
+        self.empty_alignment = MSA([])
+        self.all_N_alignment = make_alignment(["NNNN", "NNNN"], ["seq1", "seq2"])
+        self.one_N_one_base_alignment = make_alignment(
+            ["NNNN", "ACGT"], ["seq1", "seq2"]
+        )
+        self.with_some_columns_full_of_gaps_and_Ns = make_alignment(
+            ["ANG-", "ANG-", "ANN-", "A---", "C---"],
+            ["seq1", "seq2", "seq3", "seq4", "seq5"],
+        )
+        self.sample_alignment = make_alignment(
+            ["ACGT", "ACGT", "A--C", "A--G", "C---"],
+            ["seq1", "seq2", "seq3", "seq4", "seq5"],
+        )
+        self.lower_case_sample_alignment = make_alignment(
+            ["acgt", "acgt", "a--c", "a--g", "c---"],
+            ["seq1", "seq2", "seq3", "seq4", "seq5"],
+        )
+        self.equally_likely_bases = make_alignment(
+            ["AAAAAAAAAAAAAAAAAAAAAAAAA", "CCCCCCCCCCCCCCCCCCCCCCCCC"],
+            ["seq1", "seq2"],
+        )
+
+    def test___get_majority_consensus_from_MSA___empty_alignment(self):
+        consensus = get_majority_consensus_from_MSA(self.empty_alignment)
+        self.assertEqual(consensus, "")
+
+    def test___get_majority_consensus_from_MSA___all_Ns(self):
+        consensus = get_majority_consensus_from_MSA(self.all_N_alignment)
+        for char in consensus:
+            self.assertIn(char, "ACGT")
+
+    def test___get_majority_consensus_from_MSA___one_N_one_base(self):
+        consensus = get_majority_consensus_from_MSA(self.one_N_one_base_alignment)
+        self.assertEqual(consensus, "ACGT")  # The consensus should be the base sequence
+
+    def test___get_majority_consensus_from_MSA___with_some_columns_full_of_gaps_and_Ns(
+        self,
+    ):
+        consensus = get_majority_consensus_from_MSA(
+            self.with_some_columns_full_of_gaps_and_Ns
+        )
+        self.assertEqual(consensus, "AAGC")  # The consensus should be the base sequence
+
+    def test___get_majority_consensus_from_MSA___sample_alignment(self):
+        consensus = get_majority_consensus_from_MSA(self.sample_alignment)
+        self.assertEqual(
+            consensus, "ACGT"
+        )  # The consensus should be the most common base at each position
+
+    def test___get_majority_consensus_from_MSA___lower_case_sample_alignment(self):
+        consensus = get_majority_consensus_from_MSA(self.lower_case_sample_alignment)
+        self.assertEqual(
+            consensus, "ACGT"
+        )  # The consensus should be the most common base at each position
+
+    def test___get_majority_consensus_from_MSA___equally_likely_bases(self):
+        consensus = get_majority_consensus_from_MSA(self.equally_likely_bases)
+        self.assertEqual(
+            set(consensus), {"A", "C"}
+        )  # A and C should be chosen at random
