@@ -37,13 +37,13 @@ In this binary, all libraries are linked statically. Compilation is done using [
 
 #### Download
 ```
-wget https://github.com/iqbal-lab-org/make_prg/releases/download/0.4.0/make_prg_0.4.0
+wget https://github.com/iqbal-lab-org/make_prg/releases/download/0.5.0/make_prg_0.5.0
 ```
 
 #### Run
 ```
-chmod +x make_prg_0.4.0
-./make_prg_0.4.0 -h
+chmod +x make_prg_0.5.0
+./make_prg_0.5.0 -h
 ```
 
 ### pip
@@ -77,7 +77,7 @@ The above will use the latest version. If you want to specify a version then use
 [tag][quay.io] (or commit) like so.
 
 ```sh
-VERSION="0.4.0"
+VERSION="0.5.0"
 URI="docker://quay.io/iqballab/make_prg:${VERSION}"
 ```
 
