@@ -1,6 +1,6 @@
 # make_prg
 
-A tool to create and update PRGs for input to [Pandora][pandora] and [Gramtools][gramtools] from a set of 
+A tool to create and update Population (or Pangenome) Reference Graphs (PRGs) for input to [Pandora][pandora] and [Gramtools][gramtools] from a set of 
 Multiple Sequence Alignments.
 
 ![master branch badge](https://github.com/iqbal-lab-org/make_prg/actions/workflows/ci.yaml/badge.svg) 
