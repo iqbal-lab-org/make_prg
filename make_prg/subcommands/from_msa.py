@@ -83,6 +83,18 @@ def register_parser(subparsers):
             "match. Default: %(default)d"
         ),
     )
+    subparser_msa.add_argument(
+        "--force-expand-ambiguous-bases",
+        dest="force_expand_ambiguous_bases",
+        action="store_true",
+        default=False,
+        help=(
+            "Force full expansion of ambiguous IUPAC bases (R,Y,K,M,S,W,B,D,H,V,N) "
+            "into all possible combinations. WARNING: This can cause exponential "
+            "explosion and infinite hangs. Default behavior replaces ambiguous bases "
+            "with their first ACGT alternative."
+        ),
+    )
 
     subparser_msa.set_defaults(func=run)
 
@@ -120,6 +132,7 @@ def process_MSA(options, input_and_output_files: InputOutputFilesFromMSA):
             alignment_format=options.alignment_format,
             max_nesting=options.max_nesting,
             min_match_length=options.min_match_length,
+            force_expand_ambiguous_bases=options.force_expand_ambiguous_bases,
         )
         logger.debug(f"PrgBuilder created successfully for {locus_name}")
 

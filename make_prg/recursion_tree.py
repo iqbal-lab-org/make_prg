@@ -279,7 +279,7 @@ class LeafNode(RecursiveTreeNode):
         Builds the PRG in prg_as_list. The PRG of a leaf node is the sequences themselves it represents
         """
         expanded_sequences = SequenceExpander.get_expanded_sequences_from_MSA(
-            self.alignment
+            self.alignment, force_expand_ambiguous_bases=self.prg_builder.force_expand_ambiguous_bases
         )
 
         single_seq = len(expanded_sequences) == 1
@@ -441,7 +441,7 @@ class NodeFactory:
         min_match_length = prg_builder.min_match_length
         logger.debug(f"NodeFactory.build: Getting vertical partition with min_match_length={min_match_length}")
         all_intervals, match_intervals = NodeFactory._get_vertical_partition(
-            alignment, min_match_length
+            alignment, min_match_length, prg_builder
         )
         logger.debug(f"NodeFactory.build: Found {len(all_intervals)} intervals, {len(match_intervals)} match intervals")
         
@@ -525,7 +525,7 @@ class NodeFactory:
     #  interval methods
     @staticmethod
     def _get_vertical_partition(
-        alignment: MSA, min_match_length: int
+        alignment: MSA, min_match_length: int, prg_builder: "PrgBuilder"
     ) -> Tuple[Intervals, Intervals]:
         logger.debug(f"_get_vertical_partition: Starting with alignment {len(alignment)} seqs x {alignment.get_alignment_length()} bp")
         
@@ -535,7 +535,7 @@ class NodeFactory:
         
         logger.debug(f"_get_vertical_partition: Creating IntervalPartitioner...")
         interval_partitioner = IntervalPartitioner(
-            consensus, min_match_length, alignment
+            consensus, min_match_length, alignment, force_expand_ambiguous_bases=prg_builder.force_expand_ambiguous_bases
         )
         logger.debug(f"_get_vertical_partition: IntervalPartitioner created successfully")
         

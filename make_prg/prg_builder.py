@@ -29,6 +29,7 @@ class PrgBuilder(object):
         max_nesting: int,
         min_match_length: int,
         aligner: Optional["MSAAligner"] = None,  # noqa: F821
+        force_expand_ambiguous_bases: bool = False,
     ):
         from loguru import logger
         
@@ -36,6 +37,7 @@ class PrgBuilder(object):
         self.max_nesting: int = max_nesting
         self.min_match_length: int = min_match_length
         self.aligner: Optional["MSAAligner"] = aligner  # noqa: F821
+        self.force_expand_ambiguous_bases: bool = force_expand_ambiguous_bases
         self.next_node_id: int = 0
         self.site_num: int = 5
         self.prg_index: Dict[Tuple[int, int], LeafNode] = {}

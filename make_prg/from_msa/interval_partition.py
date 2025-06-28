@@ -78,14 +78,15 @@ class IntervalPartitioner:
     consensus sequence longer than min_match_length, and
     a list of the non-match intervals left."""
 
-    def __init__(self, consensus_string: str, min_match_length: int, alignment: MSA):
+    def __init__(self, consensus_string: str, min_match_length: int, alignment: MSA, force_expand_ambiguous_bases: bool = False):
         from loguru import logger
         
-        logger.debug(f"IntervalPartitioner.__init__: consensus length={len(consensus_string)}, min_match_length={min_match_length}")
+        logger.debug(f"IntervalPartitioner.__init__: consensus length={len(consensus_string)}, min_match_length={min_match_length}, force_expand_ambiguous_bases={force_expand_ambiguous_bases}")
         
         self._match_intervals: Intervals = list()
         self._non_match_intervals: Intervals = list()
         self.mml = min_match_length
+        self.force_expand_ambiguous_bases = force_expand_ambiguous_bases
 
         if len(consensus_string) < self.mml:
             logger.debug(f"IntervalPartitioner.__init__: Consensus shorter than min_match_length, creating single interval")
@@ -197,9 +198,8 @@ class IntervalPartitioner:
         self._append(interval)
         return None
 
-    @classmethod
     def enforce_multisequence_nonmatch_intervals(
-        cls, match_intervals: Intervals, non_match_intervals: Intervals, alignment: MSA
+        self, match_intervals: Intervals, non_match_intervals: Intervals, alignment: MSA
     ) -> None:
         """
         Goes through non-match intervals and makes sure there is more than one sequence
@@ -263,17 +263,13 @@ class IntervalPartitioner:
                     logger.error(f"Total expansions: 2^{log_total_expansions:.1f} ≈ {scientific_notation:.2e}")
                     logger.error(f"Expansion factors: {expansion_factors}")
                     logger.error(f"Details: {expansion_details[:20]}{'...' if len(expansion_details) > 20 else ''}")
-                    
-                # Safety check - abort if too large
-                if log_total_expansions > 20:  # 2^20 = ~1 million
-                    raise RuntimeError(f"Sequence expansion would generate 2^{log_total_expansions:.1f} ≈ {10**(log_total_expansions * math.log10(2)):.2e} sequences - aborting to prevent infinite hang")
-                
+                                    
                 if log_total_expansions > 13:  # 2^13 = ~8000
                     logger.error(f"enforce_multisequence_nonmatch_intervals: Large expansion detected - this will likely cause hang!")
             
             logger.debug(f"enforce_multisequence_nonmatch_intervals: Calling SequenceExpander on interval {i} (expecting 2^{log_total_expansions:.1f} expansions)")
             expanded_seqs = SequenceExpander.get_expanded_sequences_from_MSA(
-                interval_alignment
+                interval_alignment, force_expand_ambiguous_bases=self.force_expand_ambiguous_bases
             )
             logger.debug(f"enforce_multisequence_nonmatch_intervals: SequenceExpander returned {len(expanded_seqs)} sequences for interval {i}")
             if len(expanded_seqs) < 2:

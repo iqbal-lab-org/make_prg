@@ -114,14 +114,16 @@ class SequenceExpander:
             ), f"Sequence ({sequence}) should be composed of ACTG only."
 
     @classmethod
-    def get_expanded_sequences(cls, sequences: List[str]) -> Sequences:
+    def get_expanded_sequences(cls, sequences: List[str], force_expand_ambiguous_bases: bool = True) -> Sequences:
         """
         Expand sequences in the given list of sequences, following the translation
         table in SequenceExpander.iupac.
         It does the following steps:
             1. Check that we don't have disallowed bases;
             2. Remove sequences with N;
-            3. Duplicate sequences containing RYKMSW, replacing with AGCT alternatives;
+            3. Handle ambiguous bases (RYKMSW) based on force_expand_ambiguous_bases:
+               - If True: Duplicate sequences containing RYKMSW, replacing with AGCT alternatives
+               - If False: Replace ambiguous bases with first ACGT alternative to avoid explosion
         Note 1: The sequences are deliberately returned in the order they are received.
         Note 2: Returned sequences are composed of ACGT only
         """
@@ -135,12 +137,26 @@ class SequenceExpander:
             if "N" in seq:
                 continue
 
-            alternatives = [cls.iupac[base] for base in seq]
-            for tuple_product in itertools.product(*alternatives):
-                expanded_str = "".join(tuple_product)
-                if expanded_str not in expanded_set:
-                    expanded_set.add(expanded_str)
-                    expanded_seqs.append(expanded_str)
+            if force_expand_ambiguous_bases:
+                # Original behavior: full expansion (can cause exponential explosion)
+                alternatives = [cls.iupac[base] for base in seq]
+                for tuple_product in itertools.product(*alternatives):
+                    expanded_str = "".join(tuple_product)
+                    if expanded_str not in expanded_set:
+                        expanded_set.add(expanded_str)
+                        expanded_seqs.append(expanded_str)
+            else:
+                # New safe behavior: replace with first alternative only
+                safe_seq = ""
+                for base in seq:
+                    if base in cls.iupac:
+                        safe_seq += cls.iupac[base][0]  # Take first alternative
+                    else:
+                        safe_seq += base
+                
+                if safe_seq not in expanded_set:
+                    expanded_set.add(safe_seq)
+                    expanded_seqs.append(safe_seq)
 
         all_sequences_contained_N = len(expanded_seqs) == 0
         if all_sequences_contained_N:
@@ -153,9 +169,9 @@ class SequenceExpander:
         return expanded_seqs
 
     @classmethod
-    def get_expanded_sequences_from_MSA(cls, alignment: MSA) -> Sequences:
+    def get_expanded_sequences_from_MSA(cls, alignment: MSA, force_expand_ambiguous_bases: bool = True) -> Sequences:
         gapless_seqs = list(map(ungap, get_alignment_seqs(alignment)))
-        return cls.get_expanded_sequences(gapless_seqs)
+        return cls.get_expanded_sequences(gapless_seqs, force_expand_ambiguous_bases)
 
 
 def align(
