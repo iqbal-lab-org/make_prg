@@ -16,7 +16,7 @@ keywords = ["python", "reference-graph", "genome-graph", "bioinformatics"]
 make_prg = 'make_prg.__main__:main'
 
 [tool.poetry.dependencies]
-python = ">=3.8,<=3.11"
+python = ">=3.8,<3.12"
 setuptools = "^65"
 biopython = "1.79"
 loguru = "^0.6.0"
