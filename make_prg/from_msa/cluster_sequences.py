@@ -216,12 +216,16 @@ def kmeans_cluster_seqs(
     If no meaningful clustering is found, returns the (deduplicated, ungapped)
     set of input sequences.
     """
+    logger.debug(f"kmeans_cluster_seqs: Starting clustering with {len(alignment)} sequences, kmer_size={kmer_size}")
+    
     # Find unique sequences for clustering, but keep each sequence's IDs
     seq_to_ids: SeqToIDs = defaultdict(list)
     seq_to_gapped_seqs: SeqToSeqs = defaultdict(list)
     small_seq_to_ids: SeqToIDs = defaultdict(list)
     first_id = alignment[0].id
     first_sequence = ungap(str(alignment[0].seq))
+    
+    logger.debug(f"kmeans_cluster_seqs: Processing sequences for clustering")
 
     for record in alignment:
         seq_with_gaps = str(record.seq)
@@ -234,8 +238,11 @@ def kmeans_cluster_seqs(
 
     num_clusters = 1
     num_sequences = len(seq_to_ids)
+    logger.debug(f"kmeans_cluster_seqs: Found {num_sequences} unique sequences")
+    
     too_few_seqs_to_cluster = num_sequences <= 2
     if too_few_seqs_to_cluster:
+        logger.debug(f"kmeans_cluster_seqs: Too few sequences to cluster ({num_sequences}), returning single cluster")
         single_cluster = [
             flatten_list(seq_to_ids.values()) + flatten_list(small_seq_to_ids.values())
         ]
@@ -245,36 +252,57 @@ def kmeans_cluster_seqs(
         )
         return ClusteringResult(clustered_ids, merged_sequences)
 
+    logger.debug(f"kmeans_cluster_seqs: Computing k-mers for {num_sequences} sequences")
     distinct_sequences = list(seq_to_ids)
     distinct_kmers = count_distinct_kmers(distinct_sequences, kmer_size)
+    logger.debug(f"kmeans_cluster_seqs: Found {len(distinct_kmers)} distinct k-mers")
+    
     count_matrix = count_kmer_occurrences(distinct_sequences, distinct_kmers)
+    logger.debug(f"kmeans_cluster_seqs: Built count matrix of shape {count_matrix.shape}")
+    
     cluster_assignment = [0 for _ in range(len(seq_to_ids))]
     seqclustering: ClusteredSeqs = extract_clusters(
         seq_to_gapped_seqs, cluster_assignment
     )
 
+    logger.debug(f"kmeans_cluster_seqs: Starting clustering loop")
     while cluster_further(seqclustering):
         num_clusters += 1
+        logger.debug(f"kmeans_cluster_seqs: Trying {num_clusters} clusters")
+        
         if num_clusters > MAX_CLUSTERS:
+            logger.debug(f"kmeans_cluster_seqs: Reached max clusters limit ({MAX_CLUSTERS})")
             break
         if num_clusters == num_sequences:
+            logger.debug(f"kmeans_cluster_seqs: Number of clusters equals number of sequences")
             break
+            
+        logger.debug(f"kmeans_cluster_seqs: Running KMeans with {num_clusters} clusters")
         kmeans = KMeans(n_clusters=num_clusters, random_state=2, algorithm="elkan").fit(
             count_matrix
         )
+        logger.debug(f"kmeans_cluster_seqs: KMeans fitting completed")
+        
         prev_cluster_assignment = cluster_assignment
         cluster_assignment = list(kmeans.predict(count_matrix))
         num_fitted_clusters = len(set(cluster_assignment))
+        logger.debug(f"kmeans_cluster_seqs: Got {num_fitted_clusters} fitted clusters")
+        
         # Below holds when alignments are different, but kmer counts are identical
         # (due to repeats), making kmeans unable to fit requested number of clusters
         if num_fitted_clusters < num_clusters:
+            logger.debug(f"kmeans_cluster_seqs: Fitted clusters < requested clusters, reverting")
             cluster_assignment = prev_cluster_assignment
             num_clusters -= 1
             break
         seqclustering = extract_clusters(seq_to_gapped_seqs, cluster_assignment)
+        logger.debug(f"kmeans_cluster_seqs: Extracted {len(seqclustering)} sequence clusters")
 
     no_clustering = num_clusters == 1 or num_clusters == num_sequences
+    logger.debug(f"kmeans_cluster_seqs: Final clustering result - {num_clusters} clusters, no_clustering={no_clustering}")
+    
     if no_clustering:
+        logger.debug(f"kmeans_cluster_seqs: No meaningful clustering found, returning single cluster")
         single_cluster = [
             flatten_list(seq_to_ids.values()) + flatten_list(small_seq_to_ids.values())
         ]
@@ -284,6 +312,7 @@ def kmeans_cluster_seqs(
         )
         return ClusteringResult(clustered_ids, merged_sequences)
     else:
+        logger.debug(f"kmeans_cluster_seqs: Meaningful clustering found, creating {num_clusters} clusters")
         clustered_ids: ClusteredIDs = []
         if num_sequences > 0:
             clustered_ids = extract_clusters(seq_to_ids, cluster_assignment)

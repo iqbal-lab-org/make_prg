@@ -49,11 +49,15 @@ class RecursiveTreeNode(ABC):
             self.prg_builder.get_next_node_id()
         )  # note node_id is fully protected from writes (see self.__hash__())
 
+        parent_info = f"parent={parent.node_id}" if parent else "root"
+        logger.debug(f"Creating node {self._node_id} ({parent_info}, nesting={nesting_level}, {len(children_subalignments)} subalignments)")
+
         # generate recursion tree
         self._children: List["RecursiveTreeNode"] = self._get_children(
             children_subalignments
         )
 
+        logger.debug(f"Node {self._node_id} construction completed with {len(self._children)} children")
         self.log_that_node_was_created()
 
     @property
@@ -127,10 +131,15 @@ class RecursiveTreeNode(ABC):
     def _get_children(
         self, children_subalignments: SubMSAs
     ) -> List["RecursiveTreeNode"]:
-        return [
-            NodeFactory.build(alignment, self.prg_builder, self)
-            for alignment in children_subalignments
-        ]
+        logger.debug(f"Node {self.node_id}: Building {len(children_subalignments)} child nodes")
+        children = []
+        for i, alignment in enumerate(children_subalignments):
+            logger.debug(f"Node {self.node_id}: Building child {i+1}/{len(children_subalignments)} with {len(alignment)} sequences")
+            child = NodeFactory.build(alignment, self.prg_builder, self)
+            children.append(child)
+            logger.debug(f"Node {self.node_id}: Completed child {i+1}/{len(children_subalignments)}")
+        logger.debug(f"Node {self.node_id}: All {len(children)} children built successfully")
+        return children
 
     @abstractmethod
     def preorder_traversal_to_build_prg(
@@ -423,25 +432,37 @@ class NodeFactory:
         3. Try to build a multi cluster node
         4. Force build a leaf node
         """
+        building_the_root = parent_node is None
+        nesting_level = 0 if building_the_root else parent_node.nesting_level
+        
+        logger.debug(f"NodeFactory.build: Starting to build node (root={building_the_root}, nesting_level={nesting_level})")
+        logger.debug(f"NodeFactory.build: Alignment has {len(alignment)} sequences, length={alignment.get_alignment_length()}")
+        
         min_match_length = prg_builder.min_match_length
+        logger.debug(f"NodeFactory.build: Getting vertical partition with min_match_length={min_match_length}")
         all_intervals, match_intervals = NodeFactory._get_vertical_partition(
             alignment, min_match_length
         )
+        logger.debug(f"NodeFactory.build: Found {len(all_intervals)} intervals, {len(match_intervals)} match intervals")
+        
         building_a_leaf = NodeFactory._is_single_match_interval(
             all_intervals, match_intervals
         )
         building_multi_interval_node = NodeFactory._is_multi_interval(all_intervals)
-        building_the_root = parent_node is None
-        nesting_level = 0 if building_the_root else parent_node.nesting_level
+        
+        logger.debug(f"NodeFactory.build: building_a_leaf={building_a_leaf}, building_multi_interval_node={building_multi_interval_node}")
 
         if building_a_leaf:
+            logger.debug(f"NodeFactory.build: Building leaf node")
             return LeafNode(nesting_level, alignment, parent_node, prg_builder)
         elif building_multi_interval_node or building_the_root:
+            logger.debug(f"NodeFactory.build: Building multi-interval node")
             interval_subalignments = (
                 NodeFactory._partition_alignment_into_interval_subalignments(
                     alignment, all_intervals
                 )
             )
+            logger.debug(f"NodeFactory.build: Created {len(interval_subalignments)} interval subalignments")
             return MultiIntervalNode(
                 nesting_level,
                 alignment,
@@ -450,16 +471,20 @@ class NodeFactory:
                 interval_subalignments,
             )
         else:  # builds a multi cluster node
+            logger.debug(f"NodeFactory.build: Attempting to build multi-cluster node")
             clustering_result = kmeans_cluster_seqs(alignment, min_match_length)
+            logger.debug(f"NodeFactory.build: Clustering completed, checking if should cluster further")
             cluster_further = NodeFactory._infer_if_we_should_cluster_further(
                 alignment, clustering_result, nesting_level, prg_builder.max_nesting
             )
             if cluster_further:
+                logger.debug(f"NodeFactory.build: Building multi-cluster node, increasing nesting level to {nesting_level + 1}")
                 # when building a Multi Cluster node, we open a site, so we go down one nesting level
                 nesting_level += 1
                 cluster_subalignments = NodeFactory._get_subalignments_by_clustering(
                     alignment, clustering_result
                 )
+                logger.debug(f"NodeFactory.build: Created {len(cluster_subalignments)} cluster subalignments")
                 return MultiClusterNode(
                     nesting_level,
                     alignment,
@@ -468,6 +493,7 @@ class NodeFactory:
                     cluster_subalignments,
                 )
             else:  # can't cluster further, force builds leaf
+                logger.debug(f"NodeFactory.build: Cannot cluster further, forcing leaf node build")
                 return LeafNode(nesting_level, alignment, parent_node, prg_builder)
 
     #####################################################################################################
@@ -501,15 +527,25 @@ class NodeFactory:
     def _get_vertical_partition(
         alignment: MSA, min_match_length: int
     ) -> Tuple[Intervals, Intervals]:
+        logger.debug(f"_get_vertical_partition: Starting with alignment {len(alignment)} seqs x {alignment.get_alignment_length()} bp")
+        
+        logger.debug(f"_get_vertical_partition: Computing consensus sequence...")
         consensus = get_consensus_from_MSA(alignment)
+        logger.debug(f"_get_vertical_partition: Consensus computed, length: {len(consensus)}")
+        
+        logger.debug(f"_get_vertical_partition: Creating IntervalPartitioner...")
         interval_partitioner = IntervalPartitioner(
             consensus, min_match_length, alignment
         )
+        logger.debug(f"_get_vertical_partition: IntervalPartitioner created successfully")
+        
+        logger.debug(f"_get_vertical_partition: Getting intervals...")
         (
             match_intervals,
             non_match_intervals,
             all_intervals,
         ) = interval_partitioner.get_intervals()
+        logger.debug(f"_get_vertical_partition: Intervals computed - {len(all_intervals)} total, {len(match_intervals)} matches")
         return all_intervals, match_intervals
 
     @staticmethod

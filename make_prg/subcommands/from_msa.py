@@ -111,6 +111,9 @@ def process_MSA(options, input_and_output_files: InputOutputFilesFromMSA):
     logger.info(f"Generating PRG for {locus_name}...")
 
     try:
+        logger.debug(f"Loading MSA file: {input_and_output_files.input_filepath}")
+        logger.debug(f"Parameters: max_nesting={options.max_nesting}, min_match_length={options.min_match_length}")
+        
         builder = prg_builder.PrgBuilder(
             locus_name=locus_name,
             msa_file=input_and_output_files.input_filepath,
@@ -118,9 +121,13 @@ def process_MSA(options, input_and_output_files: InputOutputFilesFromMSA):
             max_nesting=options.max_nesting,
             min_match_length=options.min_match_length,
         )
+        logger.debug(f"PrgBuilder created successfully for {locus_name}")
+
+        logger.info(f"Building PRG for {locus_name}...")
+        prg = builder.build_prg()
+        logger.debug(f"PRG built successfully for {locus_name}, length: {len(prg)}")
 
         logger.info(f"Writing output files of locus {locus_name}")
-        prg = builder.build_prg()
 
         if options.output_type.prg:
             builder.write_prg_as_text(prefix, prg)
