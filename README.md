@@ -24,6 +24,7 @@ can be run through containers.
   - [Container](#container)
 - [Running on a sample example](#running-on-a-sample-example)
 - [Usage](#usage)
+- [Development](#development)
 
 ## Install
 
@@ -144,6 +145,8 @@ options:
                         Number of threads. 0 will use all available. Default: 1
   -v, --verbose         Increase output verbosity (-v for debug, -vv for trace - trace is for developers only)
   --log LOG             Path to write log to. Default is stderr
+  --force-expand-ambiguous-bases
+                        Force full expansion of ambiguous IUPAC bases (R,Y,K,M,S,W,B,D,H,V,N) into all possible combinations. WARNING: This can cause exponential explosion and infinite hangs. Default behavior replaces ambiguous bases with their first ACGT alternative.
 ```
 
 #### `update`
@@ -169,6 +172,64 @@ options:
                         Number of threads. 0 will use all available. Default: 1
   -v, --verbose         Increase output verbosity (-v for debug, -vv for trace - trace is for developers only)
   --log LOG             Path to write log to. Default is stderr
+```
+
+## Development
+
+### Requirements
+
+- Python 3.8-3.11
+- [Poetry](https://python-poetry.org/) for dependency management
+
+### Setup
+
+1. **Clone the repository:**
+   ```sh
+   git clone https://github.com/iqbal-lab-org/make_prg.git
+   cd make_prg
+   ```
+
+2. **Install dependencies:**
+   ```sh
+   poetry install
+   ```
+
+3. **Activate the virtual environment:**
+   ```sh
+   poetry shell
+   ```
+
+### Running the tool locally
+
+Once installed, you can run the tool using:
+
+```sh
+poetry run make_prg --help
+```
+
+Or if you have activated the shell:
+
+```sh
+make_prg --help
+```
+
+### Running tests
+
+```sh
+poetry run pytest
+```
+
+### Code formatting
+
+```sh
+poetry run black .
+poetry run isort .
+```
+
+### Linting
+
+```sh
+poetry run flake8
 ```
 
 [pandora]: https://github.com/rmcolq/pandora
