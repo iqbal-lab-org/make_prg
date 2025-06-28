@@ -227,7 +227,7 @@ def kmeans_cluster_seqs(
     first_id = alignment[0].id
     first_sequence = ungap(str(alignment[0].seq))
 
-    logger.debug(f"kmeans_cluster_seqs: Processing sequences for clustering")
+    logger.debug("kmeans_cluster_seqs: Processing sequences for clustering")
 
     for record in alignment:
         seq_with_gaps = str(record.seq)
@@ -271,7 +271,7 @@ def kmeans_cluster_seqs(
         seq_to_gapped_seqs, cluster_assignment
     )
 
-    logger.debug(f"kmeans_cluster_seqs: Starting clustering loop")
+    logger.debug("kmeans_cluster_seqs: Starting clustering loop")
     while cluster_further(seqclustering):
         num_clusters += 1
         logger.debug(f"kmeans_cluster_seqs: Trying {num_clusters} clusters")
@@ -283,7 +283,7 @@ def kmeans_cluster_seqs(
             break
         if num_clusters == num_sequences:
             logger.debug(
-                f"kmeans_cluster_seqs: Number of clusters equals number of sequences"
+                "kmeans_cluster_seqs: Number of clusters equals number of sequences"
             )
             break
 
@@ -293,7 +293,7 @@ def kmeans_cluster_seqs(
         kmeans = KMeans(n_clusters=num_clusters, random_state=2, algorithm="elkan").fit(
             count_matrix
         )
-        logger.debug(f"kmeans_cluster_seqs: KMeans fitting completed")
+        logger.debug("kmeans_cluster_seqs: KMeans fitting completed")
 
         prev_cluster_assignment = cluster_assignment
         cluster_assignment = list(kmeans.predict(count_matrix))
@@ -304,7 +304,7 @@ def kmeans_cluster_seqs(
         # (due to repeats), making kmeans unable to fit requested number of clusters
         if num_fitted_clusters < num_clusters:
             logger.debug(
-                f"kmeans_cluster_seqs: Fitted clusters < requested clusters, reverting"
+                "kmeans_cluster_seqs: Fitted clusters < requested clusters, reverting"
             )
             cluster_assignment = prev_cluster_assignment
             num_clusters -= 1
@@ -321,7 +321,7 @@ def kmeans_cluster_seqs(
 
     if no_clustering:
         logger.debug(
-            f"kmeans_cluster_seqs: No meaningful clustering found, returning single cluster"
+            "kmeans_cluster_seqs: No meaningful clustering found, returning single cluster"
         )
         single_cluster = [
             flatten_list(seq_to_ids.values()) + flatten_list(small_seq_to_ids.values())

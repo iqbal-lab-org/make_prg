@@ -10,6 +10,7 @@ from loguru import logger
 from make_prg import MSA
 from make_prg.from_msa.cluster_sequences import ClusteringResult, kmeans_cluster_seqs
 from make_prg.from_msa.interval_partition import IntervalPartitioner, Intervals
+from make_prg.prg_builder import PrgBuilder
 from make_prg.update.denovo_variants import UpdateData
 from make_prg.update.MLPath import MLPathError
 from make_prg.utils.misc import equal_msas
@@ -476,10 +477,10 @@ class NodeFactory:
         )
 
         if building_a_leaf:
-            logger.debug(f"NodeFactory.build: Building leaf node")
+            logger.debug("NodeFactory.build: Building leaf node")
             return LeafNode(nesting_level, alignment, parent_node, prg_builder)
         elif building_multi_interval_node or building_the_root:
-            logger.debug(f"NodeFactory.build: Building multi-interval node")
+            logger.debug("NodeFactory.build: Building multi-interval node")
             interval_subalignments = (
                 NodeFactory._partition_alignment_into_interval_subalignments(
                     alignment, all_intervals
@@ -496,10 +497,10 @@ class NodeFactory:
                 interval_subalignments,
             )
         else:  # builds a multi cluster node
-            logger.debug(f"NodeFactory.build: Attempting to build multi-cluster node")
+            logger.debug("NodeFactory.build: Attempting to build multi-cluster node")
             clustering_result = kmeans_cluster_seqs(alignment, min_match_length)
             logger.debug(
-                f"NodeFactory.build: Clustering completed, checking if should cluster further"
+                "NodeFactory.build: Clustering completed, checking if should cluster further"
             )
             cluster_further = NodeFactory._infer_if_we_should_cluster_further(
                 alignment, clustering_result, nesting_level, prg_builder.max_nesting
@@ -525,7 +526,7 @@ class NodeFactory:
                 )
             else:  # can't cluster further, force builds leaf
                 logger.debug(
-                    f"NodeFactory.build: Cannot cluster further, forcing leaf node build"
+                    "NodeFactory.build: Cannot cluster further, forcing leaf node build"
                 )
                 return LeafNode(nesting_level, alignment, parent_node, prg_builder)
 
@@ -564,13 +565,13 @@ class NodeFactory:
             f"_get_vertical_partition: Starting with alignment {len(alignment)} seqs x {alignment.get_alignment_length()} bp"
         )
 
-        logger.debug(f"_get_vertical_partition: Computing consensus sequence...")
+        logger.debug("_get_vertical_partition: Computing consensus sequence...")
         consensus = get_consensus_from_MSA(alignment)
         logger.debug(
             f"_get_vertical_partition: Consensus computed, length: {len(consensus)}"
         )
 
-        logger.debug(f"_get_vertical_partition: Creating IntervalPartitioner...")
+        logger.debug("_get_vertical_partition: Creating IntervalPartitioner...")
         interval_partitioner = IntervalPartitioner(
             consensus,
             min_match_length,
@@ -578,10 +579,10 @@ class NodeFactory:
             force_expand_ambiguous_bases=prg_builder.force_expand_ambiguous_bases,
         )
         logger.debug(
-            f"_get_vertical_partition: IntervalPartitioner created successfully"
+            "_get_vertical_partition: IntervalPartitioner created successfully"
         )
 
-        logger.debug(f"_get_vertical_partition: Getting intervals...")
+        logger.debug("_get_vertical_partition: Getting intervals...")
         (
             match_intervals,
             non_match_intervals,

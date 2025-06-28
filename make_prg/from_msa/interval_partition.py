@@ -98,7 +98,7 @@ class IntervalPartitioner:
 
         if len(consensus_string) < self.mml:
             logger.debug(
-                f"IntervalPartitioner.__init__: Consensus shorter than min_match_length, creating single interval"
+                "IntervalPartitioner.__init__: Consensus shorter than min_match_length, creating single interval"
             )
             # In this case, a match of less than the min_match_length gets counted
             # as a match (usually, it counts as a non_match)
@@ -113,7 +113,7 @@ class IntervalPartitioner:
                 self._append(Interval(it_type, 0, len(consensus_string) - 1))
         else:
             logger.debug(
-                f"IntervalPartitioner.__init__: Processing consensus character by character"
+                "IntervalPartitioner.__init__: Processing consensus character by character"
             )
             cur_interval = self._new_interval(consensus_string[0], 0)
 
@@ -132,18 +132,18 @@ class IntervalPartitioner:
                     else:
                         cur_interval = new_interval
             logger.debug(
-                f"IntervalPartitioner.__init__: Finished processing consensus, adding final interval"
+                "IntervalPartitioner.__init__: Finished processing consensus, adding final interval"
             )
             self._add_interval(cur_interval, alignment, end=True)
 
         logger.debug(
-            f"IntervalPartitioner.__init__: Enforcing multisequence nonmatch intervals"
+            "IntervalPartitioner.__init__: Enforcing multisequence nonmatch intervals"
         )
         self.enforce_multisequence_nonmatch_intervals(
             self._match_intervals, self._non_match_intervals, alignment
         )
         logger.debug(
-            f"IntervalPartitioner.__init__: Enforcing alignment interval bijection"
+            "IntervalPartitioner.__init__: Enforcing alignment interval bijection"
         )
         self.enforce_alignment_interval_bijection(
             self._match_intervals,
@@ -302,7 +302,7 @@ class IntervalPartitioner:
 
                 if log_total_expansions > 13:  # 2^13 = ~8000
                     logger.error(
-                        f"enforce_multisequence_nonmatch_intervals: Large expansion detected - this will likely cause hang!"
+                        "enforce_multisequence_nonmatch_intervals: Large expansion detected - this will likely cause hang!"
                     )
 
             logger.debug(
@@ -325,7 +325,7 @@ class IntervalPartitioner:
                     )
                 )
                 non_match_intervals.pop(i)
-        logger.debug(f"enforce_multisequence_nonmatch_intervals: Completed")
+        logger.debug("enforce_multisequence_nonmatch_intervals: Completed")
 
     @classmethod
     def enforce_alignment_interval_bijection(
