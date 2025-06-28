@@ -118,6 +118,12 @@ def get_all_input_files(input_path: str, suffix: str) -> List[Path]:
 
 
 def process_MSA(options, input_and_output_files: InputOutputFilesFromMSA):
+    # Configure logger for multiprocessing worker - inherit verbose setting from main process
+    from make_prg.__main__ import configure_logger
+    verbose_count = getattr(options, 'verbose', 0)
+    log_file = getattr(options, 'log', None)
+    configure_logger(verbose_count, log_file)
+    
     locus_name = input_and_output_files.locus_name
     prefix = input_and_output_files.temp_prefix
     logger.info(f"Generating PRG for {locus_name}...")

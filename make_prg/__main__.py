@@ -54,17 +54,27 @@ def setup_common_last_options(parsers: List[argparse.ArgumentParser]):
         par.add_argument("--log", help="Path to write log to. Default is stderr")
 
 
-def setup_logger(args: argparse.Namespace):
-    if (
-        "verbose" in args
-    ):  # args.verbose does not exist if make_prg is called with no args
+def configure_logger(verbose_count: int, log_file=None):
+    """Configure loguru logger based on verbosity level."""
+    from loguru import logger as target_logger
+    target_logger.remove()  # Remove all existing handlers
+    
+    if verbose_count > 0:
         log_levels = ["INFO", "DEBUG", "TRACE"]
-        log_level = log_levels[min(args.verbose, len(log_levels) - 1)]
-        log_file = args.log or sys.stderr
-        handlers = [
-            dict(sink=log_file, enqueue=True, level=log_level),
-        ]
-        logger.configure(handlers=handlers)
+        log_level = log_levels[min(verbose_count, len(log_levels) - 1)]
+        output = log_file or sys.stderr
+        target_logger.add(output, level=log_level, enqueue=True)
+    else:
+        # Default to INFO level when no verbose flag is provided
+        output = log_file or sys.stderr
+        target_logger.add(output, level="INFO", enqueue=True)
+
+
+def setup_logger(args: argparse.Namespace):
+    """Setup logger for main process."""
+    verbose_count = getattr(args, 'verbose', 0)
+    log_file = getattr(args, 'log', None)
+    configure_logger(verbose_count, log_file)
 
 
 def main():
