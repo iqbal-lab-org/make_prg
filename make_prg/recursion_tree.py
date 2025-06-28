@@ -10,7 +10,6 @@ from loguru import logger
 from make_prg import MSA
 from make_prg.from_msa.cluster_sequences import ClusteringResult, kmeans_cluster_seqs
 from make_prg.from_msa.interval_partition import IntervalPartitioner, Intervals
-from make_prg.prg_builder import PrgBuilder
 from make_prg.update.denovo_variants import UpdateData
 from make_prg.update.MLPath import MLPathError
 from make_prg.utils.misc import equal_msas
@@ -559,7 +558,7 @@ class NodeFactory:
     #  interval methods
     @staticmethod
     def _get_vertical_partition(
-        alignment: MSA, min_match_length: int, prg_builder: "PrgBuilder"
+        alignment: MSA, min_match_length: int, prg_builder: "PrgBuilder"  # noqa: F821
     ) -> Tuple[Intervals, Intervals]:
         logger.debug(
             f"_get_vertical_partition: Starting with alignment {len(alignment)} seqs x {alignment.get_alignment_length()} bp"
