@@ -32,7 +32,7 @@ class PrgBuilder(object):
         force_expand_ambiguous_bases: bool = False,
     ):
         from loguru import logger
-        
+
         self._locus_name: str = locus_name  # note locus_name is fully protected from writes (see self.__hash__())
         self.max_nesting: int = max_nesting
         self.min_match_length: int = min_match_length
@@ -44,8 +44,10 @@ class PrgBuilder(object):
 
         logger.debug(f"Loading alignment file: {msa_file}")
         alignment = load_alignment_file(str(msa_file), alignment_format)
-        logger.debug(f"Alignment loaded with {len(alignment)} sequences, length: {alignment.get_alignment_length()}")
-        
+        logger.debug(
+            f"Alignment loaded with {len(alignment)} sequences, length: {alignment.get_alignment_length()}"
+        )
+
         logger.debug(f"Building recursion tree for {locus_name}...")
         self.root: RecursiveTreeNode = NodeFactory.build(alignment, self, None)
         logger.debug(f"Recursion tree built successfully for {locus_name}")
@@ -108,15 +110,19 @@ class PrgBuilder(object):
 
     def build_prg(self) -> str:
         from loguru import logger
-        
+
         logger.debug(f"Starting PRG construction for {self.locus_name}")
         self.site_num = 5
         prg_as_list = []
         logger.debug(f"Beginning preorder traversal for {self.locus_name}")
         self.root.preorder_traversal_to_build_prg(prg_as_list)
-        logger.debug(f"Preorder traversal completed for {self.locus_name}, joining {len(prg_as_list)} elements")
+        logger.debug(
+            f"Preorder traversal completed for {self.locus_name}, joining {len(prg_as_list)} elements"
+        )
         prg = "".join(prg_as_list)
-        logger.debug(f"PRG construction completed for {self.locus_name}, final length: {len(prg)}")
+        logger.debug(
+            f"PRG construction completed for {self.locus_name}, final length: {len(prg)}"
+        )
         return prg
 
     def get_next_site_num(self) -> int:

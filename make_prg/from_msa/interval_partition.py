@@ -78,18 +78,28 @@ class IntervalPartitioner:
     consensus sequence longer than min_match_length, and
     a list of the non-match intervals left."""
 
-    def __init__(self, consensus_string: str, min_match_length: int, alignment: MSA, force_expand_ambiguous_bases: bool = False):
+    def __init__(
+        self,
+        consensus_string: str,
+        min_match_length: int,
+        alignment: MSA,
+        force_expand_ambiguous_bases: bool = False,
+    ):
         from loguru import logger
-        
-        logger.debug(f"IntervalPartitioner.__init__: consensus length={len(consensus_string)}, min_match_length={min_match_length}, force_expand_ambiguous_bases={force_expand_ambiguous_bases}")
-        
+
+        logger.debug(
+            f"IntervalPartitioner.__init__: consensus length={len(consensus_string)}, min_match_length={min_match_length}, force_expand_ambiguous_bases={force_expand_ambiguous_bases}"
+        )
+
         self._match_intervals: Intervals = list()
         self._non_match_intervals: Intervals = list()
         self.mml = min_match_length
         self.force_expand_ambiguous_bases = force_expand_ambiguous_bases
 
         if len(consensus_string) < self.mml:
-            logger.debug(f"IntervalPartitioner.__init__: Consensus shorter than min_match_length, creating single interval")
+            logger.debug(
+                f"IntervalPartitioner.__init__: Consensus shorter than min_match_length, creating single interval"
+            )
             # In this case, a match of less than the min_match_length gets counted
             # as a match (usually, it counts as a non_match)
             it_type = IntervalType.Match
@@ -102,13 +112,17 @@ class IntervalPartitioner:
             if not consensus_string_is_empty:
                 self._append(Interval(it_type, 0, len(consensus_string) - 1))
         else:
-            logger.debug(f"IntervalPartitioner.__init__: Processing consensus character by character")
+            logger.debug(
+                f"IntervalPartitioner.__init__: Processing consensus character by character"
+            )
             cur_interval = self._new_interval(consensus_string[0], 0)
 
             for i, letter in enumerate(consensus_string[1:], start=1):
                 if i % 100 == 0:  # Log progress every 100 characters
-                    logger.debug(f"IntervalPartitioner.__init__: Processing position {i}/{len(consensus_string)}")
-                
+                    logger.debug(
+                        f"IntervalPartitioner.__init__: Processing position {i}/{len(consensus_string)}"
+                    )
+
                 if is_type(letter, cur_interval.type):
                     cur_interval.modify_by(0, 1)  # simple interval extension
                 else:
@@ -117,20 +131,28 @@ class IntervalPartitioner:
                         cur_interval = self._new_interval(letter, i)
                     else:
                         cur_interval = new_interval
-            logger.debug(f"IntervalPartitioner.__init__: Finished processing consensus, adding final interval")
+            logger.debug(
+                f"IntervalPartitioner.__init__: Finished processing consensus, adding final interval"
+            )
             self._add_interval(cur_interval, alignment, end=True)
 
-        logger.debug(f"IntervalPartitioner.__init__: Enforcing multisequence nonmatch intervals")
+        logger.debug(
+            f"IntervalPartitioner.__init__: Enforcing multisequence nonmatch intervals"
+        )
         self.enforce_multisequence_nonmatch_intervals(
             self._match_intervals, self._non_match_intervals, alignment
         )
-        logger.debug(f"IntervalPartitioner.__init__: Enforcing alignment interval bijection")
+        logger.debug(
+            f"IntervalPartitioner.__init__: Enforcing alignment interval bijection"
+        )
         self.enforce_alignment_interval_bijection(
             self._match_intervals,
             self._non_match_intervals,
             alignment.get_alignment_length(),
         )
-        logger.debug(f"IntervalPartitioner.__init__: Completed - {len(self._match_intervals)} match, {len(self._non_match_intervals)} non-match intervals")
+        logger.debug(
+            f"IntervalPartitioner.__init__: Completed - {len(self._match_intervals)} match, {len(self._non_match_intervals)} non-match intervals"
+        )
 
     def get_intervals(self) -> Tuple[Intervals, Intervals, Intervals]:
         return (
@@ -211,67 +233,88 @@ class IntervalPartitioner:
             - '-' in sequences causes them to appear different, but they are the same
         """
         from loguru import logger
-        
-        logger.debug(f"enforce_multisequence_nonmatch_intervals: Processing {len(non_match_intervals)} non-match intervals")
+
+        logger.debug(
+            f"enforce_multisequence_nonmatch_intervals: Processing {len(non_match_intervals)} non-match intervals"
+        )
         if len(alignment) == 0:  # For testing convenience
             return
         for i in reversed(range(len(non_match_intervals))):
-            logger.debug(f"enforce_multisequence_nonmatch_intervals: Processing interval {len(non_match_intervals)-i}/{len(non_match_intervals)}")
-            
+            logger.debug(
+                f"enforce_multisequence_nonmatch_intervals: Processing interval {len(non_match_intervals)-i}/{len(non_match_intervals)}"
+            )
+
             interval = non_match_intervals[i]
             interval_size = interval.stop - interval.start + 1
-            logger.debug(f"enforce_multisequence_nonmatch_intervals: Processing interval {i} - size {interval_size} (positions {interval.start}-{interval.stop})")
-            
+            logger.debug(
+                f"enforce_multisequence_nonmatch_intervals: Processing interval {i} - size {interval_size} (positions {interval.start}-{interval.stop})"
+            )
+
             interval_alignment = alignment[:, interval.start : interval.stop + 1]
-            
+
             # Calculate potential expansion explosion using logarithms to avoid overflow
             import math
-            
+
             ambiguous_base_count = 0
             expansion_factors = []
             expansion_details = []
             log_total_expansions = 0.0  # log base 2 of total expansions
-            
+
             for record in interval_alignment:
                 seq_str = str(record.seq)
                 for pos, base in enumerate(seq_str):
-                    if base in {'R', 'Y', 'S', 'W', 'K', 'M'}:  # 2-way ambiguous
+                    if base in {"R", "Y", "S", "W", "K", "M"}:  # 2-way ambiguous
                         log_total_expansions += math.log2(2)
                         ambiguous_base_count += 1
                         expansion_factors.append(2)
                         expansion_details.append(f"pos{pos}:{base}(2x)")
-                    elif base in {'B', 'D', 'H', 'V'}:  # 3-way ambiguous  
+                    elif base in {"B", "D", "H", "V"}:  # 3-way ambiguous
                         log_total_expansions += math.log2(3)
                         ambiguous_base_count += 1
                         expansion_factors.append(3)
                         expansion_details.append(f"pos{pos}:{base}(3x)")
-                    elif base == 'N':  # 4-way ambiguous
+                    elif base == "N":  # 4-way ambiguous
                         log_total_expansions += math.log2(4)
                         ambiguous_base_count += 1
                         expansion_factors.append(4)
                         expansion_details.append(f"pos{pos}:{base}(4x)")
-            
+
             if ambiguous_base_count > 0:
                 # Calculate exact number if small enough, otherwise show scientific notation
                 if log_total_expansions < 60:  # 2^60 ≈ 10^18, still manageable
-                    total_expansions = int(2 ** log_total_expansions)
-                    logger.warning(f"enforce_multisequence_nonmatch_intervals: Interval {i} has {ambiguous_base_count} ambiguous bases -> {total_expansions:,} potential expansions")
+                    total_expansions = int(2**log_total_expansions)
+                    logger.warning(
+                        f"enforce_multisequence_nonmatch_intervals: Interval {i} has {ambiguous_base_count} ambiguous bases -> {total_expansions:,} potential expansions"
+                    )
                 else:
                     # Show in 2^x format and scientific notation
                     scientific_notation = 10 ** (log_total_expansions * math.log10(2))
-                    logger.error(f"enforce_multisequence_nonmatch_intervals: MASSIVE EXPANSION! Interval {i} has {ambiguous_base_count} ambiguous bases")
-                    logger.error(f"Total expansions: 2^{log_total_expansions:.1f} ≈ {scientific_notation:.2e}")
+                    logger.error(
+                        f"enforce_multisequence_nonmatch_intervals: MASSIVE EXPANSION! Interval {i} has {ambiguous_base_count} ambiguous bases"
+                    )
+                    logger.error(
+                        f"Total expansions: 2^{log_total_expansions:.1f} ≈ {scientific_notation:.2e}"
+                    )
                     logger.error(f"Expansion factors: {expansion_factors}")
-                    logger.error(f"Details: {expansion_details[:20]}{'...' if len(expansion_details) > 20 else ''}")
-                                    
+                    logger.error(
+                        f"Details: {expansion_details[:20]}{'...' if len(expansion_details) > 20 else ''}"
+                    )
+
                 if log_total_expansions > 13:  # 2^13 = ~8000
-                    logger.error(f"enforce_multisequence_nonmatch_intervals: Large expansion detected - this will likely cause hang!")
-            
-            logger.debug(f"enforce_multisequence_nonmatch_intervals: Calling SequenceExpander on interval {i} (expecting 2^{log_total_expansions:.1f} expansions)")
-            expanded_seqs = SequenceExpander.get_expanded_sequences_from_MSA(
-                interval_alignment, force_expand_ambiguous_bases=self.force_expand_ambiguous_bases
+                    logger.error(
+                        f"enforce_multisequence_nonmatch_intervals: Large expansion detected - this will likely cause hang!"
+                    )
+
+            logger.debug(
+                f"enforce_multisequence_nonmatch_intervals: Calling SequenceExpander on interval {i} (expecting 2^{log_total_expansions:.1f} expansions)"
             )
-            logger.debug(f"enforce_multisequence_nonmatch_intervals: SequenceExpander returned {len(expanded_seqs)} sequences for interval {i}")
+            expanded_seqs = SequenceExpander.get_expanded_sequences_from_MSA(
+                interval_alignment,
+                force_expand_ambiguous_bases=self.force_expand_ambiguous_bases,
+            )
+            logger.debug(
+                f"enforce_multisequence_nonmatch_intervals: SequenceExpander returned {len(expanded_seqs)} sequences for interval {i}"
+            )
             if len(expanded_seqs) < 2:
                 changed_interval = non_match_intervals[i]
                 match_intervals.append(
@@ -296,13 +339,17 @@ class IntervalPartitioner:
         (match or non_match) interval
         """
         from loguru import logger
-        
-        logger.debug(f"enforce_alignment_interval_bijection: Checking {alignment_length} positions across {len(match_intervals)} match and {len(non_match_intervals)} non-match intervals")
-        
+
+        logger.debug(
+            f"enforce_alignment_interval_bijection: Checking {alignment_length} positions across {len(match_intervals)} match and {len(non_match_intervals)} non-match intervals"
+        )
+
         for i in range(alignment_length):
             if i % 100 == 0:  # Log progress every 100 positions
-                logger.debug(f"enforce_alignment_interval_bijection: Checking position {i}/{alignment_length}")
-            
+                logger.debug(
+                    f"enforce_alignment_interval_bijection: Checking position {i}/{alignment_length}"
+                )
+
             count_match = 0
             for interval in match_intervals:
                 if interval.contains(i):

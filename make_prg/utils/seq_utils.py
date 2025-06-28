@@ -114,7 +114,9 @@ class SequenceExpander:
             ), f"Sequence ({sequence}) should be composed of ACTG only."
 
     @classmethod
-    def get_expanded_sequences(cls, sequences: List[str], force_expand_ambiguous_bases: bool = True) -> Sequences:
+    def get_expanded_sequences(
+        cls, sequences: List[str], force_expand_ambiguous_bases: bool = True
+    ) -> Sequences:
         """
         Expand sequences in the given list of sequences, following the translation
         table in SequenceExpander.iupac.
@@ -153,7 +155,7 @@ class SequenceExpander:
                         safe_seq += cls.iupac[base][0]  # Take first alternative
                     else:
                         safe_seq += base
-                
+
                 if safe_seq not in expanded_set:
                     expanded_set.add(safe_seq)
                     expanded_seqs.append(safe_seq)
@@ -169,7 +171,9 @@ class SequenceExpander:
         return expanded_seqs
 
     @classmethod
-    def get_expanded_sequences_from_MSA(cls, alignment: MSA, force_expand_ambiguous_bases: bool = True) -> Sequences:
+    def get_expanded_sequences_from_MSA(
+        cls, alignment: MSA, force_expand_ambiguous_bases: bool = True
+    ) -> Sequences:
         gapless_seqs = list(map(ungap, get_alignment_seqs(alignment)))
         return cls.get_expanded_sequences(gapless_seqs, force_expand_ambiguous_bases)
 

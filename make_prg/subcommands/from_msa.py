@@ -124,8 +124,10 @@ def process_MSA(options, input_and_output_files: InputOutputFilesFromMSA):
 
     try:
         logger.debug(f"Loading MSA file: {input_and_output_files.input_filepath}")
-        logger.debug(f"Parameters: max_nesting={options.max_nesting}, min_match_length={options.min_match_length}")
-        
+        logger.debug(
+            f"Parameters: max_nesting={options.max_nesting}, min_match_length={options.min_match_length}"
+        )
+
         builder = prg_builder.PrgBuilder(
             locus_name=locus_name,
             msa_file=input_and_output_files.input_filepath,
