@@ -29,6 +29,7 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             force=False,
             threads=1,
             verbose=False,
+            force_expand_ambiguous_bases=True,
         )
 
         return options
@@ -243,6 +244,7 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             output_type=output_type.OutputType("a"),
             threads=1,
             verbose=False,
+            force_expand_ambiguous_bases=True,
         )
 
         from_msa.run(options)
@@ -271,6 +273,7 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             output_type=output_type.OutputType("a"),
             threads=1,
             verbose=False,
+            force_expand_ambiguous_bases=True,
         )
 
         with self.assertRaises(EmptyMSAError):
@@ -294,6 +297,7 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             min_match_length=7,
             threads=1,
             verbose=False,
+            force_expand_ambiguous_bases=True,
         )
 
         with self.assertRaises(FileNotFoundError):
@@ -315,6 +319,7 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             force=False,
             threads=1,
             verbose=False,
+            force_expand_ambiguous_bases=True,
         )
 
         with self.assertRaises(RuntimeError):
@@ -346,6 +351,7 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             force=False,
             threads=1,
             verbose=False,
+            force_expand_ambiguous_bases=True,
         )
         from_msa.run(options)
 
@@ -423,6 +429,7 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             force=False,
             threads=1,
             verbose=False,
+            force_expand_ambiguous_bases=True,
         )
 
         from_msa.run(options)
@@ -451,6 +458,7 @@ class Test_From_MSA_Integration_Full_Builds(TestCase):
             output_type=output_type.OutputType("a"),
             threads=1,
             verbose=False,
+            force_expand_ambiguous_bases=True,
         )
 
         from_msa.run(options)
